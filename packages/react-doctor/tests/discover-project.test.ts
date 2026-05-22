@@ -402,13 +402,16 @@ describe("discoverProject", () => {
     expect(projectInfo.tailwindVersion).toBe("^4.0.0");
   });
 
-  it("does not apply monorepo dependency versions to a leaf without declarations", () => {
-    const monorepoRoot = path.join(tempDirectory, "leaf-skips-root-dependency-fallbacks");
+  it("applies the monorepo root React catalog to leaves that do not declare React (hoisted-react workspaces)", () => {
+    // Pinned for #310 / #311: in pnpm/yarn/npm workspaces with React
+    // hoisted to the root, a leaf package that omits React from its
+    // own package.json should still resolve to the root catalog
+    // version instead of failing with `NoReactDependencyError`.
+    const monorepoRoot = path.join(tempDirectory, "leaf-uses-root-react-catalog-fallback");
     fs.mkdirSync(path.join(monorepoRoot, "apps", "web"), { recursive: true });
-    fs.mkdirSync(path.join(monorepoRoot, "packages", "eslint-config"), { recursive: true });
     fs.writeFileSync(
       path.join(monorepoRoot, "pnpm-workspace.yaml"),
-      "packages:\n  - apps/*\n  - packages/*\n\ncatalog:\n  react: ^19.0.0\n  tailwindcss: ^4.0.0\n",
+      "packages:\n  - apps/*\n\ncatalog:\n  react: ^19.0.0\n  tailwindcss: ^4.0.0\n",
     );
     fs.writeFileSync(
       path.join(monorepoRoot, "package.json"),
@@ -421,21 +424,12 @@ describe("discoverProject", () => {
       path.join(monorepoRoot, "apps", "web", "package.json"),
       JSON.stringify({
         name: "web",
-        dependencies: { react: "catalog:", tailwindcss: "catalog:" },
-      }),
-    );
-    fs.writeFileSync(
-      path.join(monorepoRoot, "packages", "eslint-config", "package.json"),
-      JSON.stringify({
-        name: "eslint-config",
-        devDependencies: { eslint: "^9.0.0" },
       }),
     );
 
-    const projectInfo = discoverProject(path.join(monorepoRoot, "packages", "eslint-config"));
-    expect(projectInfo.reactVersion).toBeNull();
-    expect(projectInfo.reactMajorVersion).toBeNull();
-    expect(projectInfo.tailwindVersion).toBeNull();
+    const projectInfo = discoverProject(path.join(monorepoRoot, "apps", "web"));
+    expect(projectInfo.reactVersion).toBe("^19.0.0");
+    expect(projectInfo.reactMajorVersion).toBe(19);
   });
 
   it("uses monorepo React fallback for Next leaf packages without direct React declarations", () => {

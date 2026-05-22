@@ -5,7 +5,6 @@ import { EMPTY_DEPENDENCY_INFO, extractDependencyInfo } from "./extract-dependen
 import { findMonorepoRoot } from "./find-monorepo-root.js";
 import { findReactInWorkspaces } from "./find-react-in-workspaces.js";
 import { getDependencyDeclaration } from "./utils/get-dependency-declaration.js";
-import { hasReactDependency } from "./has-react-dependency.js";
 import { readPackageJson } from "./read-package-json.js";
 import { resolveCatalogVersion } from "./resolve-catalog-version.js";
 
@@ -34,7 +33,7 @@ export const findDependencyInfoFromMonorepoRoot = (directory: string): Dependenc
         sections: ["dependencies", "devDependencies", "peerDependencies"],
       })
     : null;
-  const shouldUseReactFallback = leafPackageJson ? hasReactDependency(leafPackageJson) : true;
+  const shouldUseReactFallback = !leafReactDeclaration?.hasDeclaration;
   const shouldUseTailwindFallback = leafTailwindDeclaration?.hasDeclaration ?? true;
   const reactCatalogVersion = shouldUseReactFallback
     ? resolveCatalogVersion(
@@ -57,7 +56,7 @@ export const findDependencyInfoFromMonorepoRoot = (directory: string): Dependenc
   return {
     reactVersion: shouldUseReactFallback
       ? (reactCatalogVersion ?? rootInfo.reactVersion ?? workspaceInfo.reactVersion)
-      : null,
+      : (rootInfo.reactVersion ?? workspaceInfo.reactVersion),
     tailwindVersion: shouldUseTailwindFallback
       ? (tailwindCatalogVersion ?? rootInfo.tailwindVersion ?? workspaceInfo.tailwindVersion)
       : null,
