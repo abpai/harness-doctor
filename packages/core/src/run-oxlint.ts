@@ -19,6 +19,7 @@ import {
 import { batchIncludePaths } from "./batch-include-paths.js";
 import { buildRuleSeverityControls } from "./build-rule-severity-controls.js";
 import { canOxlintExtendConfig } from "./can-oxlint-extend-config.js";
+import { resolveUserPlugins } from "./runners/oxlint/plugin-resolution.js";
 import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
 import { detectUserLintConfigPaths } from "./detect-user-lint-config.js";
 import { dedupeDiagnostics } from "./utils/dedupe-diagnostics.js";
@@ -378,6 +379,19 @@ interface RunOxlintOptions {
    */
   userConfig?: ReactDoctorConfig | null;
   /**
+   * Directory of the `react-doctor.config.json` (or `package.json`)
+   * that supplied `userConfig`. Used as the resolution base for
+   * `userConfig.plugins` entries — relative paths resolve against
+   * this directory and npm package names resolve through its
+   * `node_modules`, matching how `rootDir` resolves. Diverges from
+   * `rootDirectory` whenever `userConfig.rootDir` redirects the
+   * scan to a subtree.
+   *
+   * Defaults to `rootDirectory` for direct callers that don't load
+   * a config file (e.g. tests that pass `userConfig` synthetically).
+   */
+  configSourceDirectory?: string;
+  /**
    * Called once per soft-fail event (e.g. a batch hit
    * `OXLINT_SPAWN_TIMEOUT_MS` and was skipped). The lint scan keeps
    * going on remaining batches; the caller is expected to surface the
@@ -437,6 +451,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     adoptExistingLintConfig = true,
     ignoredTags = new Set<string>(),
     userConfig,
+    configSourceDirectory = rootDirectory,
     onPartialFailure,
   } = options;
 
@@ -476,6 +491,16 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
   // Drop them up front so the scan starts in the same state the fallback
   // would land in, with no stderr noise.
   const extendsPaths = detectedConfigPaths.filter(canOxlintExtendConfig);
+  // Resolve user-declared plugins (`config.plugins: [...]`) against
+  // the config file's source directory — NOT the scan root, since
+  // those diverge whenever `userConfig.rootDir` redirects the scan
+  // to a subtree (the canonical monorepo case: the config sits at
+  // the workspace root with `rootDir: "apps/web"`, the scan root is
+  // `apps/web/`, but `./lint/team.cjs` still resolves from the
+  // workspace root). Defaults to `rootDirectory` for direct callers
+  // that don't load a config file (e.g. tests passing `userConfig`
+  // synthetically without a corresponding `configSourceDirectory`).
+  const userPlugins = resolveUserPlugins(userConfig?.plugins, configSourceDirectory);
   const config = createOxlintConfig({
     pluginPath,
     project,
@@ -484,6 +509,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
     ignoredTags,
     serverAuthFunctionNames,
     severityControls,
+    userPlugins,
   });
   // HACK: only neutralize disable comments in audit mode. Default
   // behavior respects the user's existing `// eslint-disable*` /
@@ -623,6 +649,10 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
       // as react-doctor itself crashing; the curated-rules scan is the
       // graceful path.
       if (extendsPaths.length === 0) throw error;
+      // Drop `extendsPaths` only — keep `userPlugins` (and every
+      // other option) so the retry still runs the user's custom
+      // rules. Forgetting one option here silently disappears those
+      // diagnostics from the successful retry without warning.
       const fallbackConfig = createOxlintConfig({
         pluginPath,
         project,
@@ -631,6 +661,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
         ignoredTags,
         serverAuthFunctionNames,
         severityControls,
+        userPlugins,
       });
       writeOxlintConfig(fallbackConfig);
       return await spawnLintBatches();

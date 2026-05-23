@@ -149,6 +149,14 @@ export const inspect = async (
   const hasConfigOverride = inputOptions.configOverride !== undefined;
   let scanDirectory = directory;
   let userConfig: ReactDoctorConfig | null;
+  // Source directory of the config file that supplied `userConfig`,
+  // when one was loaded from disk. Drives the resolution base for
+  // `config.plugins` entries — relative paths and npm packages
+  // resolve from here (the config file's location), NOT from the
+  // post-`rootDir` scan root. `null` when the caller passed
+  // `configOverride` programmatically, in which case the runner
+  // falls back to the scan root for plugin resolution.
+  let configSourceDirectory: string | null = null;
   if (hasConfigOverride) {
     userConfig = inputOptions.configOverride ?? null;
   } else {
@@ -159,6 +167,7 @@ export const inspect = async (
     );
     if (redirectedDirectory) scanDirectory = redirectedDirectory;
     userConfig = loadedConfig?.config ?? null;
+    configSourceDirectory = loadedConfig?.sourceDirectory ?? null;
   }
 
   const options = mergeInspectOptions(inputOptions, userConfig);
@@ -178,6 +187,7 @@ export const inspect = async (
       options,
       userConfig,
       hasConfigOverride,
+      configSourceDirectory,
       startTime,
     );
   } finally {
@@ -195,6 +205,7 @@ const runInspectWithRuntime = async (
   options: ResolvedInspectOptions,
   userConfig: ReactDoctorConfig | null,
   hasConfigOverride: boolean,
+  configSourceDirectory: string | null,
   startTime: number,
 ): Promise<InspectResult> => {
   const isDiffMode = options.includePaths.length > 0;
@@ -221,7 +232,16 @@ const runInspectWithRuntime = async (
   // applied first.
   const scoreLayer = Score.layerOf(null);
   const configLayer = hasConfigOverride
-    ? Config.layerOf({ config: userConfig, resolvedDirectory: directory })
+    ? Config.layerOf({
+        config: userConfig,
+        resolvedDirectory: directory,
+        // `configSourceDirectory` is non-null when `inspect()` loaded
+        // the config from disk itself (the CLI path) and `null` only
+        // when the caller passed `configOverride` programmatically
+        // without a corresponding file. The runner falls back to the
+        // scan root in the null case.
+        configSourceDirectory,
+      })
     : Config.layerNode;
 
   const layers = Layer.mergeAll(
