@@ -143,3 +143,19 @@ export const SPINNER_INDENT_CHARS = 0;
 export const MAX_GLOB_PATTERN_LENGTH_CHARS = 1024;
 
 export const MAX_GLOB_PATTERN_WILDCARD_COUNT = 24;
+
+// `Config.layerNode` caches resolved configs per directory so the CLI's
+// repeated `inspect()` calls (one per project in a monorepo loop) don't
+// reload the same `react-doctor.config.json` each time. Capacity bounds
+// memory on monorepos with hundreds of workspace packages; TTL handles
+// long-running consumers (watch-mode tools, language servers).
+export const CONFIG_CACHE_CAPACITY = 16;
+
+export const CONFIG_CACHE_TTL_MS = 5 * 60 * 1_000;
+
+/**
+ * Max sample size shown in partial-failure preview text (e.g.
+ * "and N more files: a.ts, b.ts, c.ts") emitted by the oxlint
+ * binary-split-retry loop.
+ */
+export const OXLINT_PARTIAL_FAILURE_PREVIEW_COUNT = 3;

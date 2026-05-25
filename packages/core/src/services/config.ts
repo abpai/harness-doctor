@@ -2,6 +2,7 @@ import * as Cache from "effect/Cache";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import { CONFIG_CACHE_CAPACITY, CONFIG_CACHE_TTL_MS } from "../constants.js";
 import type { ReactDoctorConfig } from "../types/index.js";
 import { loadConfigWithSource } from "../load-config.js";
 import { resolveConfigRootDir } from "../resolve-config-root-dir.js";
@@ -18,9 +19,6 @@ export interface ResolvedConfig {
    */
   readonly configSourceDirectory: string | null;
 }
-
-const CONFIG_CACHE_CAPACITY = 16;
-const CONFIG_CACHE_TTL_MS = 5 * 60 * 1_000;
 
 export class Config extends Context.Service<
   Config,

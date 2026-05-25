@@ -1,3 +1,4 @@
+import { OXLINT_PARTIAL_FAILURE_PREVIEW_COUNT } from "../../constants.js";
 import type { Diagnostic, ProjectInfo } from "../../types/index.js";
 import { isSplittableReactDoctorError } from "../../errors.js";
 import { dedupeDiagnostics } from "../../utils/dedupe-diagnostics.js";
@@ -12,8 +13,6 @@ export interface SpawnLintBatchesInput {
   readonly project: ProjectInfo;
   readonly onPartialFailure?: (reason: string) => void;
 }
-
-const PREVIEW_COUNT = 3;
 
 /**
  * Runs every prebuilt file batch through oxlint, with binary-split
@@ -78,9 +77,13 @@ export const spawnLintBatches = async (input: SpawnLintBatchesInput): Promise<Di
   }
 
   if (droppedFiles.length > 0 && onPartialFailure) {
-    const previewFiles = droppedFiles.slice(0, PREVIEW_COUNT).join(", ");
+    const previewFiles = droppedFiles
+      .slice(0, OXLINT_PARTIAL_FAILURE_PREVIEW_COUNT)
+      .join(", ");
     const remainderHint =
-      droppedFiles.length > PREVIEW_COUNT ? `, +${droppedFiles.length - PREVIEW_COUNT} more` : "";
+      droppedFiles.length > OXLINT_PARTIAL_FAILURE_PREVIEW_COUNT
+        ? `, +${droppedFiles.length - OXLINT_PARTIAL_FAILURE_PREVIEW_COUNT} more`
+        : "";
     const reasonHint = firstDropReason ? ` — first failure: ${firstDropReason}` : "";
     onPartialFailure(
       `${droppedFiles.length} file(s) failed to lint and were skipped (${previewFiles}${remainderHint})${reasonHint}`,
