@@ -4,12 +4,19 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
-import type { Diagnostic, ProjectInfo, ReactDoctorConfig, ScoreResult } from "./types/index.js";
+import type {
+  Diagnostic,
+  DiagnosticSurface,
+  ProjectInfo,
+  ReactDoctorConfig,
+  ScoreResult,
+} from "./types/index.js";
 import { buildDiagnosticPipeline } from "./build-diagnostic-pipeline.js";
 import { checkPnpmHardening } from "./check-pnpm-hardening.js";
 import { checkReducedMotion } from "./check-reduced-motion.js";
 import { computeJsxIncludePaths } from "./jsx-include-paths.js";
 import { NoReactDependency, ReactDoctorError, type ReactDoctorErrorReason } from "./errors.js";
+import { filterDiagnosticsForSurface } from "./filter-for-surface.js";
 import { resolveLintIncludePaths } from "./resolve-lint-include-paths.js";
 import { Config, type ResolvedConfig } from "./services/config.js";
 import { DeadCode } from "./services/dead-code.js";
@@ -38,6 +45,17 @@ export interface InspectInput {
   readonly doctorVersion?: string;
   /** Enables best-effort authenticated local GitHub permission lookup for score metadata. */
   readonly resolveLocalGithubViewerPermission?: boolean;
+  /**
+   * Diagnostic surface fed to the Score service. Defaults to `"score"`,
+   * which excludes weak-signal rule families (e.g. `design`-tagged) from
+   * the score so they can't dilute the headline number. Public-API shells
+   * (`inspect()` / `diagnose()`) leave this at the default; pass `"cli"`
+   * (or any other surface) to score against an unfiltered diagnostic set.
+   *
+   * The returned `InspectOutput.diagnostics` is always the full
+   * per-element-filtered list — surface filtering only affects scoring.
+   */
+  readonly scoreSurface?: DiagnosticSurface;
 }
 
 export interface InspectOutput {
@@ -290,10 +308,21 @@ export const runInspect = <HooksR = never>(
     yield* afterLint(lintFailureState.didFail);
 
     const finalDiagnostics: ReadonlyArray<Diagnostic> = [...survivingDiagnostics];
+    // Score is computed off the surface-filtered diagnostic set so
+    // weak-signal rule families (design cleanup, etc.) can't dilute
+    // the headline number. The full `finalDiagnostics` array is what
+    // the caller sees on `InspectOutput.diagnostics`; only the score
+    // input is narrowed.
+    const scoreSurface: DiagnosticSurface = input.scoreSurface ?? "score";
+    const scoreDiagnostics = filterDiagnosticsForSurface(
+      [...finalDiagnostics],
+      scoreSurface,
+      resolvedConfig.config,
+    );
     const score = lintFailureState.didFail
       ? null
       : yield* scoreService.compute({
-          diagnostics: finalDiagnostics,
+          diagnostics: scoreDiagnostics,
           isCi: input.isCi,
           metadata: scoreMetadata,
         });
@@ -320,6 +349,7 @@ export const runInspect = <HooksR = never>(
         "inspect.includePathCount": input.includePaths.length,
         "inspect.runDeadCode": input.runDeadCode,
         "inspect.isCi": input.isCi,
+        "inspect.scoreSurface": input.scoreSurface ?? "score",
       },
     }),
   );

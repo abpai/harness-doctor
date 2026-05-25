@@ -25,6 +25,12 @@ export interface BuildRuntimeLayersInput {
    */
   readonly shouldSkipLint: boolean;
   readonly shouldRunDeadCode: boolean;
+  /**
+   * Whether the run should request a score from the hosted API.
+   * `false` swaps `Score.layerHttp` for `Score.layerOf(null)` so the
+   * orchestrator's Score service is a no-op for `--no-score` runs.
+   */
+  readonly shouldComputeScore: boolean;
 }
 
 /**
@@ -43,20 +49,16 @@ export interface BuildRuntimeLayersInput {
  *   of re-loading from disk; `configSourceDirectory` is threaded
  *   through so `userConfig.plugins` resolution still anchors at
  *   the original config file location.
- * - **Score**: always `layerOf(null)` because the CLI computes the
- *   real score AFTER `runInspect` returns, with surface filtering
- *   applied (the orchestrator's `Score.compute` only sees the
- *   per-element-filtered list, not the surface-filtered one).
+ * - **Score**: `layerHttp` for normal runs; `layerOf(null)` only when
+ *   the caller passed `--no-score`. The orchestrator applies the
+ *   `"score"` surface filter to the diagnostic set before calling
+ *   `Score.compute`, so the in-band score matches what the public-API
+ *   contract documents.
  */
 export const buildRuntimeLayers = (input: BuildRuntimeLayersInput) => {
   const linterLayer = input.shouldSkipLint ? Linter.layerOf([]) : Linter.layerOxlint;
   const deadCodeLayer = input.shouldRunDeadCode ? DeadCode.layerNode : DeadCode.layerOf([]);
-  // HACK: always provide layerOf(null) for Score — the orchestrator's
-  // Score.compute sees the per-element-filtered list, NOT the
-  // surface-filtered list this function needs. The CLI computes the
-  // real score below with `filterDiagnosticsForSurface("score", ...)`
-  // applied first.
-  const scoreLayer = Score.layerOf(null);
+  const scoreLayer = input.shouldComputeScore ? Score.layerHttp : Score.layerOf(null);
   const configLayer = input.hasConfigOverride
     ? Config.layerOf({
         config: input.userConfig,
