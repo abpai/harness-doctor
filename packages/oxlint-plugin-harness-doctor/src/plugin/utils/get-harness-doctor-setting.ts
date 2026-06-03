@@ -1,9 +1,9 @@
 import type { RuleContext } from "./rule-context.js";
 
-// Extracted helpers for reading typed entries out of the `harness-doctor`
-// settings bag that core writes into the oxlint config (see
-// `createOxlintConfig` in `@harness-doctor/core`). Both functions:
-//   - Guard against the settings bag being missing, an array, or `null`.
+// Reads a typed entry out of the `harness-doctor` settings bag that core
+// writes into the oxlint config (see `createOxlintConfig` in
+// `@harness-doctor/core`). The helper:
+//   - Guards against the settings bag being missing, an array, or `null`.
 //   - Use `Object.getOwnPropertyDescriptor` instead of bracket access
 //     so that prototype-pollution-style keys (`__proto__`, …) can't
 //     leak inherited values into rule logic.
@@ -34,17 +34,4 @@ export const getHarnessDoctorStringSetting = (
   if (!bag) return undefined;
   const settingValue = readOwnPropertyValue(bag, settingName);
   return typeof settingValue === "string" ? settingValue : undefined;
-};
-
-export const getHarnessDoctorStringArraySetting = (
-  settings: RuleContext["settings"],
-  settingName: string,
-): ReadonlyArray<string> => {
-  const bag = readHarnessDoctorSettingsBag(settings);
-  if (!bag) return [];
-  const settingValue = readOwnPropertyValue(bag, settingName);
-  if (!Array.isArray(settingValue)) return [];
-  return settingValue.filter(
-    (entry): entry is string => typeof entry === "string" && entry.length > 0,
-  );
 };

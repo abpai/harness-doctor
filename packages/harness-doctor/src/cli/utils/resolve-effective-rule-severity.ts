@@ -6,7 +6,7 @@ import {
 import type { HarnessDoctorConfig, RuleSeverityOverride } from "@harness-doctor/core";
 import type { RuleCatalogEntry } from "./rule-catalog.js";
 
-export type EffectiveSeveritySource = "rule" | "category" | "bucket" | "tag" | "default";
+type EffectiveSeveritySource = "rule" | "category" | "bucket" | "tag" | "default";
 
 export interface EffectiveRuleSeverity {
   /** Severity the rule effectively runs at, in config vocabulary. */
