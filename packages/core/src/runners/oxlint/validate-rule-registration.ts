@@ -31,7 +31,10 @@ export const validateRuleRegistration = (): void => {
     if (!harnessDoctorPlugin.rules[ruleName]?.recommendation) {
       missingHelp.push(fullKey);
     }
-    if (FRAMEWORK_SPECIFIC_RULE_KEYS.has(fullKey) && !harnessDoctorPlugin.rules[ruleName]?.requires) {
+    if (
+      FRAMEWORK_SPECIFIC_RULE_KEYS.has(fullKey) &&
+      !harnessDoctorPlugin.rules[ruleName]?.requires
+    ) {
       missingMetadata.push(fullKey);
     }
   }

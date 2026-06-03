@@ -20,9 +20,10 @@ const NO_MONOLITHIC_INSTRUCTION_FILE_RULE_KEY = "docs-structure/no-monolithic-in
 const REPO_ROOT = path.resolve(import.meta.dirname, "..", "..", "..");
 
 const markdownLines = (count: number): string =>
-  Array.from({ length: count }, (_lineValue, lineIndex) => `Line ${lineIndex + 1} of content.`).join(
-    "\n",
-  );
+  Array.from(
+    { length: count },
+    (_lineValue, lineIndex) => `Line ${lineIndex + 1} of content.`,
+  ).join("\n");
 
 interface FixtureLayout {
   readonly entryPoint?: { readonly filename: string; readonly contents: string };

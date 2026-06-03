@@ -399,7 +399,9 @@ describe.skipIf(process.platform === "win32")("installHarnessDoctorGitHook", () 
     expect(configContent.match(/^pre-commit:/gm)).toHaveLength(1);
     expect(preCommitSection.match(/^  commands:/gm)).toHaveLength(1);
     expect(configContent).toContain("    lint:\n      run: pnpm lint");
-    expect(configContent).toContain("    harness-doctor:\n      run: harness_doctor_output=$(mktemp");
+    expect(configContent).toContain(
+      "    harness-doctor:\n      run: harness_doctor_output=$(mktemp",
+    );
     expect(configContent).toContain("commit-msg:");
   });
 
@@ -512,7 +514,9 @@ describe.skipIf(process.platform === "win32")("installHarnessDoctorGitHook", () 
     );
     expect(target.kind).toBe("yorkie");
     expect(packageJson.gitHooks["pre-commit"]).toContain("pnpm lint");
-    expect(packageJson.gitHooks["pre-commit"]).toContain("harness-doctor --staged --fail-on warning");
+    expect(packageJson.gitHooks["pre-commit"]).toContain(
+      "harness-doctor --staged --fail-on warning",
+    );
   });
 
   it("updates ghooks config", () => {
@@ -676,7 +680,9 @@ describe.skipIf(process.platform === "win32")("installHarnessDoctorGitHook", () 
       path.join(fixture.projectRoot, "package.json"),
     );
     expect(target.kind).toBe("pretty-quick");
-    expect(packageJson.gitHooks["pre-commit"]).toContain("harness-doctor --staged --fail-on warning");
+    expect(packageJson.gitHooks["pre-commit"]).toContain(
+      "harness-doctor --staged --fail-on warning",
+    );
   });
 
   it("runs through a configured hooks directory during a real git commit", () => {

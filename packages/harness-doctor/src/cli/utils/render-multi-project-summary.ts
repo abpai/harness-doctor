@@ -6,7 +6,12 @@ import {
   SCORE_GOOD_THRESHOLD,
   SCORE_OK_THRESHOLD,
 } from "@harness-doctor/core";
-import type { Diagnostic, InspectResult, HarnessDoctorConfig, ScoreResult } from "@harness-doctor/core";
+import type {
+  Diagnostic,
+  InspectResult,
+  HarnessDoctorConfig,
+  ScoreResult,
+} from "@harness-doctor/core";
 import { colorizeByScore } from "./colorize-by-score.js";
 import { computeProjectedScore } from "./compute-score-projection.js";
 import { buildRulePriorityMap } from "./diagnostic-grouping.js";

@@ -15,4 +15,5 @@ import type { Diagnostic } from "../types/index.js";
  * a 404. Gate the directive on this predicate.
  */
 export const hasPublishedFixRecipe = (diagnostic: Pick<Diagnostic, "plugin" | "rule">): boolean =>
-  diagnostic.plugin === "harness-doctor" && Object.hasOwn(harnessDoctorPlugin.rules, diagnostic.rule);
+  diagnostic.plugin === "harness-doctor" &&
+  Object.hasOwn(harnessDoctorPlugin.rules, diagnostic.rule);

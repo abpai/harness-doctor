@@ -112,7 +112,9 @@ export const handoffToAgent = async (input: HandoffToAgentInput): Promise<void> 
   // Install the /harness-doctor skill for the agent we're handing off to, so
   // it already knows the triage workflow. Best-effort — never blocks the
   // handoff.
-  const skillSpinner = spinner(`Installing the /harness-doctor skill for ${displayName}...`).start();
+  const skillSpinner = spinner(
+    `Installing the /harness-doctor skill for ${displayName}...`,
+  ).start();
   try {
     const installed = await installHarnessDoctorSkillForAgent(agentId, input.rootDirectory);
     if (installed) skillSpinner.succeed(`Installed the /harness-doctor skill for ${displayName}.`);

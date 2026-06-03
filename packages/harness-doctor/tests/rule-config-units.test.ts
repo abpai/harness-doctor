@@ -56,11 +56,7 @@ describe("setRuleSeverity", () => {
 
 describe("setCategorySeverity", () => {
   it("sets a category severity without clobbering others", () => {
-    const next = setCategorySeverity(
-      { categories: { Performance: "warn" } },
-      "Security",
-      "off",
-    );
+    const next = setCategorySeverity({ categories: { Performance: "warn" } }, "Security", "off");
     expect(next.categories).toEqual({ Performance: "warn", Security: "off" });
   });
 });

@@ -120,7 +120,10 @@ type ConfigVariableDeclaration = ReturnType<typeof getConfigFromVariableDeclarat
 
 // Syncs only the managed sections onto a magicast-proxied object so the user's
 // other config and formatting survive.
-const syncManagedKeys = (target: Record<string, unknown>, nextConfig: HarnessDoctorConfig): void => {
+const syncManagedKeys = (
+  target: Record<string, unknown>,
+  nextConfig: HarnessDoctorConfig,
+): void => {
   for (const key of MANAGED_KEYS) {
     const value = nextConfig[key];
     if (value === undefined) {
