@@ -5,7 +5,6 @@ import { afterAll, describe, expect, it } from "vite-plus/test";
 import {
   diagnose,
   diagnoseProjects,
-  NoReactDependencyError,
   NotADirectoryError,
   ProjectNotFoundError,
 } from "../src/index.js";
@@ -44,10 +43,12 @@ describe("diagnose", () => {
     expect(Array.isArray(result.diagnostics)).toBe(true);
   });
 
-  it("throws NoReactDependencyError when the directory has package.json without react", async () => {
-    await expect(diagnose(noReactTempDirectory, { lint: false })).rejects.toThrow(
-      NoReactDependencyError,
-    );
+  it("diagnoses a project that has a package.json without any framework dependency", async () => {
+    const result = await diagnose(noReactTempDirectory, { lint: false, deadCode: false });
+    expect(result).toHaveProperty("diagnostics");
+    expect(result).toHaveProperty("score");
+    expect(result.project.reactMajorVersion).toBeNull();
+    expect(Array.isArray(result.diagnostics)).toBe(true);
   });
 
   it("throws ProjectNotFoundError when the directory has no package.json and no React subprojects", async () => {
@@ -177,23 +178,28 @@ describe("diagnoseProjects", () => {
   });
 
   it("collects failing projects with ok: false without aborting the batch", async () => {
-    const result = await diagnoseProjects({
-      projects: [
-        { directory: path.join(FIXTURES_DIRECTORY, "basic-react") },
-        { directory: noReactTempDirectory },
-      ],
-      deadCode: false,
-      lint: false,
-    });
+    const missingProjectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "rdc-api-missing-"));
+    try {
+      const result = await diagnoseProjects({
+        projects: [
+          { directory: path.join(FIXTURES_DIRECTORY, "basic-react") },
+          { directory: missingProjectDirectory },
+        ],
+        deadCode: false,
+        lint: false,
+      });
 
-    const succeeded = result.projects.filter((projectResult) => projectResult.ok);
-    const failed = result.projects.filter((projectResult) => !projectResult.ok);
+      const succeeded = result.projects.filter((projectResult) => projectResult.ok);
+      const failed = result.projects.filter((projectResult) => !projectResult.ok);
 
-    expect(succeeded).toHaveLength(1);
-    expect(succeeded[0].ok && succeeded[0].project.projectName).toBe("test-basic-react");
-    expect(failed).toHaveLength(1);
-    expect(failed[0].directory).toBe(noReactTempDirectory);
-    expect(!failed[0].ok && failed[0].error).toBeInstanceOf(Error);
+      expect(succeeded).toHaveLength(1);
+      expect(succeeded[0].ok && succeeded[0].project.projectName).toBe("test-basic-react");
+      expect(failed).toHaveLength(1);
+      expect(failed[0].directory).toBe(missingProjectDirectory);
+      expect(!failed[0].ok && failed[0].error).toBeInstanceOf(Error);
+    } finally {
+      fs.rmSync(missingProjectDirectory, { recursive: true, force: true });
+    }
   });
 
   it("returns empty results for an empty projects array", async () => {
