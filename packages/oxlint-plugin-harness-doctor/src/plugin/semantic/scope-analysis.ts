@@ -1007,15 +1007,3 @@ export const analyzeScopes = (program: EsTreeNode): ScopeAnalysis => {
     isGlobalReference,
   };
 };
-
-// Helper to know if `inner` is a descendant of `outer` in the scope
-// tree (or equal). Used by closure-captures; exported because rules
-// also benefit.
-export const isDescendantScope = (inner: ScopeDescriptor, outer: ScopeDescriptor): boolean => {
-  let current: ScopeDescriptor | null = inner;
-  while (current) {
-    if (current === outer) return true;
-    current = current.parent;
-  }
-  return false;
-};
