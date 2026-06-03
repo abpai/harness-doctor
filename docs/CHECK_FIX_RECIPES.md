@@ -1,74 +1,96 @@
-# Check Fix Recipes
+# Check fix recipes
 
-Per-finding remediation recipes for structural checks. Each diagnostic already
-carries a one-line `message` (what is wrong + why) and `help` (the fix); this
-file is the longer-form recipe a coding agent follows when `/doctor` surfaces a
-finding. Recipes are generic — they apply to any repository the harness scans,
-not just this one.
+When a structural check fires, the diagnostic already tells you the essentials:
+a one-line `message` (what's wrong and why) and a `help` (the fix). This file is
+the longer version — the recipe a coding agent follows when it sees the finding
+and needs more than a sentence. The recipes are generic: they apply to any
+repository Harness Doctor scans, not just this one.
 
-The fix for a docs-structure finding is almost always editing or splitting
-markdown, never source code.
+One thing holds across all of them: **the fix is almost always editing or
+splitting markdown, never touching source code.** These checks are about how a
+repository explains itself, so the repair happens in its docs.
 
-## docs-structure
+## The idea behind docs-structure
 
-These checks enforce **progressive disclosure**: an agent should be routed to
-the one document it needs, not handed a single monolith to re-read every time.
-The entry-point (`AGENTS.md`, falling back to `CLAUDE.md` / `.cursorrules`) is a
-short **map**; `docs/` is the **system of record** that carries the depth.
+All five docs-structure checks enforce a single principle: **progressive
+disclosure**. An agent should be routed to the one document it needs, not handed
+a monolith to re-read from the top every time.
 
-### docs-structure/entry-point-exists
+That implies a shape. There's an **entry-point** — `AGENTS.md`, or failing that
+`CLAUDE.md` or `.cursorrules` — and it's a short _map_: what the project is, its
+conventions, its layout, and pointers onward. The depth lives in **`docs/`**,
+the _system of record_, where each topic gets its own file an agent can fetch in
+isolation. The checks below each guard one part of that shape.
 
-**Finding:** no agent entry-point file exists at the repo root.
+## docs-structure/entry-point-exists
 
-**Fix:** create an `AGENTS.md` at the repo root. Keep it a short map: one
-paragraph on what the project is, a "conventions" section, a "package/dir
-layout" section, and links into `docs/` for anything detailed. Do not paste
-full guides into it — that trips `entry-point-is-a-map`.
+**What fired:** there's no agent entry-point file at the repo root, so every
+agent that arrives starts by guessing the project's conventions.
 
-### docs-structure/entry-point-is-a-map
+**The fix:** create an `AGENTS.md` at the root. Keep it a map, not a manual — a
+paragraph on what the project is, a _conventions_ section, a _layout_ section,
+and links into `docs/` for anything that needs real depth. Resist pasting full
+guides into it; that just trades this finding for `entry-point-is-a-map`.
 
-**Finding:** the entry-point file exceeds `ENTRY_POINT_MAX_LINES` non-blank
-lines — it has become a manual.
+## docs-structure/entry-point-is-a-map
 
-**Fix:** move detail out of the entry-point into focused files under `docs/`,
-leaving behind a one-line pointer. For example, lift a long "how to write a
-rule" section into `docs/HOW_TO_WRITE_A_RULE.md` and replace it in the
-entry-point with `See docs/HOW_TO_WRITE_A_RULE.md`. Re-run the scan; the
-entry-point should drop under the threshold.
+**What fired:** the entry-point is longer than `ENTRY_POINT_MAX_LINES` non-blank
+lines. It has crossed the line from map to manual.
 
-### docs-structure/docs-directory-exists
+**The fix:** move the detail out into focused files under `docs/`, and leave a
+one-line pointer behind. A long "how to write a rule" section becomes
+`docs/HOW_TO_WRITE_A_RULE.md`, and the entry-point keeps just
+`See docs/HOW_TO_WRITE_A_RULE.md`. Re-run the scan; the line count should fall
+back under the threshold. (This fix and the next two tend to travel together —
+shortening the entry-point usually means you're filling out `docs/`.)
 
-**Finding:** there is no `docs/` directory, or it contains no markdown file.
+## docs-structure/docs-directory-exists
 
-**Fix:** create `docs/` at the repo root and add at least one `.md` file holding
-the detailed conventions the entry-point should delegate to. If detail currently
-lives inside the entry-point, this is the destination for it — pair this fix
-with `entry-point-is-a-map`.
+**What fired:** there's no `docs/` directory, or it exists but holds no markdown
+file. There's nowhere for the detail to live.
 
-### docs-structure/entry-point-links-into-docs
+**The fix:** create `docs/` at the root with at least one `.md` file carrying
+the conventions the entry-point should delegate to. If that detail is currently
+crammed inside the entry-point, this is its new home — do this fix and
+`entry-point-is-a-map` in one pass.
 
-**Finding:** the entry-point never references `docs/`, so the map and the system
-of record are not wired together.
+## docs-structure/entry-point-links-into-docs
 
-**Fix:** add at least `ENTRY_POINT_MIN_DOCS_LINKS` reference from the
-entry-point into `docs/`. Either a markdown link (`See [the guide](docs/guide.md)`)
-or a bare relative path (`docs/guide.md`) counts. Point at the specific docs an
-agent will most often need.
+**What fired:** the entry-point never references `docs/`. The map and the system
+of record both exist, but nothing connects them, so an agent reading the
+entry-point never learns the depth is there.
 
-### docs-structure/no-monolithic-instruction-file
+**The fix:** add at least `ENTRY_POINT_MIN_DOCS_LINKS` reference from the
+entry-point into `docs/`. A markdown link (`See [the guide](docs/guide.md)`) or
+a bare relative path (`docs/guide.md`) both count. Point at the documents an
+agent will reach for most.
 
-**Finding:** a markdown instruction file (under `docs/` or at the repo root,
-excluding the entry-point) exceeds `MONOLITHIC_DOC_MAX_LINES` non-blank lines.
+## docs-structure/no-monolithic-instruction-file
 
-**Fix:** split the oversized file into smaller, topic-scoped documents an agent
-can fetch individually, and cross-link them. A 600-line `docs/GUIDE.md` becomes
-`docs/guide/setup.md`, `docs/guide/testing.md`, etc., or several flat files —
-whichever keeps each under the threshold.
+**What fired:** a markdown instruction file — under `docs/` or at the repo root,
+excluding the entry-point — runs past `MONOLITHIC_DOC_MAX_LINES` non-blank
+lines. One document has quietly become the thing progressive disclosure exists
+to prevent.
 
-## Tuning the thresholds
+**The fix:** split it into smaller, topic-scoped documents an agent can fetch
+one at a time, and cross-link them. A 600-line `docs/GUIDE.md` becomes
+`docs/guide/setup.md`, `docs/guide/testing.md`, and so on — or a few flat files,
+whatever keeps each one under the threshold.
 
-The line limits live in `packages/core/src/constants.ts`
-(`ENTRY_POINT_MAX_LINES`, `MONOLITHIC_DOC_MAX_LINES`,
-`ENTRY_POINT_MIN_DOCS_LINKS`). To silence a docs-structure rule rather than fix
-it, set its severity to `"off"` in `doctor.config.*` under `rules`, e.g.
-`{ "rules": { "harness-doctor/docs-structure/entry-point-is-a-map": "off" } }`.
+## Tuning, or turning a check off
+
+The thresholds — `ENTRY_POINT_MAX_LINES`, `ENTRY_POINT_MIN_DOCS_LINKS`,
+`MONOLITHIC_DOC_MAX_LINES` — all live in
+[`packages/core/src/constants.ts`](../packages/core/src/constants.ts). Adjust
+them there if your project's conventions genuinely differ.
+
+If you'd rather silence a check than satisfy it, set its severity to `"off"` in
+your `doctor.config.*` under `rules`. The key is the fully qualified rule name:
+
+```jsonc
+{
+  "rules": {
+    "harness-doctor/docs-structure/entry-point-is-a-map": "off",
+  },
+}
+```

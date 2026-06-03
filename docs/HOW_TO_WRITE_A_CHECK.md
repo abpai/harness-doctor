@@ -1,102 +1,114 @@
-# How to Write a Structural Check
+# How to write a check
 
-A **structural check** is a non-AST diagnostic. Where an oxlint rule walks a
-parsed source file's AST, a structural check reads files off disk directly —
-package manifests, lockfiles, the `docs/` tree, the agent entry-point file — and
-emits `Diagnostic[]`. The docs-structure checks (does an entry-point file exist,
-is it a map not a manual, does `docs/` exist) are structural checks, and so is
-the supply-chain check.
+A structural check asks a question about the repository instead of about the
+code inside it. Does an agent entry-point file exist? Is it short enough to be a
+map rather than a manual? Does a `docs/` directory exist, and does the
+entry-point link into it? None of those can be answered by parsing a source
+file — they're answered by looking at the files themselves: their names, their
+locations, their lengths.
 
-The canonical template is
+So where a [rule](./HOW_TO_WRITE_A_RULE.md) walks a parsed syntax tree, a check
+reads the filesystem directly — package manifests, lockfiles, the `docs/` tree,
+the entry-point file — and returns a list of diagnostics. The docs-structure
+checks are structural checks. So is the supply-chain check that inspects pnpm
+hardening.
+
+The template is
 [`packages/core/src/checks/pnpm-hardening.ts`](../packages/core/src/checks/pnpm-hardening.ts).
-Read it before writing a new one — this guide describes its shape.
+Read it first; this guide walks through its shape.
 
-## When to write a structural check (not an AST rule)
+## Is it a check or a rule?
 
-Write a structural check when the thing you are checking is **not inside a
-source file**:
-
-- It is about a file's *existence*, *location*, or *length* (e.g. "an
-  `AGENTS.md` must exist at the repo root", "`docs/` must contain a markdown
-  file").
-- It reads a config / manifest / lockfile format that is not JS/TS
-  (`pnpm-workspace.yaml`, `package.json` as data, a markdown file's line count).
-- It reasons about the repository as a whole rather than one parsed module.
-
-If the check needs to understand JavaScript or TypeScript *syntax*, write an AST
-rule instead — see [HOW_TO_WRITE_A_RULE.md](./HOW_TO_WRITE_A_RULE.md).
+The line is sharp, so use it. If answering your question requires understanding
+JavaScript or TypeScript _syntax_, it's a [rule](./HOW_TO_WRITE_A_RULE.md). If
+you could answer it from a shell prompt with `ls`, `wc -l`, or by reading a
+config file as plain data, it's a check. "Is there an `AGENTS.md`?" and "is it
+under 150 lines?" are checks. "Does this function call `eval`?" is a rule.
 
 ## The contract
 
-A check is a single exported arrow function:
+A check is a single exported arrow function. That's the entire interface:
 
 ```ts
 export const checkSomething = (rootDirectory: string): Diagnostic[] => { ... };
 ```
 
-- **Input:** the absolute path to the scan root.
-- **Output:** an array of `Diagnostic`. Return `[]` when there is nothing to
-  report — including when the check does not apply to this repo (e.g.
-  `pnpm-hardening` returns `[]` for a non-pnpm project). A check must never
-  throw; catch IO errors and degrade to `[]`.
-- **Pure-ish:** the only side effect is reading files. No network, no writes.
+- **In:** the absolute path to the scan root.
+- **Out:** an array of `Diagnostic`. Return `[]` when there's nothing to report.
+- **Returns `[]` when the check doesn't apply, too.** A pnpm-hardening check has
+  nothing to say about a non-pnpm project, so it returns `[]` rather than
+  inventing a finding. "Not applicable" and "clean" look the same to the engine,
+  and that's correct.
+- **Never throws.** A malformed lockfile is a fact about the repo, not a reason
+  to crash the scan. Catch your IO and parse errors and degrade to `[]`.
+- **No surprises.** The only side effect a check may have is reading files. No
+  writes, no network.
 
-## The `Diagnostic` shape
+That last constraint isn't bureaucracy. The whole tool's promise is that the
+same repository always yields the same score; a check that reached the network
+or depended on wall-clock time would quietly break it.
 
-Build each diagnostic through a small local factory so every diagnostic from
-the check shares the same `plugin` / `rule` / `category`. Mirror the
-`buildHardeningDiagnostic` helper in the template:
+## Build diagnostics through a small factory
+
+Every diagnostic from a check shares the same `plugin`, `rule`, and `category`,
+so don't repeat those at each call site. Mirror `buildHardeningDiagnostic` in
+the template — one local factory, one source of truth:
 
 ```ts
 const buildDiagnostic = (input: BuildDiagnosticInput): Diagnostic => ({
-  filePath: ENTRY_POINT_FILE,        // path relative to the scan root
+  filePath: ENTRY_POINT_FILE, // path relative to the scan root
   plugin: "harness-doctor",
-  rule: "entry-point-exists",        // the rule key, kebab-case
-  severity: "warning",               // "warning" | "error"
-  message: input.message,            // what is wrong, in one sentence
-  help: input.help,                  // how to fix it
-  line: input.line ?? 0,             // 0 when the finding is file-level
+  rule: "entry-point-exists", // the rule key, kebab-case
+  severity: "warning", // "warning" | "error"
+  message: input.message, // what is wrong, and why
+  help: input.help, // how to fix it
+  line: input.line ?? 0, // 0 for a file-level finding
   column: input.column ?? 0,
-  category: "Maintainability",       // MUST be a DIAGNOSTIC_CATEGORY_BUCKETS member
+  category: "Maintainability", // must be a known category — see below
 });
 ```
 
-### Category must be one of the closed set
+### Category is a closed set
 
-`category` must be one of `DIAGNOSTIC_CATEGORY_BUCKETS` in
-`packages/core/src/constants.ts`:
+`category` must be one of the buckets in
+[`packages/core/src/constants.ts`](../packages/core/src/constants.ts):
 
 ```
 Security · Bugs · Performance · Accessibility · Maintainability
 ```
 
-`rule-metadata.test.ts` asserts this set is exhaustive — introducing a new
-category there will fail the test. Docs-structure checks map to
-`"Maintainability"`; supply-chain (`pnpm-hardening`) maps to `"Security"`.
+This set is deliberately small and enforced by a test — you can't quietly
+introduce a sixth bucket; you'd break the assertion that the set is exhaustive.
+The docs-structure checks are `"Maintainability"`; pnpm-hardening is
+`"Security"`.
 
-### message and help
+### message and help are the product
 
-The `message` and `help` are the entire user-facing contract — the agent skill
-reads them to decide what to do. Write them as a pair:
+The `message` and `help` are not metadata around the real work — they _are_ the
+work. They're what a person reads in the report and what a coding agent acts on,
+and nothing downstream can compensate for a vague pair. Write them deliberately:
 
-- `message` — *what* is wrong and *why it matters*, in one sentence. State the
-  consequence ("an agent harness with no top-level instructions file forces
-  every agent to rediscover conventions from scratch").
-- `help` — the concrete fix ("Add an `AGENTS.md` at the repo root that maps the
-  project and links into `docs/`").
+- **`message`** — what is wrong and _why it matters_, in one sentence. State the
+  consequence, not just the fact: "an agent harness with no top-level
+  instructions file forces every agent to rediscover the project's conventions
+  from scratch" beats "no `AGENTS.md` found."
+- **`help`** — the concrete fix: "Add an `AGENTS.md` at the repo root that maps
+  the project and links into `docs/`."
 
-### line / column
+### Point at the exact spot when you can
 
-Use `0` for a file-level finding ("this file is missing", "this file is too
-long"). When you can point at the exact offending location — the template
-reports the line/column of a weak `trustPolicy:` value — include it so the CLI
-can render a code frame.
+Use `line: 0` for a finding about a whole file — it's missing, or it's too long.
+But when you can name the offending location — the template reports the exact
+line and column of a weak `trustPolicy` value in `pnpm-workspace.yaml` — include
+it, and the CLI will render a code frame around it.
 
-## Magic numbers go in constants.ts
+## Thresholds live in constants.ts
 
-Any threshold lives in `packages/core/src/constants.ts` as
-`SCREAMING_SNAKE_CASE` with a unit suffix, and is imported — never inlined. The
-docs-structure thresholds, for example:
+Any number a check compares against is a tuning knob, and tuning knobs belong in
+one place. Put them in
+[`constants.ts`](../packages/core/src/constants.ts) as `SCREAMING_SNAKE_CASE`
+with a unit suffix, and import them — never inline the literal. The
+docs-structure thresholds, for instance:
 
 ```ts
 export const ENTRY_POINT_MAX_LINES = 150;
@@ -104,11 +116,13 @@ export const ENTRY_POINT_MIN_DOCS_LINKS = 1;
 export const MONOLITHIC_DOC_MAX_LINES = 400;
 ```
 
-## Reading files safely
+A reviewer who wants to know "how long is too long?" should find the answer by
+name in one file, not by grepping for a bare `150` across the codebase.
 
-Use `node:fs` directly (the template does) and the `isFile` helper from
-`project-info` to gate before reading. Wrap parses in `try/catch` and return
-`[]` (or skip that finding) on failure — a malformed file is not a crash:
+## Read files safely
+
+Use `node:fs` directly, and gate every read behind the `isFile` helper from
+`project-info` so a missing file is a clean negative, not an exception:
 
 ```ts
 import fs from "node:fs";
@@ -120,16 +134,21 @@ if (!isFile(path.join(rootDirectory, ENTRY_POINT_FILE))) {
 }
 ```
 
-## Wiring the check into the pipeline
+Wrap any parse in `try/catch` and fall back to `[]` (or just skip that one
+finding). A check that throws on a malformed file takes the whole scan down with
+it — which is a worse outcome than the finding it would have produced.
 
-Three steps, all small:
+## Wire it into the pipeline
 
-1. **Author** `packages/core/src/checks/<name>.ts` following the shape above.
-2. **Re-export** it from `packages/core/src/index.ts` (add an
-   `export * from "./checks/<name>.js";` line) so consumers can import it.
-3. **Register** it in `run-inspect.ts`'s environment-diagnostics block. This is
-   the extension point — the block is skipped in diff mode and otherwise spreads
-   each check's output into the per-element pipeline:
+Three small steps:
+
+1. **Author** `packages/core/src/checks/<name>.ts` in the shape above.
+2. **Re-export** it from
+   [`packages/core/src/index.ts`](../packages/core/src/index.ts) with an
+   `export * from "./checks/<name>.js";` line, so consumers can import it.
+3. **Register** it in `run-inspect.ts`. The extension point is the
+   environment-diagnostics block — it's skipped in diff mode and otherwise
+   spreads each check's output into the pipeline:
 
 ```ts
 const environmentDiagnostics: ReadonlyArray<Diagnostic> = isDiffMode
@@ -137,34 +156,36 @@ const environmentDiagnostics: ReadonlyArray<Diagnostic> = isDiffMode
   : [...checkPnpmHardening(scanDirectory), ...checkDocsStructure(scanDirectory)];
 ```
 
-Keep the `isDiffMode ? []` skip and the
-`applyPerElementPipeline(Stream.fromIterable(...))` wiring verbatim — only the
-array contents change.
+Add your check to that array. Leave the `isDiffMode ? []` guard and the
+surrounding `applyPerElementPipeline(Stream.fromIterable(...))` wiring alone —
+only the array contents change. (Checks are skipped in diff mode on purpose:
+they describe the repository as a whole, so running them against a handful of
+changed files would be meaningless.)
 
-## Testing
+## Test against a real temp directory
 
 Co-locate a test in `packages/core/tests/<name>.test.ts` (see
-`pnpm-hardening.test.ts`). Drive the check against a temporary directory tree
-you build per case, and assert on the returned `Diagnostic[]`:
+`pnpm-hardening.test.ts`). Build a small directory tree per case with
+`fs.mkdtempSync` and run the check against it, so it exercises the same
+`node:fs` path it'll use in production — not a mock that can drift from reality.
 
-- **Applies + clean** → returns `[]` (e.g. an entry-point file that exists and
-  is short).
-- **Applies + violated** → returns the expected diagnostic(s) with the right
-  `rule`, `severity`, and `category`.
-- **Does not apply** → returns `[]` (e.g. the structural precondition is absent).
-- **Malformed input** → returns `[]` rather than throwing.
+Cover four situations:
 
-Build the fixtures in a real temp dir (`fs.mkdtempSync`) so the check exercises
-the same `node:fs` path it uses in production.
+- **Applies, clean** → `[]`. An entry-point that exists and is short.
+- **Applies, violated** → the expected diagnostic(s), with the right `rule`,
+  `severity`, and `category`.
+- **Doesn't apply** → `[]`. The precondition isn't met.
+- **Malformed input** → `[]`, not a thrown error.
 
 ## Checklist
 
 - [ ] One exported arrow function `(rootDirectory: string) => Diagnostic[]`.
-- [ ] Returns `[]` when the check does not apply, and never throws.
-- [ ] Each diagnostic built through a local factory with a stable `rule` key.
-- [ ] `category` is a `DIAGNOSTIC_CATEGORY_BUCKETS` member.
-- [ ] `message` states the problem + consequence; `help` states the fix.
-- [ ] Thresholds live in `constants.ts` as `SCREAMING_SNAKE_CASE` with units.
-- [ ] Re-exported from `core/src/index.ts` and wired into `run-inspect.ts`.
-- [ ] Co-located test covers apply/clean, apply/violated, not-applicable, and
-      malformed-input cases.
+- [ ] Returns `[]` when it doesn't apply, and never throws.
+- [ ] Diagnostics built through one local factory with a stable `rule` key.
+- [ ] `category` is one of the five known buckets.
+- [ ] `message` states the problem and its consequence; `help` states the fix.
+- [ ] Thresholds live in `constants.ts`, named with units, and imported.
+- [ ] Re-exported from `core/src/index.ts` and added to the `run-inspect.ts`
+      environment-diagnostics array.
+- [ ] Co-located test covers applies-clean, applies-violated, not-applicable,
+      and malformed input — all against a real temp directory.
