@@ -230,6 +230,43 @@ export const MAX_RULE_GROUPS_PER_CATEGORY_NON_VERBOSE = 3;
 // recommended starting point for the supply-chain hardening check.
 export const RECOMMENDED_PNPM_MINIMUM_RELEASE_AGE_MINUTES = 10_080;
 
+// Agent entry-point filenames the docs-structure checks look for at the
+// repo root, in detection-priority order. AGENTS.md is the canonical,
+// cross-tool convention; CLAUDE.md and .cursorrules are vendor-specific
+// fallbacks. The first one that exists is treated as THE entry-point for
+// the "map not a manual" and "links into docs/" checks — a repo only
+// needs one. The set is the source of truth for both the check and its
+// tests.
+export const AGENT_ENTRY_POINT_FILENAMES = ["AGENTS.md", "CLAUDE.md", ".cursorrules"] as const;
+
+// Directory that must hold the documentation system-of-record. Detailed
+// guidance lives here so the entry-point can stay a short map instead of
+// absorbing every convention.
+export const DOCS_DIRECTORY_NAME = "docs";
+
+// Max non-blank line count for the agent entry-point file before the
+// "map not a manual" check fires. An entry-point longer than this has
+// stopped being a short map that delegates to `docs/` and become a
+// monolithic manual, which defeats progressive disclosure — every agent
+// must read the whole thing instead of being routed to the one relevant
+// doc. Kept tight on purpose; depth belongs in `docs/`.
+export const ENTRY_POINT_MAX_LINES = 150;
+
+// Minimum number of references from the entry-point that resolve under
+// `docs/`. A map that never points into the system of record is a stub,
+// not progressive disclosure, so at least one link must wire the two
+// together.
+export const ENTRY_POINT_MIN_DOCS_LINKS = 1;
+
+// Max non-blank line count for any single markdown instruction file
+// (under `docs/` or at the repo root) before the "no monolithic
+// instruction file" check fires. Generalizes the entry-point's "map not
+// a manual" limit to the whole docs corpus: an oversized doc should be
+// split into focused, individually-disclosable files an agent can fetch
+// on demand. Set above ENTRY_POINT_MAX_LINES because a system-of-record
+// doc legitimately carries more depth than the top-level map.
+export const MONOLITHIC_DOC_MAX_LINES = 400;
+
 // The closed set of user-facing diagnostic categories. Every rule
 // (collapsed at codegen via `CATEGORY_BUCKET` in
 // `generate-rule-registry.mjs`) and every directly-constructed

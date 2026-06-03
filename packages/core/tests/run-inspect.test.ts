@@ -1,3 +1,4 @@
+import path from "node:path";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
@@ -22,6 +23,15 @@ import { Progress, ProgressCapture } from "../src/services/progress.js";
 import { Project } from "../src/services/project.js";
 import { Reporter, ReporterCapture } from "../src/services/reporter.js";
 import { Score } from "../src/services/score.js";
+
+// The orchestrator runs the disk-reading environment checks
+// (`checkPnpmHardening` + `checkDocsStructure`) against the resolved scan
+// directory. These tests exercise lint/dead-code orchestration, not the
+// structural checks, so they point the scan directory at a fixture that
+// passes every structural check — keeping the environment-diagnostics
+// block empty so the asserted diagnostic sets reflect only the stubbed
+// Linter / DeadCode output.
+const CLEAN_DOCS_ROOT = path.resolve(import.meta.dirname, "fixtures", "docs-structure-clean");
 
 const sampleProject: ProjectInfo = {
   rootDirectory: "/repo",
@@ -86,7 +96,7 @@ const layersOf = (config: {
 }) =>
   Layer.mergeAll(
     Project.layerOf(sampleProject),
-    Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
+    Config.layerOf({ config: null, resolvedDirectory: CLEAN_DOCS_ROOT, configSourceDirectory: null }),
     Files.layerInMemory(new Map()),
     Linter.layerOf(config.diagnostics ?? []),
     LintPartialFailures.layerLive,
@@ -132,7 +142,7 @@ describe("runInspect — happy path", () => {
       defaultBranch: "main",
     });
     expect(result.output.userConfig).toBeNull();
-    expect(result.output.resolvedDirectory).toBe("/repo");
+    expect(result.output.resolvedDirectory).toBe(CLEAN_DOCS_ROOT);
     expect(result.output.lintPartialFailures).toEqual([]);
     expect(result.captured).toHaveLength(2);
     expect(result.captured.map((d) => d.rule)).toEqual(["no-derived-state", "unused-file"]);
@@ -190,7 +200,7 @@ describe("runInspect — happy path", () => {
     });
     const layers = Layer.mergeAll(
       Project.layerOf(sampleProject),
-      Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
+      Config.layerOf({ config: null, resolvedDirectory: CLEAN_DOCS_ROOT, configSourceDirectory: null }),
       Files.layerInMemory(new Map()),
       Linter.layerOf([]),
       LintPartialFailures.layerLive,
@@ -221,7 +231,7 @@ describe("runInspect — missing React dependency", () => {
     const projectWithoutReact: ProjectInfo = { ...sampleProject, reactVersion: null };
     const layers = Layer.mergeAll(
       Project.layerOf(projectWithoutReact),
-      Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
+      Config.layerOf({ config: null, resolvedDirectory: CLEAN_DOCS_ROOT, configSourceDirectory: null }),
       Files.layerInMemory(new Map()),
       Linter.layerOf([]),
       LintPartialFailures.layerLive,
@@ -243,7 +253,7 @@ describe("runInspect — missing React dependency", () => {
             new HarnessDoctorError({ reason: new NoReactDependency({ directory: "/repo" }) }),
           ),
       }),
-      Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
+      Config.layerOf({ config: null, resolvedDirectory: CLEAN_DOCS_ROOT, configSourceDirectory: null }),
       Files.layerInMemory(new Map()),
       Linter.layerOf([]),
       LintPartialFailures.layerLive,
@@ -283,7 +293,7 @@ describe("runInspect — mid-stream lint failure", () => {
     });
     const layers = Layer.mergeAll(
       Project.layerOf(sampleProject),
-      Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
+      Config.layerOf({ config: null, resolvedDirectory: CLEAN_DOCS_ROOT, configSourceDirectory: null }),
       Files.layerInMemory(new Map()),
       failingLinter,
       LintPartialFailures.layerLive,
@@ -314,7 +324,7 @@ describe("runInspect — dead-code failure", () => {
     });
     const layers = Layer.mergeAll(
       Project.layerOf(sampleProject),
-      Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
+      Config.layerOf({ config: null, resolvedDirectory: CLEAN_DOCS_ROOT, configSourceDirectory: null }),
       Files.layerInMemory(new Map()),
       Linter.layerOf([lintDiagnostic]),
       LintPartialFailures.layerLive,
@@ -376,7 +386,7 @@ describe("runInspect — scan progress phases", () => {
     });
     const layers = Layer.mergeAll(
       Project.layerOf(sampleProject),
-      Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
+      Config.layerOf({ config: null, resolvedDirectory: CLEAN_DOCS_ROOT, configSourceDirectory: null }),
       Files.layerInMemory(new Map()),
       trackingLinter,
       LintPartialFailures.layerLive,
@@ -447,7 +457,7 @@ describe("runInspect — Reporter sees post-filter diagnostics", () => {
       Project.layerOf(sampleProject),
       Config.layerOf({
         config: { ignore: { files: ["src/ignored.*"] } } as never,
-        resolvedDirectory: "/repo",
+        resolvedDirectory: CLEAN_DOCS_ROOT,
         configSourceDirectory: null,
       }),
       Files.layerInMemory(new Map()),

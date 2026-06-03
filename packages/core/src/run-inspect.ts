@@ -13,6 +13,7 @@ import type {
   ScoreResult,
 } from "./types/index.js";
 import { buildDiagnosticPipeline } from "./build-diagnostic-pipeline.js";
+import { checkDocsStructure } from "./checks/docs-structure.js";
 import { checkPnpmHardening } from "./checks/pnpm-hardening.js";
 import { DEFAULT_SHOW_WARNINGS } from "./constants.js";
 import { highlighter } from "./highlighter.js";
@@ -308,7 +309,7 @@ export const runInspect = <HooksR = never>(
     // ── Phase: environment checks ──────────────────────────────────
     const environmentDiagnostics: ReadonlyArray<Diagnostic> = isDiffMode
       ? []
-      : [...checkPnpmHardening(scanDirectory)];
+      : [...checkPnpmHardening(scanDirectory), ...checkDocsStructure(scanDirectory)];
     const envCollected = yield* Stream.runCollect(
       applyPerElementPipeline(Stream.fromIterable(environmentDiagnostics)),
     );

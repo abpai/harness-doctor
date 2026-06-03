@@ -21,6 +21,7 @@ See `docs/` for how to add either:
 
 - `docs/HOW_TO_WRITE_A_RULE.md` — authoring an AST rule.
 - `docs/HOW_TO_WRITE_A_CHECK.md` — authoring a structural check.
+- `docs/CHECK_FIX_RECIPES.md` — agent-facing remediation recipes per finding.
 
 ## Conventions
 

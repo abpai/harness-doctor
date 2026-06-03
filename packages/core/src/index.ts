@@ -34,6 +34,7 @@ export * from "./calculate-local-score.js";
 export * from "./calculate-score.js";
 export * from "./can-oxlint-extend-config.js";
 export * from "./check-dead-code.js";
+export * from "./checks/docs-structure.js";
 export * from "./checks/pnpm-hardening.js";
 export * from "./collect-ignore-patterns.js";
 export * from "./constants.js";
