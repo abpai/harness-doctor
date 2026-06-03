@@ -1,50 +1,52 @@
-# How to Write an AST Rule
+# How to write a rule
 
-An **AST rule** walks a parsed source file and reports a code pattern. It is the
-right tool when the thing you check lives *inside* JavaScript / TypeScript
-syntax. If instead you are checking a file's existence, location, or length, or
-a non-JS config format, write a [structural check](./HOW_TO_WRITE_A_CHECK.md).
+A rule catches a pattern in source code. You describe which nodes in the parsed
+syntax tree are bad; the engine handles everything else — finding files,
+parsing them, walking the tree, batching the work, printing the results. Your
+job is narrow and well-defined: look at a node, decide if it's the thing you're
+hunting, and if so, report it.
 
-Rules live in `packages/oxlint-plugin-harness-doctor/src/plugin/rules/<category>/`
-with a co-located `*.test.ts`. The canonical template is
-[`security/no-eval.ts`](../packages/oxlint-plugin-harness-doctor/src/plugin/rules/security/no-eval.ts)
-— a small, framework-agnostic rule. Read it and its test before writing a new
-rule; this guide describes their shape.
+That narrowness is the whole pleasure of writing rules here. You're never
+wrangling file IO or output formatting. You're answering one question, over and
+over, as the engine hands you nodes: _is this the bug?_
 
-## Rule quality bar
+If the thing you want to check isn't inside source code — a missing file, a
+directory that's too deep, an entry-point that's grown too long — you don't want
+a rule at all. You want a [structural check](./HOW_TO_WRITE_A_CHECK.md).
 
-A good rule is:
+Rules live in
+[`packages/oxlint-plugin-harness-doctor/src/plugin/rules/<bucket>/`](../packages/oxlint-plugin-harness-doctor/src/plugin/rules),
+each next to its own `*.test.ts`. The template is
+[`security/no-eval.ts`](../packages/oxlint-plugin-harness-doctor/src/plugin/rules/security/no-eval.ts).
+It's small and framework-agnostic, and everything below uses it as the running
+example — read it once before you start.
 
-- **Specific** — it catches one clearly named problem.
-- **Grounded** — the problem is validated against docs, real code, or issues.
-- **Precise** — the detector matches exactly what the diagnostic claims.
-- **Low-noise** — a false positive is treated as a correctness bug.
-- **Tested adversarially** — tests cover look-alike valid code, not just the
-  obvious invalid case.
-- **Scoped** — v1 does not try to solve adjacent rule ideas.
-- **Readable** — helper names describe exact semantics.
+## Start with a sentence
 
-## Define the rule in one sentence
-
-Before writing code, state the rule as:
+Before any code, finish this sentence out loud:
 
 > This rule catches `<code pattern>` that causes `<specific problem>`.
 
 For the template:
 
 > This rule catches `eval()`, string-bodied `setTimeout` / `setInterval`, and
-> `new Function(...)` — all of which run a string as code (code injection).
+> `new Function(...)` — all of which run a string as code, which is a
+> code-injection risk.
 
-Then answer:
+If you can't fill in both halves crisply, you're not ready to write the rule —
+you're still discovering it. A vague pattern produces a noisy rule, and a noisy
+rule gets disabled. So before moving on, answer four questions:
 
 - What runtime behavior makes this a bug?
 - What code shape triggers it, and what shape fixes it?
-- What *similar-looking* code is valid and must NOT be flagged?
-- What does v1 intentionally skip?
+- What code _looks_ like the bug but is actually fine? (This is the one people
+  skip, and it's the one that decides whether the rule is any good.)
+- What is this rule deliberately _not_ trying to catch in its first version?
 
-## The rule shape
+## The shape of a rule
 
-A rule is an object passed to `defineRule`. The template:
+A rule is an object you hand to `defineRule`. Here's the core of the template,
+trimmed to one of its three checks:
 
 ```ts
 import { defineRule } from "../../utils/define-rule.js";
@@ -58,7 +60,7 @@ export const noEval = defineRule<Rule>({
   title: "Use of eval()",
   severity: "error",
   recommendation:
-    "Use `JSON.parse` for data, or rewrite so the code doesn't build and run code from strings.",
+    "Use `JSON.parse` for data, or rewrite the code so it doesn't build and run code from strings.",
   create: (context: RuleContext) => ({
     CallExpression(node: EsTreeNodeOfType<"CallExpression">) {
       if (isNodeOfType(node.callee, "Identifier") && node.callee.name === "eval") {
@@ -72,42 +74,70 @@ export const noEval = defineRule<Rule>({
 });
 ```
 
-The fields:
+Five fields carry the rule:
 
-- **`id`** — the rule key, kebab-case. The user references it as
-  `harness-doctor/<id>`.
-- **`title`** — short human label.
+- **`id`** — the key, kebab-case. Users reference it as `harness-doctor/<id>`.
+- **`title`** — a short human label.
 - **`severity`** — `"error"` or `"warning"`.
-- **`recommendation`** — the fix, surfaced to the user and the agent.
-- **`create(context)`** — returns a visitor object. Each key is an AST node type
-  (`CallExpression`, `NewExpression`, `ImportDeclaration`, …); its handler runs
-  for every matching node. Call `context.report({ node, message })` to flag one.
+- **`recommendation`** — the fix. It reaches both the human reading the report
+  and the agent acting on it, so make it actionable, not a restatement of the
+  problem.
+- **`create(context)`** — returns the **visitor**: an object whose keys are AST
+  node types and whose values are handlers. The engine calls your handler once
+  for every node of that type in the file. Inside it, you call
+  `context.report({ node, message })` to flag a node.
 
-The visitor keys are the only injectable surface — the engine handles parsing,
-traversal, batching, and output. You only describe *which nodes are bad*.
+The visitor keys are your only injection point. You don't traverse anything
+yourself — you say "show me every `CallExpression`" by naming it, and the engine
+brings them to you. The template names two: `CallExpression` (for `eval` and the
+string-bodied timers) and `NewExpression` (for `new Function`).
 
-## Choose detector precision
+## Where the bucket comes from
 
-Classify the rule before implementing:
+You may have noticed the rule never declares a category or a framework. It
+doesn't need to — the **bucket directory it lives in** supplies both. A rule in
+`rules/security/` is a security rule; one in `rules/performance/` is a
+performance rule. That's why `no-eval` lives under `security/` and says nothing
+about it.
 
-- **Syntax-only** — the bug is local; node shape alone decides it. The template
-  is syntax-only: `eval` / `setTimeout` / `new Function` are recognized by
-  callee name and argument shape, no binding resolution needed.
-- **Scope-aware** — names must resolve to a specific import or binding (e.g.
-  "this `useThing` must be the one imported from `lib`, not a local function").
-  Resolve imports and respect shadowing before trusting an identifier's text.
-- **Path-aware** — order and branches matter (e.g. "flag a return only if a
-  mutation happened earlier on the same path"). Model only the control flow the
-  rule's claim requires.
+This matters for a practical reason: **the registry is generated, not
+hand-written.**
+[`scripts/generate-rule-registry.mjs`](../packages/oxlint-plugin-harness-doctor/scripts/generate-rule-registry.mjs)
+scans every non-test rule file, reads its `id`, and infers framework and default
+category from the bucket. Adding a rule is genuinely a one-file operation: drop
+the file in the right bucket, set its `id`, regenerate. Never edit
+`rule-registry.ts` or `rules.ts` by hand — they carry a "generated, do not edit"
+header for a reason, and your changes will be erased the next time codegen runs.
 
-Prefer the least precise tier that is still correct — every added tier is more
-surface for false positives.
+## Pick the least precise detector that still works
 
-## Inspect node fields, not source text
+Rules come in three tiers of precision. Reach for the simplest one your claim
+allows, because every step up in power is another step up in false positives.
 
-Read the node's structured fields rather than the raw text. The template checks
-`node.callee.name === "eval"` and, for the string-body case, that
-`node.arguments[0]` is a `Literal` whose `value` is a string:
+**Syntax-only.** The node's shape alone decides it; no surrounding context
+matters. The template is syntax-only — `eval` is recognized by its callee name,
+the string timers by callee name plus a string first argument. Nothing needs to
+be resolved or remembered. Most good rules live here.
+
+**Scope-aware.** You need to know what a name actually refers to. "This
+`useThing` must be the one imported from `lib`, not a local function with the
+same name" is a scope-aware claim. Resolve the import and respect shadowing
+before you trust an identifier's text — a bare name is not proof of origin.
+
+**Path-aware.** Order and branching matter. "Flag this return only if a mutation
+already happened earlier on the same path" can't be answered by shape alone; you
+have to model the control flow. Model only as much of it as the claim needs, and
+no more.
+
+When in doubt, start syntax-only and let a failing test push you up a tier. A
+rule that's more precise than its claim requires is just extra surface area for
+bugs.
+
+## Read the node, not the text
+
+Always reason about the structured node, never the raw source string. The
+string-timer check is a good illustration: it doesn't pattern-match text, it
+inspects fields.
 
 ```ts
 if (
@@ -116,37 +146,45 @@ if (
   isNodeOfType(node.arguments?.[0], "Literal") &&
   typeof node.arguments[0].value === "string"
 ) {
-  context.report({ node, message: `Passing a string to ${node.callee.name}() runs it as code.` });
+  context.report({
+    node,
+    message: `Passing a string to ${node.callee.name}() runs it as code.`,
+  });
 }
 ```
 
-Guidance:
+Three habits keep this kind of code honest:
 
-- Use `isNodeOfType(node, "Type")` to narrow before reading type-specific fields
-  — it both guards at runtime and narrows the TypeScript type.
-- Distinguish static from dynamic: `obj.foo` and `obj["foo"]` resolve to a known
-  property name; `obj[name]` does not. Only match known names on static access.
-- Explicitly skip nested functions/classes unless the rule means to descend into
-  them — they are a common false-positive source.
+- **Narrow before you read.** `isNodeOfType(node, "Type")` guards at runtime
+  _and_ narrows the TypeScript type, so the field accesses after it are both
+  safe and type-checked. Reach for it before touching any type-specific field.
+- **Tell static apart from dynamic.** `obj.foo` and `obj["foo"]` name a property
+  you can match; `obj[name]` does not. Only match on names you can actually see.
+- **Decide about nested scopes on purpose.** A handler fires for matching nodes
+  _anywhere_ in the file, including inside nested functions and classes. If your
+  rule shouldn't descend into them, skip them explicitly — forgetting to is a
+  classic false-positive source.
 
-## Reuse existing utilities
+## Borrow before you build
 
-Before adding a helper, search
-`packages/oxlint-plugin-harness-doctor/src/plugin/utils/` for an existing one.
-The template depends only on the core primitives:
+Before writing a helper, look in
+[`src/plugin/utils/`](../packages/oxlint-plugin-harness-doctor/src/plugin/utils)
+for one that already exists. The template leans entirely on the core primitives
+and adds nothing of its own:
 
-- `defineRule` — registers the rule.
-- `isNodeOfType` / `EsTreeNodeOfType` — type-narrowing on nodes.
-- `RuleContext` / `Rule` — the rule and report types.
+- `defineRule` registers the rule.
+- `isNodeOfType` / `EsTreeNodeOfType` narrow nodes at runtime and in the types.
+- `RuleContext` / `Rule` type the rule and its `report` call.
 
 Add a utility only when two or more call sites need the same non-trivial AST
-logic. One utility per file in `utils/`, named for exact behavior
-(`getStaticMemberPropertyName`, not `getName`).
+logic, and give it a name that states exactly what it does:
+`getStaticMemberPropertyName`, not `getName`. One utility per file.
 
-## Design the test suite
+## Test both directions, adversarially
 
-Co-locate `<id>.test.ts` and drive the rule through the `runRule` harness. Cover
-both directions adversarially — the template's seven cases are the model:
+Co-locate `<id>.test.ts` and drive the rule through the `runRule` harness. The
+point of the suite isn't to prove the rule fires — that's easy. It's to prove
+the rule _doesn't_ fire on code that merely resembles the bug.
 
 ```ts
 import { describe, expect, it } from "vite-plus/test";
@@ -167,53 +205,66 @@ describe("no-eval", () => {
 });
 ```
 
-Include:
+A suite worth trusting covers four kinds of case:
 
-- **Invalid cases** — each distinct bad shape the rule claims to catch
-  (`eval`, string `setTimeout`, string `setInterval`, `new Function`).
-- **Valid look-alikes** — code that resembles the bug but is fine
-  (`JSON.parse`, a plain call, `setTimeout` with a *function* argument).
-- **Scope / shadowing cases** — when the rule is scope-aware, a locally
-  shadowed name must not fire.
-- **Regression cases** — one per real bug found in review.
+- **Each bad shape** the rule claims — for the template, that's `eval`, string
+  `setTimeout`, string `setInterval`, and `new Function`. One per distinct
+  shape.
+- **Valid look-alikes** — `JSON.parse`, a plain function call, `setTimeout` with
+  a _function_ instead of a string. These are the cases that catch over-eager
+  matching.
+- **Scope and shadowing**, when the rule is scope-aware — a locally shadowed
+  name must not fire.
+- **Regressions** — one case for every real false positive or miss you find in
+  review, so it can never come back.
 
-Vary the shapes; do not copy one template repeatedly.
+Vary the shapes. A suite that pastes the same example with one word changed
+tests one thing four times.
 
-## Naming, comments
+## Verify it
 
-- Names describe exact behavior: `isOriginalStateReference`, not `isRef`.
-- Comment only non-obvious AST tradeoffs or v1 boundaries, prefixed `// HACK:`
-  when the code is a workaround. Never narrate obvious code.
-
-## Verify locally
+Work from the plugin package
+(`packages/oxlint-plugin-harness-doctor`). Its `typecheck` and `test` scripts
+both regenerate the registry first, so the loop is short:
 
 ```bash
-pnpm gen        # regenerate the rule registry after adding/removing a rule
-pnpm typecheck
-pnpm lint
-pnpm exec vp test run packages/oxlint-plugin-harness-doctor/src/plugin/rules/<category>/<id>.test.ts
+pnpm gen        # regenerate the registry after adding or removing a rule
+pnpm typecheck  # also regenerates, then type-checks
+pnpm test       # also regenerates, then runs every rule's tests
 ```
 
-**The registry is codegen output.** `src/plugin/rule-registry.ts` and
-`src/rules.ts` are generated by `scripts/generate-rule-registry.mjs`, which
-scans every non-test `*.ts` under `src/plugin/rules/<category>/`. After adding or
-removing a rule file, run `pnpm gen` — never hand-edit the generated files, and
-never leave a half-deleted rule file behind (it will be auto-reimported and
-break the build).
+To run only your rule while iterating:
 
-## Common failure modes
+```bash
+pnpm exec vp test run src/plugin/rules/<bucket>/<id>.test.ts
+```
 
-- Using name heuristics where import resolution is required.
-- Walking nested functions as if they execute immediately.
-- Treating dynamic computed properties (`obj[name]`) as static names.
-- Mixing a related v2 idea into v1.
-- Writing tests that mirror the implementation instead of real code.
+And before you commit, confirm the generated registry on disk is current —
+CI runs exactly this and fails on a stale registry:
+
+```bash
+pnpm gen:check
+```
+
+## The usual ways rules go wrong
+
+Most bad rules fail in one of a handful of predictable ways. If something feels
+off, start here:
+
+- Matching on a name where you actually needed to resolve an import.
+- Walking into nested functions as though they run where they're written.
+- Treating a dynamic `obj[name]` access as if it named a known property.
+- Letting a half-formed "v2" idea bleed into the rule and widen its claim.
+- Writing tests that mirror the implementation instead of exercising real code.
 
 ## Checklist
 
-- [ ] Bug defined in one sentence; runtime reason documented.
-- [ ] Detector precision chosen (syntax-only / scope-aware / path-aware).
-- [ ] Detector reads node fields, not source text; narrows with `isNodeOfType`.
-- [ ] Existing utilities reused; new ones justified and one-per-file.
-- [ ] Tests cover invalid, valid look-alike, and shadowing cases.
-- [ ] `pnpm gen` run; `typecheck`, `lint`, and the co-located test pass.
+- [ ] The bug fits in one sentence, and you know what valid code looks like next
+      to it.
+- [ ] Precision tier chosen deliberately (syntax-only / scope-aware /
+      path-aware) — the least powerful one that works.
+- [ ] The detector reads node fields and narrows with `isNodeOfType`; it never
+      matches raw text.
+- [ ] Existing utilities reused; any new one is justified and one-per-file.
+- [ ] Tests cover every bad shape, the valid look-alikes, and shadowing.
+- [ ] `pnpm gen` run, and `typecheck`, `lint`, and the co-located test pass.
