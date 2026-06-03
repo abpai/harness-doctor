@@ -35,7 +35,7 @@ import tempfile
 import time
 
 REPOSITORY_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CLI_BINARY_PATH = os.path.join(REPOSITORY_ROOT, "packages", "react-doctor", "dist", "cli.js")
+CLI_BINARY_PATH = os.path.join(REPOSITORY_ROOT, "packages", "harness-doctor", "dist", "cli.js")
 
 # If the prompt is still open this long after the CLI started, the event loop
 # is being held open correctly. The regression self-exits within ~100ms of the
@@ -164,7 +164,7 @@ def main():
     if not os.path.isfile(CLI_BINARY_PATH):
         fail(f"Built CLI missing at {CLI_BINARY_PATH}. Run `pnpm build` first.")
 
-    fixture_directory = tempfile.mkdtemp(prefix="react-doctor-tty-smoke-")
+    fixture_directory = tempfile.mkdtemp(prefix="harness-doctor-tty-smoke-")
     try:
         create_workspace_fixture(fixture_directory)
         exited_by_itself, output = run_prompt_in_pty(fixture_directory)

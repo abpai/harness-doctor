@@ -27,7 +27,7 @@ export interface ProgressEvent {
 export class ProgressCapture extends Context.Service<
   ProgressCapture,
   Ref.Ref<ReadonlyArray<ProgressEvent>>
->()("react-doctor/ProgressCapture") {
+>()("harness-doctor/ProgressCapture") {
   static readonly layer = Layer.effect(ProgressCapture, Ref.make<ReadonlyArray<ProgressEvent>>([]));
 }
 
@@ -42,7 +42,7 @@ export class Progress extends Context.Service<
   {
     readonly start: (text: string) => Effect.Effect<ProgressHandle>;
   }
->()("react-doctor/Progress") {
+>()("harness-doctor/Progress") {
   /**
    * Layer that uses an injected factory. The cli package provides
    * its own factory backed by the existing ora-based `spinner.ts`

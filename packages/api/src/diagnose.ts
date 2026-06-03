@@ -19,7 +19,7 @@ import {
   Score,
   type InspectOutput,
   type ResolvedScanTarget,
-} from "@react-doctor/core";
+} from "@harness-doctor/core";
 import type {
   DiagnoseOptions,
   DiagnoseProjectsInput,
@@ -27,9 +27,9 @@ import type {
   DiagnoseResult,
   ProjectDefinition,
   ProjectResult,
-  ReactDoctorConfig,
+  HarnessDoctorConfig,
   ScoreResult,
-} from "@react-doctor/core";
+} from "@harness-doctor/core";
 
 // The production layer stack for the programmatic API. The only axis that
 // varies across calls is `Config`: with no override we load from disk
@@ -47,13 +47,13 @@ const buildDiagnoseLayer = (configLayer: typeof Config.layerNode = Config.layerN
     LintPartialFailures.layerLive,
     Progress.layerNoop,
     Reporter.layerNoop,
-    Score.layerHttp,
+    Score.layerLocal,
   );
 
 const buildInspectProgram = (
   scanTarget: ResolvedScanTarget,
   options: DiagnoseOptions,
-  configOverride?: ReactDoctorConfig,
+  configOverride?: HarnessDoctorConfig,
 ) => {
   const effectiveConfig = configOverride ?? scanTarget.userConfig;
   const includePaths = options.includePaths ?? [];
@@ -188,7 +188,7 @@ const diagnoseProject = async (
  *     { directory: "packages/app" },
  *     { directory: "packages/shared", deadCode: false },
  *     { directory: "packages/admin", config: {
- *       rules: { "react-doctor/no-array-index-as-key": "off" },
+ *       rules: { "harness-doctor/no-array-index-as-key": "off" },
  *     }},
  *   ],
  *   concurrency: 4,

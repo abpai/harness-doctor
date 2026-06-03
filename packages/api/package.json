@@ -1,8 +1,8 @@
 {
-  "name": "@react-doctor/api",
+  "name": "@harness-doctor/api",
   "version": "0.2.18",
   "private": true,
-  "description": "Internal: programmatic diagnose() API for React Doctor — thin Effect.runPromise shell around @react-doctor/core's runInspect orchestrator. Not published.",
+  "description": "Internal: programmatic diagnose() API for Harness Doctor — thin Effect.runPromise shell around @harness-doctor/core's runInspect orchestrator. Not published.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@react-doctor/core": "workspace:*",
+    "@harness-doctor/core": "workspace:*",
     "effect": "4.0.0-beta.70"
   },
   "devDependencies": {

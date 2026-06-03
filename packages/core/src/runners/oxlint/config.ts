@@ -1,9 +1,9 @@
 import fs from "node:fs";
-import reactDoctorPlugin, {
+import harnessDoctorPlugin, {
   REACT_COMPILER_RULES,
-  REACT_DOCTOR_RULES,
-} from "oxlint-plugin-react-doctor";
-import type { OxlintRuleSeverity } from "oxlint-plugin-react-doctor";
+  HARNESS_DOCTOR_RULES,
+} from "oxlint-plugin-harness-doctor";
+import type { OxlintRuleSeverity } from "oxlint-plugin-harness-doctor";
 import type { ProjectInfo, RuleSeverityControls } from "../../types/index.js";
 import { resolveRuleSeverityOverride } from "../../resolve-rule-severity-override.js";
 import { COMPILER_CLEANUP_BUCKET, COMPILER_CLEANUP_RULE_KEYS } from "../../constants.js";
@@ -20,7 +20,7 @@ export interface OxlintConfigOptions {
   serverAuthFunctionNames?: ReadonlyArray<string>;
   severityControls?: RuleSeverityControls;
   /**
-   * User-declared plugins from `react-doctor.config.json`'s
+   * User-declared plugins from `harness-doctor.config.json`'s
    * `plugins: [...]`, already resolved + introspected via
    * `resolveUserPlugins`. Each plugin's rules are opt-in: they don't
    * run unless `severityControls.rules["<plugin-name>/<rule>"]` is
@@ -111,9 +111,9 @@ export const createOxlintConfig = ({
 
   const capabilities = buildCapabilities(project);
 
-  const enabledReactDoctorRules: Record<string, OxlintRuleSeverity> = {};
-  for (const registryEntry of REACT_DOCTOR_RULES) {
-    const rule = reactDoctorPlugin.rules[registryEntry.id];
+  const enabledHarnessDoctorRules: Record<string, OxlintRuleSeverity> = {};
+  for (const registryEntry of HARNESS_DOCTOR_RULES) {
+    const rule = harnessDoctorPlugin.rules[registryEntry.id];
     if (!rule) continue;
     // `customRulesOnly` mirrors the historical behavior of the pre-port
     // builtin-react / builtin-a11y gate — skip everything ported 1:1
@@ -136,13 +136,13 @@ export const createOxlintConfig = ({
       resolveCompilerCleanupBucketSeverity(registryEntry.key, severityControls) ??
       rule.severity;
     if (severity === "off") continue;
-    enabledReactDoctorRules[registryEntry.key] = severity;
+    enabledHarnessDoctorRules[registryEntry.key] = severity;
   }
 
   // Fold every user-declared plugin's enabled rules + add its
   // resolved specifier to `jsPlugins` so oxlint loads it alongside
-  // the built-in react-doctor plugin. Order: react-hooks-js (when
-  // present) → user plugins → react-doctor itself. The react-doctor
+  // the built-in harness-doctor plugin. Order: react-hooks-js (when
+  // present) → user plugins → harness-doctor itself. The harness-doctor
   // plugin stays last so its rules can reference earlier plugins'
   // settings if a future composition pattern needs that hook.
   const userPluginRules: Record<string, OxlintRuleSeverity> = {};
@@ -163,7 +163,7 @@ export const createOxlintConfig = ({
       nursery: "off",
     },
     // We don't load any OXC built-in plugins anymore — every `react/*`
-    // and `jsx-a11y/*` rule has been ported into `react-doctor/*`. The
+    // and `jsx-a11y/*` rule has been ported into `harness-doctor/*`. The
     // empty `plugins:` array is intentional; rules come exclusively
     // from our codegen-built registry plus configured npm-shipped
     // plugins (react-hooks-js for the React Compiler frontend etc.)
@@ -171,7 +171,7 @@ export const createOxlintConfig = ({
     plugins: [],
     jsPlugins: [...jsPlugins, pluginPath],
     settings: {
-      "react-doctor": {
+      "harness-doctor": {
         framework: project.framework,
         rootDirectory: resolveSettingsRootDirectory(project.rootDirectory),
         ...(serverAuthFunctionNames && serverAuthFunctionNames.length > 0
@@ -181,7 +181,7 @@ export const createOxlintConfig = ({
     },
     rules: {
       ...reactCompilerRules,
-      ...enabledReactDoctorRules,
+      ...enabledHarnessDoctorRules,
       ...userPluginRules,
     },
   };

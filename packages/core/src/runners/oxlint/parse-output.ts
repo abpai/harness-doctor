@@ -1,5 +1,5 @@
 import path from "node:path";
-import reactDoctorPlugin from "oxlint-plugin-react-doctor";
+import harnessDoctorPlugin from "oxlint-plugin-harness-doctor";
 import type {
   CleanedDiagnostic,
   Diagnostic,
@@ -9,25 +9,23 @@ import type {
 import { ERROR_PREVIEW_LENGTH_CHARS } from "../../constants.js";
 import { isLintableSourceFile } from "../../utils/is-lintable-source-file.js";
 import { isMinifiedSource } from "../../utils/is-minified-source.js";
-import { OxlintOutputUnparseable, ReactDoctorError } from "../../errors.js";
+import { OxlintOutputUnparseable, HarnessDoctorError } from "../../errors.js";
 import { buildNoSecretsRecommendation } from "../../utils/build-no-secrets-recommendation.js";
-import { appendReanimatedSharedValueHint } from "../../utils/append-reanimated-shared-value-hint.js";
 import { redactSensitiveText } from "../../utils/redact-sensitive-text.js";
-import { shouldSuppressLocalUseHookDiagnostic } from "./should-suppress-local-use-hook-diagnostic.js";
 
 const FILEPATH_WITH_LOCATION_PATTERN = /\S+\.\w+:\d+:\d+[\s\S]*$/;
 
 // Adopted `react-hooks-js` (React Compiler) diagnostics have no
-// react-doctor `title`, so they'd otherwise render their bare
+// harness-doctor `title`, so they'd otherwise render their bare
 // `react-hooks-js/todo` id. Give them a human headline & an impact-first
 // message; the specific bail-out reason stays in `help`.
 const REACT_COMPILER_TITLE = "React Compiler can't optimize this";
 const REACT_COMPILER_MESSAGE =
   "This component misses React Compiler's automatic memoization & re-renders more than it should. Rewrite the flagged code so the compiler can optimize it.";
 
-// Adopted third-party plugins (not in the react-doctor registry) → the
+// Adopted third-party plugins (not in the harness-doctor registry) → the
 // clear user-facing bucket their diagnostics roll up under. Mirrors the
-// five buckets the codegen collapses react-doctor rules into (see
+// five buckets the codegen collapses harness-doctor rules into (see
 // `CATEGORY_BUCKET` in `generate-rule-registry.mjs`): Security, Bugs,
 // Performance, Accessibility, Maintainability.
 const PLUGIN_CATEGORY_MAP: Record<string, string> = {
@@ -36,7 +34,7 @@ const PLUGIN_CATEGORY_MAP: Record<string, string> = {
   // React Compiler "can't optimize" diagnostics are an optimization miss,
   // not a correctness bug.
   "react-hooks-js": "Performance",
-  "react-doctor": "Bugs",
+  "harness-doctor": "Bugs",
   "jsx-a11y": "Accessibility",
   effect: "Bugs",
   eslint: "Bugs",
@@ -65,11 +63,11 @@ const getRuleRecommendation = (ruleName: string, project: ProjectInfo): string |
   if (ruleName === "no-secrets-in-client-code") {
     return buildNoSecretsRecommendation(
       project,
-      reactDoctorPlugin.rules["no-secrets-in-client-code"]?.recommendation ??
+      harnessDoctorPlugin.rules["no-secrets-in-client-code"]?.recommendation ??
         "Move secrets to server-only code",
     );
   }
-  return reactDoctorPlugin.rules[ruleName]?.recommendation;
+  return harnessDoctorPlugin.rules[ruleName]?.recommendation;
 };
 
 // Same shape as `getRuleRecommendation`, but for the diagnostic category
@@ -77,15 +75,15 @@ const getRuleRecommendation = (ruleName: string, project: ProjectInfo): string |
 // scan summary. Used by `resolveDiagnosticCategory` below and by
 // `validateRuleRegistration` to assert per-rule metadata coverage.
 export const getRuleCategory = (ruleName: string): string | undefined =>
-  reactDoctorPlugin.rules[ruleName]?.category;
+  harnessDoctorPlugin.rules[ruleName]?.category;
 
 // Short human headline for a rule (e.g. "Array index used as a key").
-// Only react-doctor rules carry one; adopted third-party rules return
+// Only harness-doctor rules carry one; adopted third-party rules return
 // undefined and renderers fall back to the `plugin/rule` id.
 const getRuleTitle = (ruleName: string): string | undefined =>
-  reactDoctorPlugin.rules[ruleName]?.title;
+  harnessDoctorPlugin.rules[ruleName]?.title;
 
-// react-doctor rules carry their own `title`; adopted React Compiler
+// harness-doctor rules carry their own `title`; adopted React Compiler
 // diagnostics get a fixed human headline instead of their bare id.
 const resolveDiagnosticTitle = (plugin: string, rule: string): string | undefined =>
   plugin === "react-hooks-js" ? REACT_COMPILER_TITLE : getRuleTitle(rule);
@@ -130,7 +128,7 @@ const resolveCleanedDiagnostic = (
     const rawMessage = message.replace(FILEPATH_WITH_LOCATION_PATTERN, "").trim();
     return {
       message: REACT_COMPILER_MESSAGE,
-      help: appendReanimatedSharedValueHint(rawMessage || help, rule, project),
+      help: rawMessage || help,
     };
   }
   const cleaned = message.replace(FILEPATH_WITH_LOCATION_PATTERN, "").trim();
@@ -180,7 +178,7 @@ export const parseOxlintOutput = (
   try {
     parsed = JSON.parse(sanitizedStdout);
   } catch {
-    throw new ReactDoctorError({
+    throw new HarnessDoctorError({
       reason: new OxlintOutputUnparseable({
         preview: stdout.slice(0, ERROR_PREVIEW_LENGTH_CHARS),
       }),
@@ -188,7 +186,7 @@ export const parseOxlintOutput = (
   }
 
   if (!isOxlintOutput(parsed)) {
-    throw new ReactDoctorError({
+    throw new HarnessDoctorError({
       reason: new OxlintOutputUnparseable({
         preview: stdout.slice(0, ERROR_PREVIEW_LENGTH_CHARS),
       }),
@@ -197,7 +195,7 @@ export const parseOxlintOutput = (
 
   // HACK: oxlint reports diagnostics for every JS/TS extension it
   // scanned (`.ts`, `.tsx`, `.js`, `.jsx`). The previous filter only
-  // kept `.tsx` / `.jsx` — fine when react-doctor's curated rules were
+  // kept `.tsx` / `.jsx` — fine when harness-doctor's curated rules were
   // the only sources (they're React-specific anyway), but adopted
   // user rules like `eslint/no-debugger` or `unicorn/*` typically
   // fire on plain `.ts` / `.js` files; dropping those silently
@@ -228,8 +226,7 @@ export const parseOxlintOutput = (
       (diagnostic) =>
         diagnostic.code &&
         isLintableSourceFile(diagnostic.filename) &&
-        !isMinifiedDiagnosticFile(diagnostic.filename) &&
-        !shouldSuppressLocalUseHookDiagnostic(diagnostic, rootDirectory),
+        !isMinifiedDiagnosticFile(diagnostic.filename),
     )
     .map((diagnostic) => {
       const { plugin, rule } = parseRuleCode(diagnostic.code);

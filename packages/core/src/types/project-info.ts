@@ -42,7 +42,7 @@ export interface ProjectInfo {
    * monorepos where the entry-point `package.json` is Next / Vite /
    * Remix but a sibling workspace (`apps/mobile`, `packages/native-ui`)
    * targets React Native. The file-level package-boundary check in
-   * `oxlint-plugin-react-doctor` still keeps the rules silent on the
+   * `oxlint-plugin-harness-doctor` still keeps the rules silent on the
    * web workspaces.
    *
    * `false` collapses the gate to the legacy "framework is RN" behavior
@@ -52,7 +52,7 @@ export interface ProjectInfo {
   /**
    * The declared `expo` package version spec (e.g. `"~51.0.0"`), looked up
    * in the project or any of its workspace packages, or `null` when `expo`
-   * isn't a dependency. Doubles as react-doctor's "is this an Expo project?"
+   * isn't a dependency. Doubles as harness-doctor's "is this an Expo project?"
    * signal (`expoVersion !== null`) and its SDK-version source — the `expo`
    * major tracks the Expo SDK release one-to-one — paralleling how
    * `reactVersion` models the React runtime.

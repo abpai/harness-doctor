@@ -1,8 +1,8 @@
 export type {
   DiagnosticSurface,
   FailOnLevel,
-  ReactDoctorConfig,
-  ReactDoctorIgnoreOverride,
+  HarnessDoctorConfig,
+  HarnessDoctorIgnoreOverride,
   RuleSeverityControls,
   RuleSeverityOverride,
   SurfaceControls,
@@ -40,7 +40,7 @@ export type {
 export type { PromptMultiselectChoiceState, PromptMultiselectContext } from "./prompts.js";
 // `isReactNativeDependencyName` / `REACT_NATIVE_DEPENDENCY_NAMES`
 // are intentionally NOT re-exported here — re-exporting from
-// `oxlint-plugin-react-doctor` would force every consumer of the
+// `oxlint-plugin-harness-doctor` would force every consumer of the
 // types barrel (including `discoverProject`) to load the entire
 // 286-rule plugin at module-init time. The project-discovery side
 // owns a tiny standalone copy in

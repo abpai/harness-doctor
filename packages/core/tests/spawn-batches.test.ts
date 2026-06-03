@@ -1,5 +1,5 @@
 /**
- * Regression test for issue #599 — `react-doctor --staged` hung after
+ * Regression test for issue #599 — `harness-doctor --staged` hung after
  * printing results.
  *
  * `spawnLintBatches` starts a ref'd `setInterval` progress timer per
@@ -15,7 +15,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import type { ProjectInfo } from "@react-doctor/core";
+import type { ProjectInfo } from "@harness-doctor/core";
 import { spawnLintBatches } from "../src/runners/oxlint/spawn-batches.js";
 
 const project: ProjectInfo = {

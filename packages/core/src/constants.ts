@@ -32,7 +32,7 @@ export const MILLISECONDS_PER_SECOND = 1000;
 // strings above the latest real major are harmless.
 export const LATEST_KNOWN_REACT_MAJOR = 30;
 
-// Lowest React major react-doctor emits a `react:<major>` capability
+// Lowest React major harness-doctor emits a `react:<major>` capability
 // for (rules gate on `react:17`+ at the floor).
 export const EARLIEST_GATED_REACT_MAJOR = 17;
 
@@ -41,7 +41,7 @@ export const EARLIEST_GATED_REACT_MAJOR = 17;
 // `preact:<n>` capability strings above the latest real major are harmless.
 export const LATEST_KNOWN_PREACT_MAJOR = 20;
 
-// Lowest Preact major react-doctor emits a `preact:<major>` capability
+// Lowest Preact major harness-doctor emits a `preact:<major>` capability
 // for. Preact X (10) is the modern baseline.
 export const EARLIEST_GATED_PREACT_MAJOR = 10;
 
@@ -65,34 +65,44 @@ export const GENERIC_SECRET_MIN_ENTROPY_BITS = 3.0;
 
 export const PERFECT_SCORE = 100;
 
+// Points deducted per diagnostic by the deterministic local score
+// fallback (`calculateLocalScore`). Errors weigh twice a warning so the
+// offline score still ranks an error-heavy repo below a warning-heavy
+// one, mirroring the severity ordering the renderer uses. The local
+// fallback is the default path so the boilerplate scores offline without
+// depending on a hosted score API.
+export const LOCAL_SCORE_ERROR_PENALTY_POINTS = 2;
+
+export const LOCAL_SCORE_WARNING_PENALTY_POINTS = 1;
+
 export const SCORE_GOOD_THRESHOLD = 75;
 
 export const SCORE_OK_THRESHOLD = 50;
 
 export const SCORE_BAR_WIDTH_CHARS = 50;
 
-export const SCORE_API_URL = "https://www.react.doctor/api/score";
+export const SCORE_API_URL = "https://www.harness.doctor/api/score";
 
-export const ENTERPRISE_CONTACT_URL = "https://react.doctor/enterprise";
+export const ENTERPRISE_CONTACT_URL = "https://harness.doctor/enterprise";
 
-export const SHARE_BASE_URL = "https://react.doctor/share";
+export const SHARE_BASE_URL = "https://harness.doctor/share";
 
 // Root of the documentation site. Guides for CI/CD setup, config files (to
 // suppress rules), and diff/PR scanning live under it; the CLI links here
 // from its closing "learn more" note.
-export const DOCS_URL = "https://react.doctor/docs";
+export const DOCS_URL = "https://harness.doctor/docs";
 
 // Base URL for the per-rule documentation pages. The canonical,
 // human-readable fix recipe for one rule lives at `<base>/<plugin>/<rule>`
 // (see `buildRuleDocsUrl`) — the CLI links here from its fix-recipe
 // directive. The raw `.md` prompts the `/doctor` playbook fetches on demand
-// live under `https://www.react.doctor/prompts/rules/<plugin>/<rule>.md`.
+// live under `https://www.harness.doctor/prompts/rules/<plugin>/<rule>.md`.
 export const DOCS_RULES_BASE_URL = `${DOCS_URL}/rules`;
 
 // Canonical JSON Schema for `doctor.config.json`. Stamped as the
 // `$schema` field when the rule-config CLI creates a config file so
 // editors get autocomplete + hover docs (matches the README guidance).
-export const CONFIG_SCHEMA_URL = "https://react.doctor/schema/config.json";
+export const CONFIG_SCHEMA_URL = "https://harness.doctor/schema/config.json";
 
 export const FETCH_TIMEOUT_MS = 10_000;
 
@@ -106,7 +116,7 @@ export const SPAWN_ARGS_MAX_LENGTH_CHARS = 24_000;
 // scaling (originally the upstream `effect` plugin — verified to hit
 // the 5-min spawn timeout on supabase/studio's ~3500 source files at
 // batch=500, productive at batch=100; same characteristics apply to
-// the ported `react-doctor/no-derived-state` family because both rely
+// the ported `harness-doctor/no-derived-state` family because both rely
 // on whole-component scope walking) stay tractable AND so that oxlint
 // doesn't SIGABRT from memory pressure on very large file sets.
 // Smaller batches add ~50ms spawn overhead per extra batch — negligible
@@ -114,8 +124,8 @@ export const SPAWN_ARGS_MAX_LENGTH_CHARS = 24_000;
 export const OXLINT_MAX_FILES_PER_BATCH = 100;
 
 // Bounds for the lint worker count (the `OxlintConcurrency` Reference, seeded
-// by the `REACT_DOCTOR_PARALLEL` env var; the CLI's `--no-parallel` flag forces
-// the MIN end). React Doctor's rules are oxlint JS plugins — single-threaded
+// by the `HARNESS_DOCTOR_PARALLEL` env var; the CLI's `--no-parallel` flag forces
+// the MIN end). Harness Doctor's rules are oxlint JS plugins — single-threaded
 // per process — so
 // running the file batches across N concurrent oxlint subprocesses scales the
 // scan nearly linearly with N. MAX bounds peak memory (each worker holds its
@@ -126,7 +136,7 @@ export const MAX_SCAN_CONCURRENCY = 16;
 
 export const DEFAULT_BRANCH_CANDIDATES = ["main", "master"];
 
-// JSON-format oxlint / eslint configs react-doctor can fold into the
+// JSON-format oxlint / eslint configs harness-doctor can fold into the
 // scan via oxlint's `extends` field. JS / TS configs need a runtime
 // to evaluate and aren't supported by oxlint's `extends`. Listed in
 // detection priority order — oxlint native first, eslint legacy as a
@@ -162,11 +172,11 @@ export const STAGED_FILES_PROJECT_CONFIG_FILENAMES = [
   ".oxlintrc.json",
 ] as const;
 
-export const CANONICAL_GITHUB_URL = "https://github.com/millionco/react-doctor";
+export const CANONICAL_GITHUB_URL = "https://github.com/millionco/harness-doctor";
 
-export const CANONICAL_DISCORD_URL = "https://react.doctor/discord";
+export const CANONICAL_DISCORD_URL = "https://harness.doctor/discord";
 
-export const SKILL_NAME = "react-doctor";
+export const SKILL_NAME = "harness-doctor";
 
 // HACK: cap on combined stdout+stderr bytes per oxlint batch. Above
 // this we kill the process (SIGKILL) and ask the user to narrow the
@@ -243,7 +253,7 @@ export const DIAGNOSTIC_CATEGORY_BUCKETS = [
 // on for a library by setting its severity explicitly in config.
 export const APP_ONLY_RULE_KEYS: ReadonlySet<string> = new Set([
   "react-hooks-js/static-components",
-  "react-doctor/no-render-prop-children",
+  "harness-doctor/no-render-prop-children",
 ]);
 
 // The `compiler-cleanup` severity bucket: redundant-memoization rules that
@@ -258,7 +268,7 @@ export const APP_ONLY_RULE_KEYS: ReadonlySet<string> = new Set([
 // optimize, which is a real perf regression, not cleanup.
 export const COMPILER_CLEANUP_BUCKET = "compiler-cleanup";
 export const COMPILER_CLEANUP_RULE_KEYS: ReadonlySet<string> = new Set([
-  "react-doctor/react-compiler-no-manual-memoization",
+  "harness-doctor/react-compiler-no-manual-memoization",
 ]);
 
 // How many of the highest-priority error rules to surface in the
@@ -310,7 +320,7 @@ export const MAX_GLOB_PATTERN_WILDCARD_COUNT = 24;
 
 // `Config.layerNode` caches resolved configs per directory so the CLI's
 // repeated `inspect()` calls (one per project in a monorepo loop) don't
-// reload the same `react-doctor.config.json` each time. Capacity bounds
+// reload the same `harness-doctor.config.json` each time. Capacity bounds
 // memory on monorepos with hundreds of workspace packages; TTL handles
 // long-running consumers (watch-mode tools, language servers).
 export const CONFIG_CACHE_CAPACITY = 16;

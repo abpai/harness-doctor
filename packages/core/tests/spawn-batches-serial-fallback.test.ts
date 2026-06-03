@@ -14,7 +14,7 @@
 
 import { EventEmitter } from "node:events";
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { ProjectInfo } from "@react-doctor/core";
+import type { ProjectInfo } from "@harness-doctor/core";
 
 interface SpawnMockState {
   callCount: number;

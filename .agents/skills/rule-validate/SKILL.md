@@ -1,11 +1,11 @@
 ---
 name: rule-validate
-description: Validate implemented React Doctor rules before PR or merge. Use after rule tests pass to review correctness, run RDE against OSS, inspect false positives, generate changesets, write PR descriptions, and triage bot or human review comments.
+description: Validate implemented Harness Doctor rules before PR or merge. Use after rule tests pass to review correctness, run RDE against OSS, inspect false positives, generate changesets, write PR descriptions, and triage bot or human review comments.
 ---
 
 # Rule Validate
 
-Use this as stage 3 of the React Doctor rule pipeline.
+Use this as stage 3 of the Harness Doctor rule pipeline.
 
 Pipeline:
 
@@ -74,7 +74,7 @@ Required handling:
 Record:
 
 ```md
-React Doctor checkout:
+Harness Doctor checkout:
 RDE eval harness:
 Repo manifest:
 Distinct repos scanned:

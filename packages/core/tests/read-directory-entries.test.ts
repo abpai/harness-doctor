@@ -2,12 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { readDirectoryEntries } from "@react-doctor/core";
+import { readDirectoryEntries } from "@harness-doctor/core";
 
 let temporaryRoot: string;
 
 beforeEach(() => {
-  temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "react-doctor-read-dir-entries-"));
+  temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-read-dir-entries-"));
 });
 
 afterEach(() => {

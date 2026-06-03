@@ -1,11 +1,11 @@
 ---
 name: rule-writing
-description: Write React Doctor rules from a validated rule contract. Use when implementing oxlint plugin rules, planning AST/scope/control-flow detection, designing adversarial tests, adding utilities, or updating rule registration.
+description: Write Harness Doctor rules from a validated rule contract. Use when implementing oxlint plugin rules, planning AST/scope/control-flow detection, designing adversarial tests, adding utilities, or updating rule registration.
 ---
 
 # Rule Writing
 
-Use this as stage 2 of the React Doctor rule pipeline.
+Use this as stage 2 of the Harness Doctor rule pipeline.
 
 Pipeline:
 
@@ -30,7 +30,7 @@ If the user asked for direct implementation, keep the plan short and proceed.
 ## Implementation Workflow
 
 1. Read the rule contract and `docs/HOW_TO_WRITE_A_RULE.md` when available.
-2. Inspect nearby rules and utilities before adding new abstractions. Use `truffler` (the `find-similar-functions` skill) to fuzzy-search for an existing detector or utility to reuse or extend before writing one: `bunx @rayhanadev/truffler "<symbol or behavior>" packages/oxlint-plugin-react-doctor/src/plugin --kind function,interface,type,constant --limit 20`.
+2. Inspect nearby rules and utilities before adding new abstractions. Use `truffler` (the `find-similar-functions` skill) to fuzzy-search for an existing detector or utility to reuse or extend before writing one: `bunx @rayhanadev/truffler "<symbol or behavior>" packages/oxlint-plugin-harness-doctor/src/plugin --kind function,interface,type,constant --limit 20`.
 3. Write detector pseudocode before editing files.
 4. Write or update adversarial tests first when practical.
 5. Implement the detector to match the rule contract exactly.

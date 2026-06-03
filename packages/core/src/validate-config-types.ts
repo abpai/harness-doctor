@@ -1,6 +1,6 @@
 import type {
   DiagnosticSurface,
-  ReactDoctorConfig,
+  HarnessDoctorConfig,
   RuleSeverityOverride,
   SurfaceControls,
 } from "./types/index.js";
@@ -46,9 +46,9 @@ const BOOLEAN_FIELD_NAMES = [
   "noScore",
   "respectInlineDisables",
   "adoptExistingLintConfig",
-] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
+] as const satisfies ReadonlyArray<keyof HarnessDoctorConfig>;
 
-const STRING_FIELD_NAMES = ["rootDir"] as const satisfies ReadonlyArray<keyof ReactDoctorConfig>;
+const STRING_FIELD_NAMES = ["rootDir"] as const satisfies ReadonlyArray<keyof HarnessDoctorConfig>;
 
 const SURFACE_CONTROL_FIELD_NAMES = [
   "includeTags",
@@ -60,7 +60,7 @@ const SURFACE_CONTROL_FIELD_NAMES = [
 ] as const satisfies ReadonlyArray<keyof SurfaceControls>;
 
 const SEVERITY_FIELD_NAMES = ["rules", "categories"] as const satisfies ReadonlyArray<
-  keyof ReactDoctorConfig
+  keyof HarnessDoctorConfig
 >;
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -202,11 +202,11 @@ const validateSeverityMap = (
 // return strips the field, anything else replaces it. Keeps the main
 // loop free of the repeating "if (raw === undefined) continue; result =
 // validator(...); if (result === undefined) delete; else assign" dance.
-const applyFieldValidator = <Key extends keyof ReactDoctorConfig>(
-  config: ReactDoctorConfig,
-  validated: ReactDoctorConfig,
+const applyFieldValidator = <Key extends keyof HarnessDoctorConfig>(
+  config: HarnessDoctorConfig,
+  validated: HarnessDoctorConfig,
   fieldName: Key,
-  validator: (value: unknown) => ReactDoctorConfig[Key] | undefined,
+  validator: (value: unknown) => HarnessDoctorConfig[Key] | undefined,
 ): void => {
   const raw = (config as Record<string, unknown>)[fieldName];
   if (raw === undefined) return;
@@ -222,8 +222,8 @@ const applyFieldValidator = <Key extends keyof ReactDoctorConfig>(
 // mistakes (string "true"/"false") and other invalid types stripped.
 // Non-validated fields pass through untouched — consumers still do their
 // own runtime checks for those.
-export const validateConfigTypes = (config: ReactDoctorConfig): ReactDoctorConfig => {
-  const validated: ReactDoctorConfig = { ...config };
+export const validateConfigTypes = (config: HarnessDoctorConfig): HarnessDoctorConfig => {
+  const validated: HarnessDoctorConfig = { ...config };
   for (const fieldName of BOOLEAN_FIELD_NAMES) {
     applyFieldValidator(config, validated, fieldName, (value) =>
       coerceMaybeBooleanString(fieldName, value),

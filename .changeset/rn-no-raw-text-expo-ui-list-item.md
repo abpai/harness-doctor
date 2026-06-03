@@ -1,5 +1,5 @@
 ---
-"react-doctor": patch
+"harness-doctor": patch
 ---
 
 Two React Native rules no longer false-positive on Expo Universal UI (`@expo/ui`).

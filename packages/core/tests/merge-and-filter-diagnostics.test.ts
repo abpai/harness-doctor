@@ -3,14 +3,14 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vite-plus/test";
 
-import type { Diagnostic } from "@react-doctor/core";
+import type { Diagnostic } from "@harness-doctor/core";
 import {
   clearAutoSuppressionCaches,
   createNodeReadFileLinesSync,
   mergeAndFilterDiagnostics,
-} from "@react-doctor/core";
+} from "@harness-doctor/core";
 
-// Inlined to avoid coupling core tests to the react-doctor regressions
+// Inlined to avoid coupling core tests to the harness-doctor regressions
 // test harness (which carries its own runOxlint + git-spawn surface).
 const writeFile = (filePath: string, contents: string): void => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -19,7 +19,7 @@ const writeFile = (filePath: string, contents: string): void => {
 
 const buildDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   filePath: "src/app.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "test-rule",
   severity: "error",
   message: "x",
@@ -46,10 +46,10 @@ const baseDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic =>
   buildDiagnostic({ rule: "no-derived-state-effect", line: 2, ...overrides });
 
 describe("mergeAndFilterDiagnostics — respectInlineDisables option", () => {
-  it("filters react-doctor-disable comments by default (respectInlineDisables defaults to true)", () => {
+  it("filters harness-doctor-disable comments by default (respectInlineDisables defaults to true)", () => {
     const projectDir = setupCase(
       "default-respects-disables",
-      `// react-doctor-disable-next-line react-doctor/no-derived-state-effect\nconst x = 1;\n`,
+      `// harness-doctor-disable-next-line harness-doctor/no-derived-state-effect\nconst x = 1;\n`,
     );
     const filtered = mergeAndFilterDiagnostics(
       [baseDiagnostic()],
@@ -60,10 +60,10 @@ describe("mergeAndFilterDiagnostics — respectInlineDisables option", () => {
     expect(filtered).toHaveLength(0);
   });
 
-  it("audit mode (respectInlineDisables=false) bypasses react-doctor-disable comments too", () => {
+  it("audit mode (respectInlineDisables=false) bypasses harness-doctor-disable comments too", () => {
     const projectDir = setupCase(
       "audit-bypasses-disables",
-      `// react-doctor-disable-next-line react-doctor/no-derived-state-effect\nconst x = 1;\n`,
+      `// harness-doctor-disable-next-line harness-doctor/no-derived-state-effect\nconst x = 1;\n`,
     );
     const filtered = mergeAndFilterDiagnostics(
       [baseDiagnostic()],
@@ -88,73 +88,37 @@ describe("mergeAndFilterDiagnostics — respectInlineDisables option", () => {
   });
 });
 
-describe("mergeAndFilterDiagnostics — test-noise tag auto-suppression for async-parallel", () => {
-  const projectDir = path.join(tempRoot, "test-noise-async-parallel");
+describe("mergeAndFilterDiagnostics — test-noise tag auto-suppression", () => {
+  const projectDir = path.join(tempRoot, "test-noise-suppression");
   const readNoop = () => null;
-  const asyncParallelDiagnostic = (filePath: string): Diagnostic =>
+  const plainDiagnostic = (filePath: string): Diagnostic =>
     buildDiagnostic({
-      rule: "async-parallel",
+      rule: "test-rule",
       filePath,
       line: 1,
       column: 1,
     });
 
-  it("auto-suppresses async-parallel in `*.test.tsx` files", () => {
+  // No rule in the framework-agnostic boilerplate is tagged `test-noise`, so a
+  // plain diagnostic surfaces unchanged even when it lands in a test file. This
+  // guards the lookup contract: auto-suppression is keyed on a registry tag, not
+  // on the file path alone.
+  it("does not suppress untagged rules in test files", () => {
     clearAutoSuppressionCaches();
     const filtered = mergeAndFilterDiagnostics(
-      [asyncParallelDiagnostic("src/dashboard.test.tsx")],
+      [plainDiagnostic("src/dashboard.test.tsx")],
       projectDir,
       null,
       readNoop,
       { respectInlineDisables: false },
     );
-    expect(filtered).toHaveLength(0);
+    expect(filtered).toHaveLength(1);
   });
 
-  it("auto-suppresses async-parallel inside `__tests__/` directories", () => {
+  it("surfaces untagged rules in plain production files", () => {
     clearAutoSuppressionCaches();
     const filtered = mergeAndFilterDiagnostics(
-      [asyncParallelDiagnostic("src/utils/__tests__/load-data.ts")],
-      projectDir,
-      null,
-      readNoop,
-      { respectInlineDisables: false },
-    );
-    expect(filtered).toHaveLength(0);
-  });
-
-  it("auto-suppresses async-parallel inside Playwright/Cypress/e2e directories", () => {
-    clearAutoSuppressionCaches();
-    const filtered = mergeAndFilterDiagnostics(
-      [
-        asyncParallelDiagnostic("playwright/checkout.spec.ts"),
-        asyncParallelDiagnostic("cypress/e2e/login.cy.ts"),
-        asyncParallelDiagnostic("e2e/onboarding.ts"),
-      ],
-      projectDir,
-      null,
-      readNoop,
-      { respectInlineDisables: false },
-    );
-    expect(filtered).toHaveLength(0);
-  });
-
-  it("auto-suppresses async-parallel for Windows-slashed test paths", () => {
-    clearAutoSuppressionCaches();
-    const filtered = mergeAndFilterDiagnostics(
-      [asyncParallelDiagnostic("src\\components\\Button.test.tsx")],
-      projectDir,
-      null,
-      readNoop,
-      { respectInlineDisables: false },
-    );
-    expect(filtered).toHaveLength(0);
-  });
-
-  it("still surfaces async-parallel in plain production files", () => {
-    clearAutoSuppressionCaches();
-    const filtered = mergeAndFilterDiagnostics(
-      [asyncParallelDiagnostic("src/server/load-dashboard.ts")],
+      [plainDiagnostic("src/server/load-dashboard.ts")],
       projectDir,
       null,
       readNoop,

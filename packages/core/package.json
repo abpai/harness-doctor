@@ -1,8 +1,8 @@
 {
-  "name": "@react-doctor/core",
+  "name": "@harness-doctor/core",
   "version": "0.2.18",
   "private": true,
-  "description": "Internal: diagnostic engine for React Doctor (lint runner, scoring, config, suppressions). Not published.",
+  "description": "Internal: diagnostic engine for Harness Doctor (lint runner, scoring, config, suppressions). Not published.",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -29,7 +29,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "jiti": "^2.7.0",
     "oxlint": "^1.66.0",
-    "oxlint-plugin-react-doctor": "workspace:*",
+    "oxlint-plugin-harness-doctor": "workspace:*",
     "picomatch": "^4.0.4",
     "typescript": "^6.0.3"
   },

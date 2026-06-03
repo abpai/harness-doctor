@@ -3,7 +3,7 @@
  * (`discoverProject` / `resolveDiagnoseTarget` / `readPackageJson`).
  *
  * These extend `Error` directly — they are NOT the tagged
- * `ReactDoctorError` from `../errors.js` (that one wraps every
+ * `HarnessDoctorError` from `../errors.js` (that one wraps every
  * runtime-pipeline failure as a `Schema.TaggedErrorClass` for
  * `Effect.catchReasons` dispatch). The split is intentional:
  *
@@ -17,7 +17,7 @@
  *   runtime never sees a non-tagged failure.
  *
  * If you're inside the Effect runtime, use the tagged
- * `ReactDoctorError` from `../errors.js` instead.
+ * `HarnessDoctorError` from `../errors.js` instead.
  */
 
 /**

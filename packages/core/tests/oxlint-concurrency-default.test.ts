@@ -1,5 +1,5 @@
 /**
- * Guards the "parallel by default" contract: with no `REACT_DOCTOR_PARALLEL`
+ * Guards the "parallel by default" contract: with no `HARNESS_DOCTOR_PARALLEL`
  * override, the `OxlintConcurrency` Reference resolves to auto-detected CPU
  * cores (parallel), not `1` (serial).
  *
@@ -10,11 +10,11 @@
 
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vite-plus/test";
-import { OxlintConcurrency, resolveScanConcurrency } from "@react-doctor/core";
+import { OxlintConcurrency, resolveScanConcurrency } from "@harness-doctor/core";
 
 describe("OxlintConcurrency default", () => {
-  it("defaults to auto-detected cores (parallel) when REACT_DOCTOR_PARALLEL is unset", () => {
-    delete process.env.REACT_DOCTOR_PARALLEL;
+  it("defaults to auto-detected cores (parallel) when HARNESS_DOCTOR_PARALLEL is unset", () => {
+    delete process.env.HARNESS_DOCTOR_PARALLEL;
     expect(Effect.runSync(OxlintConcurrency)).toBe(resolveScanConcurrency("auto"));
   });
 });

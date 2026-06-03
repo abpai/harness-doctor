@@ -34,7 +34,7 @@ export interface Diagnostic {
   rule: string;
   severity: "error" | "warning";
   // Short human headline for the rule (e.g. "Array index used as a key").
-  // Present for react-doctor rules; absent for adopted third-party rules,
+  // Present for harness-doctor rules; absent for adopted third-party rules,
   // where renderers fall back to the `plugin/rule` id.
   title?: string;
   message: string;

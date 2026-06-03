@@ -13,42 +13,42 @@ import {
   AmbiguousProject,
   NoReactDependency,
   ProjectNotFound,
-  ReactDoctorError,
+  HarnessDoctorError,
 } from "../errors.js";
 
-const translateProjectInfoError = (cause: unknown, directory: string): ReactDoctorError => {
+const translateProjectInfoError = (cause: unknown, directory: string): HarnessDoctorError => {
   if (cause instanceof NoReactDependencyError) {
-    return new ReactDoctorError({ reason: new NoReactDependency({ directory: cause.directory }) });
+    return new HarnessDoctorError({ reason: new NoReactDependency({ directory: cause.directory }) });
   }
   if (cause instanceof ProjectNotFoundError) {
-    return new ReactDoctorError({ reason: new ProjectNotFound({ directory: cause.directory }) });
+    return new HarnessDoctorError({ reason: new ProjectNotFound({ directory: cause.directory }) });
   }
   if (cause instanceof PackageJsonNotFoundError) {
-    return new ReactDoctorError({ reason: new ProjectNotFound({ directory: cause.directory }) });
+    return new HarnessDoctorError({ reason: new ProjectNotFound({ directory: cause.directory }) });
   }
   if (cause instanceof AmbiguousProjectError) {
-    return new ReactDoctorError({
+    return new HarnessDoctorError({
       reason: new AmbiguousProject({
         directory: cause.directory,
         candidates: cause.candidates,
       }),
     });
   }
-  return new ReactDoctorError({ reason: new ProjectNotFound({ directory }) });
+  return new HarnessDoctorError({ reason: new ProjectNotFound({ directory }) });
 };
 
 export class Project extends Context.Service<
   Project,
   {
-    readonly discover: (directory: string) => Effect.Effect<ProjectInfo, ReactDoctorError>;
+    readonly discover: (directory: string) => Effect.Effect<ProjectInfo, HarnessDoctorError>;
   }
->()("react-doctor/Project") {
+>()("harness-doctor/Project") {
   static readonly layerNode = Layer.succeed(
     Project,
     Project.of({
       // `Effect.fn("Project.discover")` adds an OTel-compatible span
       // name to every invocation. Canonical eval pattern from
-      // `react-doctor-evals/src/Runner.ts` / `ReactDoctorV2.ts` —
+      // `harness-doctor-evals/src/Runner.ts` / `HarnessDoctorV2.ts` —
       // free observability with zero runtime cost when no tracer
       // layer is provided.
       discover: Effect.fn("Project.discover")(function* (directory: string) {

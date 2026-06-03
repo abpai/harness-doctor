@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import path from "node:path";
-import type { OxlintRuleSeverity } from "oxlint-plugin-react-doctor";
+import type { OxlintRuleSeverity } from "oxlint-plugin-harness-doctor";
 import { warnConfigIssue } from "../../utils/warn-config-issue.js";
 
 export interface JsPluginEntry {
@@ -115,7 +115,7 @@ export interface ResolvedUserPlugin {
 }
 
 /**
- * Resolves a user plugin spec from `react-doctor.config.json`'s
+ * Resolves a user plugin spec from `harness-doctor.config.json`'s
  * `plugins: [...]` to an absolute file path. Two accepted spec
  * shapes:
  *

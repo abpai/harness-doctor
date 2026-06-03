@@ -13,8 +13,8 @@ export interface SkippedCheckSummary {
 
 /**
  * Single source of truth for the skipped-check accounting shared by the
- * CLI renderer (`react-doctor/src/inspect.ts → finalizeAndRender`) and the
- * programmatic shell (`@react-doctor/api → diagnose()`). Both surface a
+ * CLI renderer (`harness-doctor/src/inspect.ts → finalizeAndRender`) and the
+ * programmatic shell (`@harness-doctor/api → diagnose()`). Both surface a
  * failed lint / dead-code pass instead of a false "all clear", so the
  * branch logic lives here once.
  */

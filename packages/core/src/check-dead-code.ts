@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import type { Diagnostic, ReactDoctorConfig } from "./types/index.js";
+import type { Diagnostic, HarnessDoctorConfig } from "./types/index.js";
 import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
 import {
   DEAD_CODE_WORKER_MAX_OLD_SPACE_MB,
@@ -21,8 +21,8 @@ export const DEAD_CODE_CATEGORY = "Maintainability";
 
 interface CheckDeadCodeOptions {
   readonly rootDirectory: string;
-  /** Loaded react-doctor config — `ignore.files` is forwarded to deslop. */
-  readonly userConfig?: ReactDoctorConfig | null;
+  /** Loaded harness-doctor config — `ignore.files` is forwarded to deslop. */
+  readonly userConfig?: HarnessDoctorConfig | null;
   readonly deslopJsModuleSpecifier?: string;
   readonly createWorker?: DeadCodeWorkerFactory;
   readonly workerTimeoutMs?: number;
@@ -160,7 +160,7 @@ const resolveTsConfigPath = (rootDirectory: string): string | undefined => {
 // oxlint reads it automatically — deslop does not, so we pull it in.
 const collectDeadCodeIgnorePatterns = (
   rootDirectory: string,
-  userConfig: ReactDoctorConfig | null | undefined,
+  userConfig: HarnessDoctorConfig | null | undefined,
 ): string[] => {
   const seen = new Set<string>();
   const sources = [

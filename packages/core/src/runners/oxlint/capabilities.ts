@@ -26,14 +26,14 @@ export const buildCapabilities = (project: ProjectInfo): ReadonlySet<string> => 
     // (`next` / `vite` at the entry point) whose `apps/mobile`
     // workspace targets React Native. Without this, every `rn-*`
     // rule is dropped before the file-level package boundary in
-    // `oxlint-plugin-react-doctor` ever runs.
+    // `oxlint-plugin-harness-doctor` ever runs.
     capabilities.add("react-native");
   }
   // `expoVersion` covers the same inverted case as `hasReactNativeWorkspace`
   // above: a web-rooted monorepo (or a project declaring both `expo` and a web
   // bundler) classifies as a web `framework` yet still ships Expo. Without
   // this, Expo-specific rules would be dropped before the file-level package
-  // boundary in `oxlint-plugin-react-doctor` ever runs.
+  // boundary in `oxlint-plugin-harness-doctor` ever runs.
   if (project.expoVersion !== null) {
     capabilities.add("expo");
   }

@@ -2,12 +2,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vite-plus/test";
-import { AmbiguousProjectError, ProjectNotFoundError, resolveScanTarget } from "../src/index.js";
+import { ProjectNotFoundError, resolveScanTarget } from "../src/index.js";
 
 const tempDirectories: string[] = [];
 
 const createTempDirectory = (): string => {
-  const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "react-doctor-resolve-target-"));
+  const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-resolve-target-"));
   tempDirectories.push(tempDirectory);
   return tempDirectory;
 };
@@ -17,14 +17,10 @@ const writeJson = (filePath: string, contents: unknown): void => {
   fs.writeFileSync(filePath, JSON.stringify(contents, null, 2));
 };
 
-const writeReactProject = (parentDirectory: string, projectName: string): string => {
+const writeProject = (parentDirectory: string, projectName: string): string => {
   const projectDirectory = path.join(parentDirectory, projectName);
   writeJson(path.join(projectDirectory, "package.json"), {
     name: projectName,
-    dependencies: {
-      react: "^19.0.0",
-      "react-dom": "^19.0.0",
-    },
   });
   return projectDirectory;
 };
@@ -36,15 +32,20 @@ describe("resolveScanTarget", () => {
     }
   });
 
-  it("can keep an ambiguous wrapper directory for multi-project CLI scans", async () => {
+  it("resolves a multi-project wrapper directory to itself (no subproject auto-walk)", async () => {
     const wrapperDirectory = createTempDirectory();
-    writeReactProject(wrapperDirectory, "frontend");
-    writeReactProject(wrapperDirectory, "mobile");
+    writeProject(wrapperDirectory, "frontend");
+    writeProject(wrapperDirectory, "mobile");
 
-    await expect(resolveScanTarget(wrapperDirectory)).rejects.toThrow(AmbiguousProjectError);
-
-    const scanTarget = await resolveScanTarget(wrapperDirectory, { allowAmbiguous: true });
+    const scanTarget = await resolveScanTarget(wrapperDirectory);
     expect(scanTarget.resolvedDirectory).toBe(wrapperDirectory);
+
+    // `allowAmbiguous` is retained for CLI call-site compatibility but is
+    // inert now that the boilerplate no longer walks into nested projects.
+    const scanTargetAllowAmbiguous = await resolveScanTarget(wrapperDirectory, {
+      allowAmbiguous: true,
+    });
+    expect(scanTargetAllowAmbiguous.resolvedDirectory).toBe(wrapperDirectory);
   });
 
   it("reports a missing scan target as a non-existent path, not a missing package.json", async () => {

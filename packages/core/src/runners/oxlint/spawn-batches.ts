@@ -4,7 +4,7 @@ import {
   PROGRESS_TICK_INTERVAL_MS,
 } from "../../constants.js";
 import type { Diagnostic, ProjectInfo } from "../../types/index.js";
-import { isSplittableReactDoctorError, ReactDoctorError } from "../../errors.js";
+import { isSplittableHarnessDoctorError, HarnessDoctorError } from "../../errors.js";
 import { dedupeDiagnostics } from "../../utils/dedupe-diagnostics.js";
 import { mapWithConcurrency } from "../../utils/map-with-concurrency.js";
 import { resolveScanConcurrency } from "../../utils/resolve-scan-concurrency.js";
@@ -25,7 +25,7 @@ const PARALLELISM_EXHAUSTION_ERROR_CODES = new Set(["EAGAIN", "EMFILE", "ENFILE"
 // output, a per-batch budget timeout) is independent of the worker count and
 // would recur serially, so it must propagate rather than trigger a replay.
 const isParallelismRelatedSpawnError = (error: unknown): boolean => {
-  if (!(error instanceof ReactDoctorError)) return false;
+  if (!(error instanceof HarnessDoctorError)) return false;
   const { reason } = error;
   if (reason._tag !== "OxlintSpawnFailed") return false;
   const { cause } = reason;
@@ -133,7 +133,7 @@ export const spawnLintBatches = async (input: SpawnLintBatchesInput): Promise<Di
         );
         return parseOxlintOutput(stdout, project, rootDirectory);
       } catch (error) {
-        if (!isSplittableReactDoctorError(error)) throw error;
+        if (!isSplittableHarnessDoctorError(error)) throw error;
         if (batch.length <= 1) {
           // Single-file batch still fails with a splittable error —
           // drop the file, record it, and let the scan continue.

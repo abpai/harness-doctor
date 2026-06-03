@@ -15,7 +15,7 @@ const findFirstLintConfigInDirectory = (directory: string): string | null => {
 // manifest). Without a stop, scanning a sub-package would silently
 // adopt a `.oxlintrc.json` from any random ancestor on disk
 // (e.g. the user's home directory) — same boundary semantics as
-// `loadConfig` for `react-doctor.config.json`.
+// `loadConfig` for `harness-doctor.config.json`.
 export const detectUserLintConfigPaths = (rootDirectory: string): string[] => {
   const directLintConfig = findFirstLintConfigInDirectory(rootDirectory);
   if (directLintConfig) return [directLintConfig];

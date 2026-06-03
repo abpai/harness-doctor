@@ -3,7 +3,7 @@ import * as Layer from "effect/Layer";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
 import { describe, expect, it } from "vite-plus/test";
-import type { Diagnostic, ProjectInfo } from "@react-doctor/core";
+import type { Diagnostic, ProjectInfo } from "@harness-doctor/core";
 import { LintPartialFailures, Linter, type LintInput } from "../../src/services/linter.js";
 
 const sampleProject: ProjectInfo = {
@@ -28,7 +28,7 @@ const sampleProject: ProjectInfo = {
 
 const sampleDiagnostic: Diagnostic = {
   filePath: "/repo/src/App.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "no-derived-state",
   severity: "error",
   message: "Avoid useState(propX)",

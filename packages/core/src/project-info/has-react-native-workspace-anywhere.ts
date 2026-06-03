@@ -13,7 +13,7 @@ import { isPackageJsonReactNativeAware } from "./utils/is-package-json-react-nat
 // Used so a web-rooted monorepo whose entry-point `package.json` is
 // Next / Vite / Remix still loads `rn-*` rules when a sibling
 // workspace targets React Native or Expo. The file-level package
-// boundary in `oxlint-plugin-react-doctor` keeps those rules silent
+// boundary in `oxlint-plugin-harness-doctor` keeps those rules silent
 // on the web workspaces — this just stops the rules from being
 // dropped at the project level before the file-level gate gets a
 // chance to run.

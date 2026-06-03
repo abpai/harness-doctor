@@ -22,7 +22,7 @@ const containsAnyReactNativeDependency = (section: Record<string, string> | unde
 // those rules quiet on the web workspaces.
 //
 // Iterates the same four dependency sections as
-// `oxlint-plugin-react-doctor`'s `classifyPackagePlatform` — keeping
+// `oxlint-plugin-harness-doctor`'s `classifyPackagePlatform` — keeping
 // the project-level capability gate and the file-level rule gate in
 // agreement so a workspace listing `react-native` only in
 // `optionalDependencies` (or any other section) classifies the same

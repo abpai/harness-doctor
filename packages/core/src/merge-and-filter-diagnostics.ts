@@ -1,10 +1,10 @@
-import type { Diagnostic, ReactDoctorConfig } from "./types/index.js";
+import type { Diagnostic, HarnessDoctorConfig } from "./types/index.js";
 import { buildDiagnosticPipeline } from "./build-diagnostic-pipeline.js";
 import { DEFAULT_SHOW_WARNINGS } from "./constants.js";
 
 interface MergeAndFilterOptions {
   respectInlineDisables?: boolean;
-  /** See `ReactDoctorConfig.warnings`. Falls back to `userConfig.warnings ?? true`. */
+  /** See `HarnessDoctorConfig.warnings`. Falls back to `userConfig.warnings ?? true`. */
   warnings?: boolean;
 }
 
@@ -26,7 +26,7 @@ export const clearAutoSuppressionCaches = (): void => {};
 export const mergeAndFilterDiagnostics = (
   mergedDiagnostics: Diagnostic[],
   directory: string,
-  userConfig: ReactDoctorConfig | null,
+  userConfig: HarnessDoctorConfig | null,
   readFileLinesSync: (filePath: string) => string[] | null,
   options: MergeAndFilterOptions = {},
 ): Diagnostic[] => {

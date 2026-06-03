@@ -1,6 +1,6 @@
 import * as Effect from "effect/Effect";
 import { describe, expect, it } from "vite-plus/test";
-import { NodeResolver } from "@react-doctor/core";
+import { NodeResolver } from "@harness-doctor/core";
 
 describe("NodeResolver.layerOf", () => {
   it("returns the snapshot resolution from resolve()", async () => {

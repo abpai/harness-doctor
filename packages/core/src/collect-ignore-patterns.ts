@@ -2,7 +2,7 @@ import path from "node:path";
 import { parseGitattributesLinguistPaths } from "./parse-gitattributes-linguist.js";
 import { readIgnoreFile } from "./read-ignore-file.js";
 
-// HACK: when react-doctor passes `--ignore-path COMBINED_FILE` to
+// HACK: when harness-doctor passes `--ignore-path COMBINED_FILE` to
 // oxlint, oxlint stops reading `.eslintignore` automatically. So
 // `.eslintignore` MUST be included in the combined file or its
 // patterns silently vanish. Order matches user precedence intuition:
@@ -43,7 +43,7 @@ const computeIgnorePatterns = (rootDirectory: string): string[] => {
   return patterns;
 };
 
-// Returns the union of ignore-style patterns from every source react-doctor
+// Returns the union of ignore-style patterns from every source harness-doctor
 // knows about (`.eslintignore` + `.oxlintignore` + `.prettierignore` +
 // `.gitattributes` linguist annotations), with cross-file duplicates
 // removed. Cached per `rootDirectory` for the lifetime of the module —

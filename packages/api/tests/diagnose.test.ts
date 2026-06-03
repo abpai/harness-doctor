@@ -216,7 +216,7 @@ describe("diagnoseProjects", () => {
     expect(result.projects).toHaveLength(1);
   });
 
-  it("accepts per-project ReactDoctorConfig override", async () => {
+  it("accepts per-project HarnessDoctorConfig override", async () => {
     const result = await diagnoseProjects({
       projects: [
         {

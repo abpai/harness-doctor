@@ -1,13 +1,13 @@
-import reactDoctorPlugin, {
-  ALL_REACT_DOCTOR_RULE_KEYS,
+import harnessDoctorPlugin, {
+  ALL_HARNESS_DOCTOR_RULE_KEYS,
   FRAMEWORK_SPECIFIC_RULE_KEYS,
-} from "oxlint-plugin-react-doctor";
+} from "oxlint-plugin-harness-doctor";
 import { getRuleCategory } from "./parse-output.js";
 
 let didValidate = false;
 
 /**
- * One-time lazy assertion that every shipped react-doctor rule has
+ * One-time lazy assertion that every shipped harness-doctor rule has
  * the metadata the renderer + capability gating depend on:
  * `category` (drives the diagnostic grouping in CLI output),
  * `recommendation` (the "Suggestion" line in `--verbose`), and —
@@ -23,15 +23,15 @@ export const validateRuleRegistration = (): void => {
   const missingHelp: string[] = [];
   const missingCategory: string[] = [];
   const missingMetadata: string[] = [];
-  for (const fullKey of ALL_REACT_DOCTOR_RULE_KEYS) {
-    const ruleName = fullKey.replace(/^react-doctor\//, "");
+  for (const fullKey of ALL_HARNESS_DOCTOR_RULE_KEYS) {
+    const ruleName = fullKey.replace(/^harness-doctor\//, "");
     if (!getRuleCategory(ruleName)) {
       missingCategory.push(fullKey);
     }
-    if (!reactDoctorPlugin.rules[ruleName]?.recommendation) {
+    if (!harnessDoctorPlugin.rules[ruleName]?.recommendation) {
       missingHelp.push(fullKey);
     }
-    if (FRAMEWORK_SPECIFIC_RULE_KEYS.has(fullKey) && !reactDoctorPlugin.rules[ruleName]?.requires) {
+    if (FRAMEWORK_SPECIFIC_RULE_KEYS.has(fullKey) && !harnessDoctorPlugin.rules[ruleName]?.requires) {
       missingMetadata.push(fullKey);
     }
   }
@@ -52,5 +52,5 @@ export const validateRuleRegistration = (): void => {
     .filter((entry): entry is string => entry !== null)
     .join("; ");
   // HACK: warn rather than throw — never block the user's scan over a metadata gap.
-  console.warn(`[react-doctor] rule-registration drift: ${detail}`);
+  console.warn(`[harness-doctor] rule-registration drift: ${detail}`);
 };

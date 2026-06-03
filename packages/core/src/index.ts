@@ -10,7 +10,7 @@ export * from "./run-inspect.js";
 // (Diagnostic, JsonReport, JsonReportSummary, …) collide with the
 // TypeScript-type definitions in `./types/index.js`. Consumers that
 // need the Schema classes import directly via
-// `@react-doctor/core/schemas` or the in-tree relative path.
+// `@harness-doctor/core/schemas` or the in-tree relative path.
 export { Severity, JsonReportV1, buildDiagnosticIdentity } from "./schemas.js";
 export * from "./services/config.js";
 export * from "./services/dead-code.js";
@@ -30,13 +30,11 @@ export * from "./batch-include-paths.js";
 export * from "./build-json-report-error.js";
 export * from "./build-json-report.js";
 export * from "./build-skipped-checks.js";
+export * from "./calculate-local-score.js";
 export * from "./calculate-score.js";
 export * from "./can-oxlint-extend-config.js";
 export * from "./check-dead-code.js";
-export * from "./check-expo-project.js";
-export * from "./check-pnpm-hardening.js";
-export * from "./check-react-native-project.js";
-export * from "./check-reduced-motion.js";
+export * from "./checks/pnpm-hardening.js";
 export * from "./collect-ignore-patterns.js";
 export * from "./constants.js";
 export * from "./detect-user-lint-config.js";
@@ -53,7 +51,6 @@ export * from "./highlighter.js";
 export * from "./is-ignored-file.js";
 export * from "./is-rule-listed-in-comment.js";
 export * from "./is-test-file.js";
-export * from "./jsx-include-paths.js";
 export * from "./load-config.js";
 export * from "./merge-and-filter-diagnostics.js";
 export * from "./neutralize-disable-directives.js";
@@ -62,7 +59,6 @@ export * from "./read-file-lines-node.js";
 export * from "./read-ignore-file.js";
 export * from "./resolve-compatible-node.js";
 export * from "./resolve-config-root-dir.js";
-export * from "./resolve-diagnose-target.js";
 export * from "./resolve-rule-severity-override.js";
 export * from "./resolve-lint-include-paths.js";
 export * from "./rule-key-aliases.js";

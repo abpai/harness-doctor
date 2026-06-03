@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { GIT_SHOW_MAX_BUFFER_BYTES, STAGED_FILES_PROJECT_CONFIG_FILENAMES } from "../constants.js";
 import { isLintableSourceFile } from "../utils/is-lintable-source-file.js";
-import { ReactDoctorError } from "../errors.js";
+import { HarnessDoctorError } from "../errors.js";
 import { Git } from "./git.js";
 
 export interface StagedSnapshot {
@@ -49,7 +49,7 @@ export class StagedFiles extends Context.Service<
      */
     readonly discoverSourceFiles: (
       directory: string,
-    ) => Effect.Effect<ReadonlyArray<string>, ReactDoctorError>;
+    ) => Effect.Effect<ReadonlyArray<string>, HarnessDoctorError>;
     /**
      * Materializes the supplied staged files into `tempDirectory`,
      * preserving the project layout and the well-known project config
@@ -61,9 +61,9 @@ export class StagedFiles extends Context.Service<
       readonly directory: string;
       readonly stagedFiles: ReadonlyArray<string>;
       readonly tempDirectory: string;
-    }) => Effect.Effect<StagedSnapshot, ReactDoctorError>;
+    }) => Effect.Effect<StagedSnapshot, HarnessDoctorError>;
   }
->()("react-doctor/StagedFiles") {
+>()("harness-doctor/StagedFiles") {
   static readonly layerNode: Layer.Layer<StagedFiles, never, Git> = Layer.effect(
     StagedFiles,
     Effect.gen(function* () {
@@ -82,7 +82,7 @@ export class StagedFiles extends Context.Service<
               // spawn errors) must NOT sink the whole snapshot — the
               // legacy helper caught these and skipped the path so the
               // staged scan kept going with whatever files did read
-              // cleanly. Fold ReactDoctorError to `null` so the same
+              // cleanly. Fold HarnessDoctorError to `null` so the same
               // skip-and-continue behavior holds.
               const content = yield* git
                 .showStagedContent(directory, relativePath, {

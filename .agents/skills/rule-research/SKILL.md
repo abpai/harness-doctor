@@ -1,11 +1,11 @@
 ---
 name: rule-research
-description: Research and scope React Doctor rule ideas before implementation. Use when validating a proposed rule, grounding it in docs, OSS examples, RDE evidence, false-positive traps, detector precision, or v1 non-goals.
+description: Research and scope Harness Doctor rule ideas before implementation. Use when validating a proposed rule, grounding it in docs, OSS examples, RDE evidence, false-positive traps, detector precision, or v1 non-goals.
 ---
 
 # Rule Research
 
-Use this as stage 1 of the React Doctor rule pipeline.
+Use this as stage 1 of the Harness Doctor rule pipeline.
 
 Pipeline:
 
@@ -32,12 +32,12 @@ When enough is known, present a short rule contract and either ask for confirmat
 1. Define the rule in one sentence:
    `This rule catches <code pattern> that causes <specific problem>.`
 2. Explain the runtime reason in plain language.
-3. Inspect existing React Doctor rule patterns before inventing a shape:
-   - `packages/oxlint-plugin-react-doctor/src/plugin/rules/`
-   - `packages/oxlint-plugin-react-doctor/src/plugin/utils/`
-   - `packages/oxlint-plugin-react-doctor/src/plugin/rule-registry.ts`
+3. Inspect existing Harness Doctor rule patterns before inventing a shape:
+   - `packages/oxlint-plugin-harness-doctor/src/plugin/rules/`
+   - `packages/oxlint-plugin-harness-doctor/src/plugin/utils/`
+   - `packages/oxlint-plugin-harness-doctor/src/plugin/rule-registry.ts`
    - Existing co-located `*.test.ts` files.
-   - Use `truffler` (the `find-similar-functions` skill) to fuzzy-search these paths for an existing rule, detector, or utility by symbol name before assuming a behavior is new: `bunx @rayhanadev/truffler "<symbol or behavior>" packages/oxlint-plugin-react-doctor/src/plugin --kind function,interface,type,constant --limit 20`
+   - Use `truffler` (the `find-similar-functions` skill) to fuzzy-search these paths for an existing rule, detector, or utility by symbol name before assuming a behavior is new: `bunx @rayhanadev/truffler "<symbol or behavior>" packages/oxlint-plugin-harness-doctor/src/plugin --kind function,interface,type,constant --limit 20`
 4. Collect evidence:
    - Official docs.
    - Runtime or implementation notes.
@@ -61,7 +61,7 @@ When enough is known, present a short rule contract and either ask for confirmat
 Use this prompt shape when asking an eval or research agent to search OSS:
 
 ```md
-Find real-world evidence for a React Doctor rule:
+Find real-world evidence for a Harness Doctor rule:
 
 Rule: `<rule-name>`
 

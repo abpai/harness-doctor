@@ -1,4 +1,4 @@
-import type { Diagnostic, ReactDoctorConfig, ReactDoctorIgnoreOverride } from "./types/index.js";
+import type { Diagnostic, HarnessDoctorConfig, HarnessDoctorIgnoreOverride } from "./types/index.js";
 import { isPlainObject } from "./project-info/index.js";
 import { compileGlobPatternsLenient } from "./utils/match-glob-pattern.js";
 import { toRelativePath } from "./utils/to-relative-path.js";
@@ -15,7 +15,7 @@ const isStringArray = (value: unknown): value is string[] =>
 const collectStringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
 
-const validateOverrideEntry = (entry: unknown, index: number): ReactDoctorIgnoreOverride | null => {
+const validateOverrideEntry = (entry: unknown, index: number): HarnessDoctorIgnoreOverride | null => {
   if (!isPlainObject(entry)) {
     warnConfigIssue(
       `ignore.overrides[${index}] must be an object with { files, rules }; ignoring this entry.`,
@@ -40,7 +40,7 @@ const validateOverrideEntry = (entry: unknown, index: number): ReactDoctorIgnore
 };
 
 export const compileIgnoreOverrides = (
-  userConfig: ReactDoctorConfig | null,
+  userConfig: HarnessDoctorConfig | null,
 ): CompiledIgnoreOverride[] => {
   const overrides = userConfig?.ignore?.overrides;
   if (overrides === undefined) return [];

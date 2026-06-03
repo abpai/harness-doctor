@@ -1,4 +1,4 @@
-import type { ReactDoctorConfig, RuleSeverityControls } from "./types/index.js";
+import type { HarnessDoctorConfig, RuleSeverityControls } from "./types/index.js";
 
 /**
  * Assembles the internal `RuleSeverityControls` shape from a user
@@ -10,7 +10,7 @@ import type { ReactDoctorConfig, RuleSeverityControls } from "./types/index.js";
  * downstream consumers.
  */
 export const buildRuleSeverityControls = (
-  config: ReactDoctorConfig | null | undefined,
+  config: HarnessDoctorConfig | null | undefined,
 ): RuleSeverityControls | undefined => {
   if (!config) return undefined;
   if (

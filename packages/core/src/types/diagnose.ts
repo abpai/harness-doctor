@@ -1,21 +1,21 @@
-import type { ReactDoctorConfig } from "./config.js";
+import type { HarnessDoctorConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic.js";
 import type { ProjectInfo } from "./project-info.js";
 import type { ScoreResult } from "./score.js";
 
 export interface DiagnoseOptions {
   lint?: boolean;
-  /** See `ReactDoctorConfig.deadCode`. Ignored in diff mode. */
+  /** See `HarnessDoctorConfig.deadCode`. Ignored in diff mode. */
   deadCode?: boolean;
   verbose?: boolean;
   includePaths?: string[];
   /**
-   * Per-call override for `ReactDoctorConfig.respectInlineDisables`.
+   * Per-call override for `HarnessDoctorConfig.respectInlineDisables`.
    * See that field's docs for the full contract.
    */
   respectInlineDisables?: boolean;
   /**
-   * Per-call override for `ReactDoctorConfig.warnings`. See that field's
+   * Per-call override for `HarnessDoctorConfig.warnings`. See that field's
    * docs — `"warning"`-severity diagnostics surface by default unless this
    * (or the config) opts out via `false`.
    */
@@ -41,18 +41,18 @@ export interface DiagnoseResult {
  * A single project to scan as part of a `diagnoseProjects()` batch.
  * Scan options (`deadCode`, `lint`, etc.) are flat on the entry and
  * layer on top of the global defaults — omitted fields fall through.
- * `config` is a full `ReactDoctorConfig` override that replaces the
+ * `config` is a full `HarnessDoctorConfig` override that replaces the
  * on-disk `doctor.config.*` for this project's scan.
  */
 export interface ProjectDefinition extends DiagnoseOptions {
   directory: string;
   /**
-   * Full react-doctor config override for this project. When provided,
+   * Full harness-doctor config override for this project. When provided,
    * replaces the on-disk `doctor.config.*` for this project's
    * scan — the scan target resolver still runs (so `rootDir` and
    * subproject discovery work), but its loaded config is swapped out.
    */
-  config?: ReactDoctorConfig;
+  config?: HarnessDoctorConfig;
 }
 
 export interface ProjectResultOk extends DiagnoseResult {

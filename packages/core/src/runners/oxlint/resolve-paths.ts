@@ -11,11 +11,11 @@ export const resolveOxlintBinary = (): string => {
 };
 
 // Oxlint loads JS plugins by file path (`await import(specifier)`). We
-// resolve the installed `oxlint-plugin-react-doctor` package's main
+// resolve the installed `oxlint-plugin-harness-doctor` package's main
 // entry — it ships a default-exported plugin module that oxlint
 // accepts as-is. Works in dev (workspace symlink), in npm installs
 // (node_modules/.pnpm/...), and from pnpm dlx / npx temp directories.
-export const resolvePluginPath = (): string => esmRequire.resolve("oxlint-plugin-react-doctor");
+export const resolvePluginPath = (): string => esmRequire.resolve("oxlint-plugin-harness-doctor");
 
 const TSCONFIG_FILENAMES = ["tsconfig.json", "tsconfig.base.json"];
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/core";
-import { createNodeReadFileLinesSync, mergeAndFilterDiagnostics } from "@react-doctor/core";
+import type { Diagnostic, HarnessDoctorConfig } from "@harness-doctor/core";
+import { createNodeReadFileLinesSync, mergeAndFilterDiagnostics } from "@harness-doctor/core";
 
 const TEST_ROOT_DIRECTORY = "/home/user/project";
 const testReadFileLines = createNodeReadFileLinesSync(TEST_ROOT_DIRECTORY);
@@ -12,7 +12,7 @@ const testReadFileLines = createNodeReadFileLinesSync(TEST_ROOT_DIRECTORY);
 // helper did not look at inline directives).
 const filterIgnoredDiagnostics = (
   diagnostics: Diagnostic[],
-  config: ReactDoctorConfig,
+  config: HarnessDoctorConfig,
   rootDirectory: string,
   readFileLinesSync: (filePath: string) => string[] | null,
 ): Diagnostic[] =>
@@ -37,7 +37,7 @@ const createDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
 describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () => {
   it("returns all diagnostics when config has no ignore rules", () => {
     const diagnostics = [createDiagnostic()];
-    const config: ReactDoctorConfig = {};
+    const config: HarnessDoctorConfig = {};
     expect(
       filterIgnoredDiagnostics(diagnostics, config, TEST_ROOT_DIRECTORY, testReadFileLines),
     ).toEqual(diagnostics);
@@ -47,9 +47,9 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
     const diagnostics = [
       createDiagnostic({ plugin: "react", rule: "no-danger" }),
       createDiagnostic({ plugin: "jsx-a11y", rule: "no-autofocus" }),
-      createDiagnostic({ plugin: "react-doctor", rule: "no-giant-component" }),
+      createDiagnostic({ plugin: "harness-doctor", rule: "no-giant-component" }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         rules: ["react/no-danger", "jsx-a11y/no-autofocus"],
       },
@@ -71,7 +71,7 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
       createDiagnostic({ filePath: "src/generated/api/client.tsx" }),
       createDiagnostic({ filePath: "src/components/Button.tsx" }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         files: ["src/generated/**"],
       },
@@ -96,12 +96,12 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
         filePath: "src/generated/api.tsx",
       }),
       createDiagnostic({
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-giant-component",
         filePath: "src/components/App.tsx",
       }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         rules: ["react/no-danger"],
         files: ["src/generated/**"],
@@ -123,7 +123,7 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
       createDiagnostic({ plugin: "react", rule: "no-danger" }),
       createDiagnostic({ plugin: "jsx-a11y", rule: "no-autofocus" }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         rules: ["nonexistent/rule"],
         files: ["nonexistent/**"],
@@ -145,7 +145,7 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
       createDiagnostic({ filePath: "./resources/js/marketing/Hero.tsx" }),
       createDiagnostic({ filePath: "./resources/js/pages/Home.tsx" }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         files: ["resources/js/components/ui/**", "resources/js/marketing/**"],
       },
@@ -174,7 +174,7 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
         filePath: "/home/user/project/resources/js/pages/Home.tsx",
       }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         files: ["/resources/js/components/ui/**", "/resources/js/marketing/**"],
       },
@@ -193,27 +193,27 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
   it("ignore.overrides scopes a rule to specific files without losing coverage of unrelated rules", () => {
     const diagnostics = [
       createDiagnostic({
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-array-index-as-key",
         filePath: "components/diff/Hunk.tsx",
       }),
       createDiagnostic({
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-cascading-set-state",
         filePath: "components/diff/Hunk.tsx",
       }),
       createDiagnostic({
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-array-index-as-key",
         filePath: "components/list/Items.tsx",
       }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         overrides: [
           {
             files: ["components/diff/**"],
-            rules: ["react-doctor/no-array-index-as-key"],
+            rules: ["harness-doctor/no-array-index-as-key"],
           },
         ],
       },
@@ -254,13 +254,13 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
     const diagnostics = [
       createDiagnostic({ plugin: "react", rule: "no-danger", filePath: "src/legacy/A.tsx" }),
       createDiagnostic({
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-cascading-set-state",
         filePath: "src/legacy/A.tsx",
       }),
       createDiagnostic({ plugin: "react", rule: "no-danger", filePath: "src/modern/B.tsx" }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         overrides: [{ files: ["src/legacy/**"] }],
       },
@@ -287,23 +287,23 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
     try {
       const diagnostics = [
         createDiagnostic({
-          plugin: "react-doctor",
+          plugin: "harness-doctor",
           rule: "no-array-index-as-key",
           filePath: "components/diff/A.tsx",
         }),
         createDiagnostic({
-          plugin: "react-doctor",
+          plugin: "harness-doctor",
           rule: "no-cascading-set-state",
           filePath: "components/diff/A.tsx",
         }),
       ];
-      const config: ReactDoctorConfig = {
+      const config: HarnessDoctorConfig = {
         ignore: {
           overrides: [
             {
               files: ["components/diff/**"],
               // @ts-expect-error: intentionally malformed for the validation test.
-              rules: "react-doctor/no-array-index-as-key",
+              rules: "harness-doctor/no-array-index-as-key",
             },
           ],
         },
@@ -330,7 +330,7 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
   it("ignore.overrides accepts multiple entries and combines them additively", () => {
     const diagnostics = [
       createDiagnostic({
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-array-index-as-key",
         filePath: "components/diff/A.tsx",
       }),
@@ -340,17 +340,17 @@ describe("mergeAndFilterDiagnostics — ignore rules / files / overrides", () =>
         filePath: "components/search/Highlight.tsx",
       }),
       createDiagnostic({
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-cascading-set-state",
         filePath: "components/search/Highlight.tsx",
       }),
     ];
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       ignore: {
         overrides: [
           {
             files: ["components/diff/**"],
-            rules: ["react-doctor/no-array-index-as-key"],
+            rules: ["harness-doctor/no-array-index-as-key"],
           },
           {
             files: ["components/search/Highlight.tsx"],

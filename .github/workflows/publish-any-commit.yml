@@ -30,9 +30,9 @@ jobs:
           attempt=1
           while [ "$attempt" -le "$max_attempts" ]; do
             if pnpm dlx pkg-pr-new publish \
-              ./packages/react-doctor \
-              ./packages/oxlint-plugin-react-doctor \
-              ./packages/eslint-plugin-react-doctor; then
+              ./packages/harness-doctor \
+              ./packages/oxlint-plugin-harness-doctor \
+              ./packages/eslint-plugin-harness-doctor; then
               exit 0
             fi
 

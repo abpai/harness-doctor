@@ -3,8 +3,8 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
-import type { Diagnostic, ProjectInfo, ReactDoctorConfig } from "../types/index.js";
-import { OxlintSpawnFailed, ReactDoctorError } from "../errors.js";
+import type { Diagnostic, ProjectInfo, HarnessDoctorConfig } from "../types/index.js";
+import { OxlintSpawnFailed, HarnessDoctorError } from "../errors.js";
 import { OxlintConcurrency, OxlintOutputMaxBytes, OxlintSpawnTimeoutMs } from "../refs.js";
 import { runOxlint } from "../run-oxlint.js";
 
@@ -20,7 +20,7 @@ import { runOxlint } from "../run-oxlint.js";
 export class LintPartialFailures extends Context.Service<
   LintPartialFailures,
   Ref.Ref<ReadonlyArray<string>>
->()("react-doctor/LintPartialFailures") {
+>()("harness-doctor/LintPartialFailures") {
   static readonly layerLive = Layer.effect(
     LintPartialFailures,
     Ref.make<ReadonlyArray<string>>([]),
@@ -35,7 +35,7 @@ export interface LintInput {
   readonly respectInlineDisables?: boolean;
   readonly adoptExistingLintConfig?: boolean;
   readonly ignoredTags?: ReadonlySet<string>;
-  readonly userConfig?: ReactDoctorConfig | null;
+  readonly userConfig?: HarnessDoctorConfig | null;
   readonly configSourceDirectory?: string;
   readonly nodeBinaryPath?: string;
   readonly onFileProgress?: (scannedFileCount: number, totalFileCount: number) => void;
@@ -48,10 +48,10 @@ export interface LintInput {
  * on the temp config dir) wraps in `OxlintSpawnFailed` so the
  * failure channel stays uniform.
  */
-const ensureReactDoctorError = (cause: unknown): ReactDoctorError =>
-  cause instanceof ReactDoctorError
+const ensureHarnessDoctorError = (cause: unknown): HarnessDoctorError =>
+  cause instanceof HarnessDoctorError
     ? cause
-    : new ReactDoctorError({ reason: new OxlintSpawnFailed({ cause }) });
+    : new HarnessDoctorError({ reason: new OxlintSpawnFailed({ cause }) });
 
 /**
  * `Linter` is the cross-backend service for "produce diagnostics for
@@ -60,7 +60,7 @@ const ensureReactDoctorError = (cause: unknown): ReactDoctorError =>
  * (in-process ESLint, sandboxed runner) is one new layer that
  * satisfies this interface; the orchestrator doesn't change.
  *
- * `run` returns a `Stream<Diagnostic, ReactDoctorError>` so callers
+ * `run` returns a `Stream<Diagnostic, HarnessDoctorError>` so callers
  * can compose with `Stream.mapEffect` / `filter` / a sink without
  * collecting an array, and so a future daemon backend that emits as
  * it goes can push diagnostics through the stream directly.
@@ -70,9 +70,9 @@ export class Linter extends Context.Service<
   {
     readonly run: (
       input: LintInput,
-    ) => Stream.Stream<Diagnostic, ReactDoctorError, LintPartialFailures>;
+    ) => Stream.Stream<Diagnostic, HarnessDoctorError, LintPartialFailures>;
   }
->()("react-doctor/Linter") {
+>()("harness-doctor/Linter") {
   /**
    * Wraps the existing `runOxlint`. Per-batch soft failures (one
    * batch hit the timeout and was dropped, oxlint reported file IDs
@@ -128,7 +128,7 @@ export class Linter extends Context.Service<
                   outputMaxBytes,
                   concurrency,
                 }),
-              catch: ensureReactDoctorError,
+              catch: ensureHarnessDoctorError,
             });
             if (collectedFailures.length > 0) {
               yield* Ref.update(partialFailures, (existing) => [...existing, ...collectedFailures]);

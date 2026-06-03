@@ -3,7 +3,7 @@ import {
   OXLINT_OUTPUT_MAX_BYTES,
   OXLINT_SPAWN_TIMEOUT_MS as DEFAULT_OXLINT_SPAWN_TIMEOUT_MS,
 } from "../../constants.js";
-import { OxlintBatchExceeded, OxlintSpawnFailed, ReactDoctorError } from "../../errors.js";
+import { OxlintBatchExceeded, OxlintSpawnFailed, HarnessDoctorError } from "../../errors.js";
 
 // HACK: Sanitize child env so a developer's NODE_OPTIONS=--inspect (or
 // --max-old-space-size=128, etc.) doesn't leak into oxlint and either spawn a
@@ -23,7 +23,7 @@ const SANITIZED_ENV: NodeJS.ProcessEnv = (() => {
 /**
  * Spawn one oxlint subprocess with hard ceilings on wall time and
  * output size. Returns stdout on success; raises a tagged
- * `ReactDoctorError` for every documented failure mode:
+ * `HarnessDoctorError` for every documented failure mode:
  *
  * - `OxlintBatchExceeded { kind: "timeout" }` — wall budget elapsed.
  * - `OxlintBatchExceeded { kind: "output-too-large" }` — stdout+stderr
@@ -56,7 +56,7 @@ export const spawnOxlint = (
     const timeoutHandle = setTimeout(() => {
       child.kill("SIGKILL");
       reject(
-        new ReactDoctorError({
+        new HarnessDoctorError({
           reason: new OxlintBatchExceeded({
             kind: "timeout",
             detail: `${spawnTimeoutMs / 1000}s budget exceeded`,
@@ -99,13 +99,13 @@ export const spawnOxlint = (
 
     child.on("error", (error) => {
       clearTimeout(timeoutHandle);
-      reject(new ReactDoctorError({ reason: new OxlintSpawnFailed({ cause: error }) }));
+      reject(new HarnessDoctorError({ reason: new OxlintSpawnFailed({ cause: error }) }));
     });
     child.on("close", (_code, signal) => {
       clearTimeout(timeoutHandle);
       if (didKillForSize) {
         reject(
-          new ReactDoctorError({
+          new HarnessDoctorError({
             reason: new OxlintBatchExceeded({
               kind: "output-too-large",
               detail: `exceeded ${outputMaxBytes} bytes — scan a smaller subset with --diff or --staged`,
@@ -121,7 +121,7 @@ export const spawnOxlint = (
         if (isOom) detailParts.push("try scanning fewer files with --diff");
         if (stderrOutput) detailParts.push(stderrOutput);
         reject(
-          new ReactDoctorError({
+          new HarnessDoctorError({
             reason: new OxlintBatchExceeded({
               kind: isOom ? "oom" : "killed",
               detail: detailParts.join(" — "),
@@ -134,7 +134,7 @@ export const spawnOxlint = (
       if (!output) {
         const stderrOutput = Buffer.concat(stderrBuffers).toString("utf-8").trim();
         if (stderrOutput) {
-          reject(new ReactDoctorError({ reason: new OxlintSpawnFailed({ cause: stderrOutput }) }));
+          reject(new HarnessDoctorError({ reason: new OxlintSpawnFailed({ cause: stderrOutput }) }));
           return;
         }
       }

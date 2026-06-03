@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { findJsxOpenerSpan } from "@react-doctor/core";
+import { findJsxOpenerSpan } from "@harness-doctor/core";
 
 describe("findJsxOpenerSpan", () => {
   it("returns the opener line itself for a single-line tag", () => {

@@ -1,4 +1,4 @@
-// HACK: most rules in react-doctor's curated set encode "you wouldn't
+// HACK: most rules in harness-doctor's curated set encode "you wouldn't
 // want this in production code" — but tests intentionally exercise
 // bad patterns to lock in regression coverage (an array-index key in a
 // test fixture, a giant fixture component, a `forwardRef` to verify

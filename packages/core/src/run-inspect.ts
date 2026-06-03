@@ -9,23 +9,19 @@ import type {
   Diagnostic,
   DiagnosticSurface,
   ProjectInfo,
-  ReactDoctorConfig,
+  HarnessDoctorConfig,
   ScoreResult,
 } from "./types/index.js";
 import { buildDiagnosticPipeline } from "./build-diagnostic-pipeline.js";
-import { checkExpoProject } from "./check-expo-project.js";
-import { checkPnpmHardening } from "./check-pnpm-hardening.js";
-import { checkReactNativeProject } from "./check-react-native-project.js";
-import { checkReducedMotion } from "./check-reduced-motion.js";
+import { checkPnpmHardening } from "./checks/pnpm-hardening.js";
 import { DEFAULT_SHOW_WARNINGS } from "./constants.js";
 import { highlighter } from "./highlighter.js";
-import { computeJsxIncludePaths } from "./jsx-include-paths.js";
 import { deadCodeMaySurfaceWhenWarningsHidden } from "./utils/dead-code-may-surface.js";
 import {
   NoReactDependency,
   type OxlintUnavailable,
-  ReactDoctorError,
-  type ReactDoctorErrorReason,
+  HarnessDoctorError,
+  type HarnessDoctorErrorReason,
 } from "./errors.js";
 import { filterDiagnosticsForSurface } from "./filter-for-surface.js";
 import { isAnalyzableProject } from "./project-info/index.js";
@@ -49,7 +45,7 @@ export interface InspectInput {
   readonly customRulesOnly: boolean;
   readonly respectInlineDisables: boolean;
   /**
-   * Per-call override for `ReactDoctorConfig.warnings`. When omitted,
+   * Per-call override for `HarnessDoctorConfig.warnings`. When omitted,
    * the loaded config's `warnings` value wins (defaulting to `true`),
    * so warnings surface unless the user opts out via `--no-warnings` or
    * `warnings: false`.
@@ -62,7 +58,7 @@ export interface InspectInput {
   readonly runDeadCode: boolean;
   /** Marks the run as CI-originated for the Score API. */
   readonly isCi: boolean;
-  /** react-doctor release version sent with score requests. */
+  /** harness-doctor release version sent with score requests. */
   readonly doctorVersion?: string;
   /** Enables best-effort authenticated local GitHub permission lookup for score metadata. */
   readonly resolveLocalGithubViewerPermission?: boolean;
@@ -92,7 +88,7 @@ export interface InspectInput {
 
 export interface InspectOutput {
   readonly project: ProjectInfo;
-  readonly userConfig: ReactDoctorConfig | null;
+  readonly userConfig: HarnessDoctorConfig | null;
   readonly resolvedDirectory: string;
   readonly diagnostics: ReadonlyArray<Diagnostic>;
   readonly score: ScoreResult | null;
@@ -101,12 +97,12 @@ export interface InspectOutput {
   readonly lintFailureReason: string | null;
   /**
    * The `_tag` of `error.reason` when the lint stream raised a
-   * `ReactDoctorError`, or `null` otherwise. Lets renderers dispatch
+   * `HarnessDoctorError`, or `null` otherwise. Lets renderers dispatch
    * on the typed reason without `error.message.includes(...)` style
    * sniffs (e.g. show the "upgrade Node" hint only on
    * `OxlintUnavailable` with `kind: "native-binding-missing"`).
    */
-  readonly lintFailureReasonTag: ReactDoctorErrorReason["_tag"] | null;
+  readonly lintFailureReasonTag: HarnessDoctorErrorReason["_tag"] | null;
   /**
    * The `kind` of an `OxlintUnavailable` lint failure
    * (`binary-not-found` / `native-binding-missing`), or `null` for any
@@ -181,7 +177,7 @@ const LINT_NATIVE_BINDING_FAIL_TEXT = (nodeVersion: string): string =>
 const DEAD_CODE_FAIL_TEXT = "Scanning failed (dead-code analysis, non-fatal).";
 
 const formatLintFailText = (
-  reasonTag: ReactDoctorErrorReason["_tag"] | null,
+  reasonTag: HarnessDoctorErrorReason["_tag"] | null,
   nodeVersion: string,
 ): string => {
   if (reasonTag === "OxlintUnavailable" || reasonTag === "OxlintSpawnFailed") {
@@ -216,7 +212,7 @@ export const runInspect = <HooksR = never>(
   hooks: InspectHooks<HooksR> = {},
 ): Effect.Effect<
   InspectOutput,
-  ReactDoctorError,
+  HarnessDoctorError,
   | Project
   | Config
   | DeadCode
@@ -246,7 +242,7 @@ export const runInspect = <HooksR = never>(
 
     const project = yield* projectService.discover(scanDirectory);
     if (!isAnalyzableProject(project)) {
-      return yield* new ReactDoctorError({
+      return yield* new HarnessDoctorError({
         reason: new NoReactDependency({ directory: scanDirectory }),
       });
     }
@@ -271,9 +267,10 @@ export const runInspect = <HooksR = never>(
         : Effect.succeed(null as string | null),
     );
 
-    const jsxIncludePaths = computeJsxIncludePaths([...input.includePaths]);
+    const explicitIncludePaths =
+      input.includePaths.length > 0 ? [...input.includePaths] : undefined;
     const lintIncludePaths =
-      jsxIncludePaths ?? resolveLintIncludePaths(scanDirectory, resolvedConfig.config);
+      explicitIncludePaths ?? resolveLintIncludePaths(scanDirectory, resolvedConfig.config);
 
     // Absolute paths of the exact file set the linter scans, captured ONLY
     // for the multi-project summary (the sole consumer), which signals via
@@ -311,12 +308,7 @@ export const runInspect = <HooksR = never>(
     // ── Phase: environment checks ──────────────────────────────────
     const environmentDiagnostics: ReadonlyArray<Diagnostic> = isDiffMode
       ? []
-      : [
-          ...checkReducedMotion(scanDirectory),
-          ...checkPnpmHardening(scanDirectory),
-          ...checkExpoProject(scanDirectory, project),
-          ...checkReactNativeProject(scanDirectory, project),
-        ];
+      : [...checkPnpmHardening(scanDirectory)];
     const envCollected = yield* Stream.runCollect(
       applyPerElementPipeline(Stream.fromIterable(environmentDiagnostics)),
     );
@@ -324,7 +316,7 @@ export const runInspect = <HooksR = never>(
     const lintFailure = yield* Ref.make<{
       didFail: boolean;
       reason: string | null;
-      reasonTag: ReactDoctorErrorReason["_tag"] | null;
+      reasonTag: HarnessDoctorErrorReason["_tag"] | null;
       reasonKind: OxlintUnavailable["kind"] | null;
     }>({ didFail: false, reason: null, reasonTag: null, reasonKind: null });
     const deadCodeFailure = yield* Ref.make<{ didFail: boolean; reason: string | null }>({
@@ -365,7 +357,7 @@ export const runInspect = <HooksR = never>(
         },
       })
       .pipe(
-        Stream.catchTag("ReactDoctorError", (error: ReactDoctorError) =>
+        Stream.catchTag("HarnessDoctorError", (error: HarnessDoctorError) =>
           Stream.unwrap(
             Effect.gen(function* () {
               yield* Ref.set(lintFailure, {
@@ -410,7 +402,7 @@ export const runInspect = <HooksR = never>(
                   deadCodeService
                     .run({ rootDirectory: scanDirectory, userConfig: resolvedConfig.config })
                     .pipe(
-                      Stream.catchTag("ReactDoctorError", (error: ReactDoctorError) =>
+                      Stream.catchTag("HarnessDoctorError", (error: HarnessDoctorError) =>
                         Stream.unwrap(
                           Effect.gen(function* () {
                             yield* Ref.set(deadCodeFailure, {
@@ -458,7 +450,6 @@ export const runInspect = <HooksR = never>(
       ...(repo !== null ? { repo } : {}),
       ...(sha !== null ? { sha } : {}),
       framework: project.framework,
-      ...(project.reactVersion !== null ? { reactVersion: project.reactVersion } : {}),
       sourceFileCount: project.sourceFileCount,
       ...(defaultBranch !== null ? { defaultBranch } : {}),
       ...(input.doctorVersion !== undefined ? { doctorVersion: input.doctorVersion } : {}),

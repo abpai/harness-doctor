@@ -2,7 +2,7 @@ import { gzipSync } from "node:zlib";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { FETCH_TIMEOUT_MS, SCORE_API_URL } from "./constants.js";
-import type { Diagnostic, ProjectInfo, ScoreResult } from "./types/index.js";
+import type { Diagnostic, ScoreResult } from "./types/index.js";
 
 // Score API response shape, including the optional per-rule `priority`/`tier`
 // payload. `Schema.Struct` ignores unknown fields, so extra keys (e.g.
@@ -45,8 +45,8 @@ export interface CalculateScoreOptions {
 export interface ScoreRequestMetadata {
   repo?: string;
   sha?: string;
-  framework?: ProjectInfo["framework"];
-  reactVersion?: string;
+  /** Detected framework, an arbitrary string (e.g. "vite", "unknown"). */
+  framework?: string;
   sourceFileCount?: number;
   defaultBranch?: string;
   doctorVersion?: string;
@@ -69,7 +69,6 @@ export const calculateScore = async (
       ...(options.metadata?.repo ? { repo: options.metadata.repo } : {}),
       ...(options.metadata?.sha ? { sha: options.metadata.sha } : {}),
       ...(options.metadata?.framework ? { framework: options.metadata.framework } : {}),
-      ...(options.metadata?.reactVersion ? { reactVersion: options.metadata.reactVersion } : {}),
       ...(typeof options.metadata?.sourceFileCount === "number"
         ? { sourceFileCount: options.metadata.sourceFileCount }
         : {}),
@@ -98,13 +97,13 @@ export const calculateScore = async (
     });
 
     if (!response.ok) {
-      console.warn(`[react-doctor] Score API returned ${response.status} ${response.statusText}`);
+      console.warn(`[harness-doctor] Score API returned ${response.status} ${response.statusText}`);
       return null;
     }
 
     return parseScoreResult(await response.json());
   } catch (error) {
-    console.warn(`[react-doctor] Score API unreachable (${describeFailure(error)})`);
+    console.warn(`[harness-doctor] Score API unreachable (${describeFailure(error)})`);
     return null;
   } finally {
     clearTimeout(timeoutId);

@@ -11,7 +11,7 @@ export default defineConfig({
           "oxc-parser",
           "oxc-resolver",
           "oxlint",
-          "oxlint-plugin-react-doctor",
+          "oxlint-plugin-harness-doctor",
           "typescript",
         ],
       },

@@ -1,12 +1,12 @@
 import { gunzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
-import { calculateScore } from "@react-doctor/core";
-import type { Diagnostic } from "@react-doctor/core";
+import { calculateScore } from "@harness-doctor/core";
+import type { Diagnostic } from "@harness-doctor/core";
 
 const sampleDiagnostics: Diagnostic[] = [
   {
     filePath: "src/App.tsx",
-    plugin: "react-doctor",
+    plugin: "harness-doctor",
     rule: "example-rule",
     severity: "error",
     message: "Example",
@@ -67,10 +67,9 @@ describe("calculateScore", () => {
 
     const result = await calculateScore(sampleDiagnostics, {
       metadata: {
-        repo: "millionco/react-doctor",
+        repo: "millionco/harness-doctor",
         sha: "abc123",
-        framework: "nextjs",
-        reactVersion: "19.2.0",
+        framework: "vite",
         sourceFileCount: 42,
         defaultBranch: "main",
         doctorVersion: "0.2.5",
@@ -91,15 +90,14 @@ describe("calculateScore", () => {
     expect(parsedBody.diagnostics).toHaveLength(1);
     expect(parsedBody.diagnostics[0]).not.toHaveProperty("filePath");
     expect(parsedBody.diagnostics[0]).toMatchObject({
-      plugin: "react-doctor",
+      plugin: "harness-doctor",
       rule: "example-rule",
       severity: "error",
     });
     expect(parsedBody).toMatchObject({
-      repo: "millionco/react-doctor",
+      repo: "millionco/harness-doctor",
       sha: "abc123",
-      framework: "nextjs",
-      reactVersion: "19.2.0",
+      framework: "vite",
       sourceFileCount: 42,
       defaultBranch: "main",
       doctorVersion: "0.2.5",

@@ -76,7 +76,7 @@ export class ConfigParseFailed extends Schema.TaggedErrorClass<ConfigParseFailed
   },
 ) {
   get message() {
-    return `Failed to parse react-doctor config at ${this.path}: ${Cause.pretty(Cause.fail(this.cause))}`;
+    return `Failed to parse harness-doctor config at ${this.path}: ${Cause.pretty(Cause.fail(this.cause))}`;
   }
 }
 
@@ -157,7 +157,7 @@ export class GitBaseBranchInvalid extends Schema.TaggedErrorClass<GitBaseBranchI
   }
 }
 
-export const ReactDoctorErrorReason = Schema.Union([
+export const HarnessDoctorErrorReason = Schema.Union([
   OxlintUnavailable,
   OxlintBatchExceeded,
   OxlintSpawnFailed,
@@ -172,12 +172,12 @@ export const ReactDoctorErrorReason = Schema.Union([
   GitBaseBranchInvalid,
 ]);
 
-export type ReactDoctorErrorReason = Schema.Schema.Type<typeof ReactDoctorErrorReason>;
+export type HarnessDoctorErrorReason = Schema.Schema.Type<typeof HarnessDoctorErrorReason>;
 
-export class ReactDoctorError extends Schema.TaggedErrorClass<ReactDoctorError>()(
-  "ReactDoctorError",
+export class HarnessDoctorError extends Schema.TaggedErrorClass<HarnessDoctorError>()(
+  "HarnessDoctorError",
   {
-    reason: ReactDoctorErrorReason,
+    reason: HarnessDoctorErrorReason,
   },
 ) {
   get message() {
@@ -185,24 +185,24 @@ export class ReactDoctorError extends Schema.TaggedErrorClass<ReactDoctorError>(
   }
 }
 
-export const formatReactDoctorError = (error: ReactDoctorError): string => error.reason.message;
+export const formatHarnessDoctorError = (error: HarnessDoctorError): string => error.reason.message;
 
-export const isSplittableReactDoctorError = (error: unknown): error is ReactDoctorError =>
-  error instanceof ReactDoctorError && error.reason._tag === "OxlintBatchExceeded";
+export const isSplittableHarnessDoctorError = (error: unknown): error is HarnessDoctorError =>
+  error instanceof HarnessDoctorError && error.reason._tag === "OxlintBatchExceeded";
 
-export const isReactDoctorError = (error: unknown): error is ReactDoctorError =>
-  error instanceof ReactDoctorError;
+export const isHarnessDoctorError = (error: unknown): error is HarnessDoctorError =>
+  error instanceof HarnessDoctorError;
 
 /**
  * Tagged-reason → legacy thrown-class boundary shared by every public
- * shell (`inspect()` in `react-doctor`, `diagnose()` in `@react-doctor/api`).
+ * shell (`inspect()` in `harness-doctor`, `diagnose()` in `@harness-doctor/api`).
  *
  * `Effect.catchReasons` dispatches on the tagged-error sub-channel
  * without manual `instanceof` checks. Each handler converts a tagged
  * reason into the historical thrown class advertised by the legacy
  * public-API contract (via `Effect.die`, which `Effect.runPromise`
  * re-throws unchanged). The `orElse` branch re-`die`s the original
- * `ReactDoctorError` instance so advanced callers can still narrow on
+ * `HarnessDoctorError` instance so advanced callers can still narrow on
  * `error.reason._tag` while grep-stderr users keep the same
  * `error.message` they always saw.
  *
@@ -210,11 +210,11 @@ export const isReactDoctorError = (error: unknown): error is ReactDoctorError =>
  * `Effect.catchReasons` map — both shells pick it up automatically.
  */
 export const restoreLegacyThrow = <Value, Requirements>(
-  effect: Effect.Effect<Value, ReactDoctorError, Requirements>,
+  effect: Effect.Effect<Value, HarnessDoctorError, Requirements>,
 ): Effect.Effect<Value, never, Requirements> =>
   effect.pipe(
     Effect.catchReasons(
-      "ReactDoctorError",
+      "HarnessDoctorError",
       {
         NoReactDependency: (reason) => Effect.die(new NoReactDependencyError(reason.directory)),
         ProjectNotFound: (reason) => Effect.die(new ProjectNotFoundError(reason.directory)),

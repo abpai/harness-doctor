@@ -15,8 +15,8 @@ review-*.md
 /.agents/*
 !/.agents/skills/
 /.agents/skills/*
-!/.agents/skills/react-doctor/
-!/.agents/skills/react-doctor/**
+!/.agents/skills/harness-doctor/
+!/.agents/skills/harness-doctor/**
 !/.agents/skills/rule-research/
 !/.agents/skills/rule-research/**
 !/.agents/skills/rule-writing/
@@ -32,7 +32,7 @@ review-*.md
 
 # Local-only: rule-catalog generators and per-rule prompts. The generated
 # `rules.json` and the prompts themselves live in the (private) evals repo;
-# only the source rules under packages/oxlint-plugin-react-doctor/src/plugin/rules
+# only the source rules under packages/oxlint-plugin-harness-doctor/src/plugin/rules
 # belong in this open-source codebase.
 /scripts/generate-rules-json.mjs
 /scripts/list-rule-paths.mjs

@@ -15,7 +15,7 @@ import { Diagnostic } from "../schemas.js";
 export class ReporterCapture extends Context.Service<
   ReporterCapture,
   Ref.Ref<ReadonlyArray<Diagnostic>>
->()("react-doctor/ReporterCapture") {
+>()("harness-doctor/ReporterCapture") {
   static readonly layer = Layer.effect(ReporterCapture, Ref.make<ReadonlyArray<Diagnostic>>([]));
 }
 
@@ -35,7 +35,7 @@ export class Reporter extends Context.Service<
     readonly emit: (diagnostic: Diagnostic) => Effect.Effect<void>;
     readonly finalize: Effect.Effect<void>;
   }
->()("react-doctor/Reporter") {
+>()("harness-doctor/Reporter") {
   static readonly layerNoop: Layer.Layer<Reporter> = Layer.succeed(
     Reporter,
     Reporter.of({

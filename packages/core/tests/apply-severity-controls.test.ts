@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/core";
-import { createNodeReadFileLinesSync, mergeAndFilterDiagnostics } from "@react-doctor/core";
+import type { Diagnostic, HarnessDoctorConfig } from "@harness-doctor/core";
+import { createNodeReadFileLinesSync, mergeAndFilterDiagnostics } from "@harness-doctor/core";
 
 const SEVERITY_TEST_ROOT = "/tmp/severity-controls";
 const noopReadFileLines = createNodeReadFileLinesSync(SEVERITY_TEST_ROOT);
@@ -12,7 +12,7 @@ const noopReadFileLines = createNodeReadFileLinesSync(SEVERITY_TEST_ROOT);
 // suppressions, so the inline-disable flag doesn't affect the result).
 const applySeverityControls = (
   diagnostics: Diagnostic[],
-  config: ReactDoctorConfig | null,
+  config: HarnessDoctorConfig | null,
 ): Diagnostic[] =>
   mergeAndFilterDiagnostics(diagnostics, SEVERITY_TEST_ROOT, config, noopReadFileLines, {
     respectInlineDisables: false,
@@ -21,7 +21,7 @@ const applySeverityControls = (
 
 const designDiagnostic: Diagnostic = {
   filePath: "src/App.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "design-no-redundant-size-axes",
   severity: "warning",
   message: "w-5 h-5 → size-5",
@@ -33,7 +33,7 @@ const designDiagnostic: Diagnostic = {
 
 const rnDiagnostic: Diagnostic = {
   filePath: "src/Screen.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "rn-no-raw-text",
   severity: "error",
   message: "raw text outside <Text>",
@@ -57,7 +57,7 @@ const externalPluginDiagnostic: Diagnostic = {
 
 const nativePortedDiagnostic: Diagnostic = {
   ...externalPluginDiagnostic,
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "no-danger",
 };
 
@@ -69,50 +69,58 @@ describe("severity controls (via mergeAndFilterDiagnostics)", () => {
   });
 
   it('drops diagnostics whose category is set to "off" via top-level `categories`', () => {
-    const config: ReactDoctorConfig = { categories: { "React Native": "off" } };
+    const config: HarnessDoctorConfig = { categories: { "React Native": "off" } };
     const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
     expect(filtered).toEqual([designDiagnostic]);
   });
 
   it('drops diagnostics whose rule is set to "off" via top-level `rules`', () => {
-    const config: ReactDoctorConfig = {
-      rules: { "react-doctor/design-no-redundant-size-axes": "off" },
+    const config: HarnessDoctorConfig = {
+      rules: { "harness-doctor/design-no-redundant-size-axes": "off" },
     };
     const filtered = applySeverityControls([designDiagnostic, rnDiagnostic], config);
     expect(filtered).toEqual([rnDiagnostic]);
   });
 
   it("re-stamps severity for matching rules via top-level `rules` (ESLint shape)", () => {
-    const config: ReactDoctorConfig = {
-      rules: { "react-doctor/rn-no-raw-text": "warn" },
+    const config: HarnessDoctorConfig = {
+      rules: { "harness-doctor/rn-no-raw-text": "warn" },
     };
     const filtered = applySeverityControls([rnDiagnostic], config);
     expect(filtered).toEqual([{ ...rnDiagnostic, severity: "warning" }]);
   });
 
   it("works on external-plugin diagnostics via rule key", () => {
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       rules: { "react/no-danger": "off" },
     };
     expect(applySeverityControls([externalPluginDiagnostic], config)).toEqual([]);
   });
 
-  it("matches legacy rule keys against native ported diagnostics", () => {
-    const config: ReactDoctorConfig = {
+  // The boilerplate ships no legacy rule-key aliases, so matching is identity
+  // only: a `react/`-prefixed override no longer reaches a `harness-doctor/`
+  // diagnostic (and vice-versa). Integrators opt back into aliasing by adding
+  // entries to `rule-key-aliases.ts`.
+  it("does not alias a different-plugin rule key onto a native diagnostic", () => {
+    const config: HarnessDoctorConfig = {
       rules: { "react/no-danger": "off" },
     };
-    expect(applySeverityControls([nativePortedDiagnostic], config)).toEqual([]);
+    expect(applySeverityControls([nativePortedDiagnostic], config)).toEqual([
+      nativePortedDiagnostic,
+    ]);
   });
 
-  it("matches native rule keys against legacy plugin diagnostics", () => {
-    const config: ReactDoctorConfig = {
-      rules: { "react-doctor/no-danger": "off" },
+  it("does not alias a native rule key onto a different-plugin diagnostic", () => {
+    const config: HarnessDoctorConfig = {
+      rules: { "harness-doctor/no-danger": "off" },
     };
-    expect(applySeverityControls([externalPluginDiagnostic], config)).toEqual([]);
+    expect(applySeverityControls([externalPluginDiagnostic], config)).toEqual([
+      externalPluginDiagnostic,
+    ]);
   });
 
   it("promotes warning to error via top-level `categories`", () => {
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       categories: { Security: "error" },
     };
     const filtered = applySeverityControls([externalPluginDiagnostic], config);
@@ -120,8 +128,8 @@ describe("severity controls (via mergeAndFilterDiagnostics)", () => {
   });
 
   it("per-rule wins over per-category", () => {
-    const config: ReactDoctorConfig = {
-      rules: { "react-doctor/rn-no-raw-text": "warn" },
+    const config: HarnessDoctorConfig = {
+      rules: { "harness-doctor/rn-no-raw-text": "warn" },
       categories: { "React Native": "off" },
     };
     expect(applySeverityControls([rnDiagnostic], config)).toEqual([

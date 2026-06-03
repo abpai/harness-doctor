@@ -1,5 +1,5 @@
-import reactDoctorPlugin from "oxlint-plugin-react-doctor";
-import type { Diagnostic, ReactDoctorConfig, RuleSeverityOverride } from "./types/index.js";
+import harnessDoctorPlugin from "oxlint-plugin-harness-doctor";
+import type { Diagnostic, HarnessDoctorConfig, RuleSeverityOverride } from "./types/index.js";
 import {
   compileIgnoreOverrides,
   isDiagnosticIgnoredByOverrides,
@@ -15,14 +15,10 @@ import { isSameRuleKey } from "./rule-key-aliases.js";
 import { APP_ONLY_RULE_KEYS } from "./constants.js";
 import { classifyPackageRole } from "./utils/classify-package-role.js";
 import { resolveCandidateReadPath } from "./utils/resolve-candidate-read-path.js";
-import {
-  isInsideStringOnlyWrapper,
-  isInsideTextComponent,
-} from "./utils/jsx-text-component-matchers.js";
 
 interface BuildDiagnosticPipelineInput {
   readonly rootDirectory: string;
-  readonly userConfig: ReactDoctorConfig | null;
+  readonly userConfig: HarnessDoctorConfig | null;
   readonly readFileLinesSync: (filePath: string) => string[] | null;
   readonly respectInlineDisables: boolean;
   /**
@@ -40,11 +36,6 @@ export interface DiagnosticPipeline {
   readonly apply: (diagnostic: Diagnostic) => Diagnostic | null;
 }
 
-const collectStringSet = (values: unknown): ReadonlySet<string> => {
-  if (!Array.isArray(values)) return new Set();
-  return new Set(values.filter((value): value is string => typeof value === "string"));
-};
-
 /**
  * Pre-compiles every stateful filter and returns a single
  * `apply(diagnostic)` closure that runs (in order):
@@ -59,7 +50,7 @@ const collectStringSet = (values: unknown): ReadonlySet<string> => {
  * 4. ignore filters (rules / file patterns / per-file overrides)
  * 5. `rn-no-raw-text` suppression via configured `textComponents` and
  *    `rawTextWrapperComponents` (config-driven JSX enclosure checks)
- * 6. inline suppressions (`// react-doctor-disable-next-line ...`)
+ * 6. inline suppressions (`// harness-doctor-disable-next-line ...`)
  *
  * Returns `null` when the diagnostic is dropped, the (possibly
  * severity-restamped) diagnostic otherwise.
@@ -82,10 +73,6 @@ export const buildDiagnosticPipeline = (
   );
   const ignoredFilePatterns = compileIgnoredFilePatterns(userConfig);
   const compiledOverrides = compileIgnoreOverrides(userConfig);
-  const textComponentNames = collectStringSet(userConfig?.textComponents);
-  const rawTextWrapperComponentNames = collectStringSet(userConfig?.rawTextWrapperComponents);
-  const hasTextComponents = textComponentNames.size > 0;
-  const hasRawTextWrappers = rawTextWrapperComponentNames.size > 0;
   const fileLinesCache = new Map<string, string[] | null>();
   const testFileCache = new Map<string, boolean>();
   const libraryFileCache = new Map<string, boolean>();
@@ -123,8 +110,8 @@ export const buildDiagnosticPipeline = (
   };
 
   const shouldAutoSuppress = (diagnostic: Diagnostic): boolean => {
-    if (diagnostic.plugin !== "react-doctor") return false;
-    const rule = reactDoctorPlugin.rules[diagnostic.rule];
+    if (diagnostic.plugin !== "harness-doctor") return false;
+    const rule = harnessDoctorPlugin.rules[diagnostic.rule];
     if (!rule?.tags?.includes("test-noise")) return false;
     if (rule.tags.includes("migration-hint")) return false;
     return isTest(diagnostic.filePath);
@@ -143,29 +130,6 @@ export const buildDiagnosticPipeline = (
   const isAppOnlyRule = (ruleIdentifier: string): boolean => {
     for (const appOnlyRuleKey of APP_ONLY_RULE_KEYS) {
       if (isSameRuleKey(appOnlyRuleKey, ruleIdentifier)) return true;
-    }
-    return false;
-  };
-
-  const isRnRawTextSuppressedByConfig = (diagnostic: Diagnostic): boolean => {
-    if (diagnostic.rule !== "rn-no-raw-text") return false;
-    if (diagnostic.line <= 0) return false;
-    if (!hasTextComponents && !hasRawTextWrappers) return false;
-    const lines = getFileLines(diagnostic.filePath);
-    if (!lines) return false;
-    if (hasTextComponents && isInsideTextComponent(lines, diagnostic.line, textComponentNames)) {
-      return true;
-    }
-    if (
-      hasRawTextWrappers &&
-      isInsideStringOnlyWrapper(
-        lines,
-        diagnostic.line,
-        diagnostic.column,
-        rawTextWrapperComponentNames,
-      )
-    ) {
-      return true;
     }
     return false;
   };
@@ -219,7 +183,6 @@ export const buildDiagnosticPipeline = (
           return null;
         }
         if (isDiagnosticIgnoredByOverrides(current, rootDirectory, compiledOverrides)) return null;
-        if (isRnRawTextSuppressedByConfig(current)) return null;
       }
 
       if (respectInlineDisables && current.line > 0) {

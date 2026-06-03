@@ -3,11 +3,14 @@ import path from "node:path";
 import { loadConfigWithSource } from "./load-config.js";
 import { isDirectory, NotADirectoryError, ProjectNotFoundError } from "./project-info/index.js";
 import { resolveConfigRootDir } from "./resolve-config-root-dir.js";
-import {
-  resolveDiagnoseTarget,
-  type ResolveDiagnoseTargetOptions,
-} from "./resolve-diagnose-target.js";
-import type { ReactDoctorConfig } from "./types/index.js";
+import type { HarnessDoctorConfig } from "./types/index.js";
+
+export interface ResolveDiagnoseTargetOptions {
+  // Retained for caller compatibility (the CLI passes `allowAmbiguous`).
+  // The framework-agnostic boilerplate no longer auto-walks into nested
+  // subprojects, so this flag is currently inert.
+  readonly allowAmbiguous?: boolean;
+}
 
 export interface ResolvedScanTarget {
   /** Absolute path the scan should run against. */
@@ -15,9 +18,9 @@ export interface ResolvedScanTarget {
   /** The originally-requested directory, resolved to an absolute path. */
   readonly requestedDirectory: string;
   /** The loaded user config, or `null` when no config file was found. */
-  readonly userConfig: ReactDoctorConfig | null;
+  readonly userConfig: HarnessDoctorConfig | null;
   /**
-   * Directory of the `react-doctor.config.json` / `package.json` that
+   * Directory of the `harness-doctor.config.json` / `package.json` that
    * supplied `userConfig`. `null` when no config was loaded. Used as
    * the resolution base for `userConfig.plugins` entries.
    */
@@ -35,19 +38,15 @@ export interface ResolvedScanTarget {
  * (`inspect()`, `diagnose()`, and the CLI's `inspectAction`):
  *
  *   1. Resolve the requested directory to absolute.
- *   2. Load `doctor.config.*` / `package.json#reactDoctor` if present.
+ *   2. Load `doctor.config.*` / `package.json#harnessDoctor` if present.
  *   3. Honor `config.rootDir` to redirect the scan to a nested
  *      project root, if configured.
- *   4. Walk into a nested React subproject when the requested
- *      directory has no `package.json` of its own (raises
- *      `AmbiguousProjectError` when multiple candidates exist unless
- *      the caller opts into keeping the wrapper directory).
  *
- * Throws `ProjectNotFoundError` when neither the requested directory
- * nor any discoverable nested project has a `package.json`.
+ * Throws `ProjectNotFoundError` when the resolved directory does not
+ * exist.
  *
  * Before this helper existed, the same three-step dance was reproduced
- * in `api/diagnose.ts`, `react-doctor/inspect.ts`, and the CLI's
+ * in `api/diagnose.ts`, `harness-doctor/inspect.ts`, and the CLI's
  * `cli/commands/inspect.ts` — each loading the config independently
  * (the orchestrator's `Config.layerNode` then loads it a fourth time
  * via its own cache). Routing through `resolveScanTarget` keeps every
@@ -62,9 +61,7 @@ export const resolveScanTarget = async (
   const userConfig = loadedConfig?.config ?? null;
   const configSourceDirectory = loadedConfig?.sourceDirectory ?? null;
   const redirectedDirectory = resolveConfigRootDir(userConfig, configSourceDirectory);
-  const directoryAfterRedirect = redirectedDirectory ?? absoluteRequested;
-  const resolvedDirectory =
-    resolveDiagnoseTarget(directoryAfterRedirect, options) ?? directoryAfterRedirect;
+  const resolvedDirectory = redirectedDirectory ?? absoluteRequested;
 
   if (!isDirectory(resolvedDirectory)) {
     throw existsSync(resolvedDirectory)

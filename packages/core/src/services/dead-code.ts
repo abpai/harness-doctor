@@ -2,13 +2,13 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Stream from "effect/Stream";
-import type { Diagnostic, ReactDoctorConfig } from "../types/index.js";
+import type { Diagnostic, HarnessDoctorConfig } from "../types/index.js";
 import { checkDeadCode } from "../check-dead-code.js";
-import { DeadCodeAnalysisFailed, ReactDoctorError } from "../errors.js";
+import { DeadCodeAnalysisFailed, HarnessDoctorError } from "../errors.js";
 
 interface DeadCodeInput {
   readonly rootDirectory: string;
-  readonly userConfig: ReactDoctorConfig | null;
+  readonly userConfig: HarnessDoctorConfig | null;
 }
 
 /**
@@ -24,9 +24,9 @@ interface DeadCodeInput {
 export class DeadCode extends Context.Service<
   DeadCode,
   {
-    readonly run: (input: DeadCodeInput) => Stream.Stream<Diagnostic, ReactDoctorError>;
+    readonly run: (input: DeadCodeInput) => Stream.Stream<Diagnostic, HarnessDoctorError>;
   }
->()("react-doctor/DeadCode") {
+>()("harness-doctor/DeadCode") {
   static readonly layerNode = Layer.succeed(
     DeadCode,
     DeadCode.of({
@@ -43,7 +43,7 @@ export class DeadCode extends Context.Service<
                   userConfig: input.userConfig,
                 }),
               catch: (cause) =>
-                new ReactDoctorError({ reason: new DeadCodeAnalysisFailed({ cause }) }),
+                new HarnessDoctorError({ reason: new DeadCodeAnalysisFailed({ cause }) }),
             }).pipe(Effect.map((diagnostics) => Stream.fromIterable(diagnostics)));
           })(),
         ),

@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { parseJSON5 } from "confbox";
 import { createJiti } from "jiti";
-import type { ReactDoctorConfig } from "./types/index.js";
+import type { HarnessDoctorConfig } from "./types/index.js";
 import { isFile, isPlainObject } from "./project-info/index.js";
 import { isProjectBoundary } from "./utils/is-project-boundary.js";
 import { validateConfigTypes } from "./validate-config-types.js";
@@ -19,18 +19,18 @@ const CONFIG_BASENAME = "doctor.config";
 const CONFIG_EXTENSIONS = ["ts", "mts", "cts", "js", "mjs", "cjs", "json", "jsonc"] as const;
 const DATA_CONFIG_EXTENSIONS: ReadonlySet<string> = new Set(["json", "jsonc"]);
 const PACKAGE_JSON_FILENAME = "package.json";
-const PACKAGE_JSON_CONFIG_KEY = "reactDoctor";
-const LEGACY_CONFIG_FILENAME = "react-doctor.config.json";
+const PACKAGE_JSON_CONFIG_KEY = "harnessDoctor";
+const LEGACY_CONFIG_FILENAME = "harness-doctor.config.json";
 
 /**
  * Coarse format of the resolved config, used by the rule-config writer
  * to decide how to edit it: `module` (TS/JS — edited via magicast),
- * `json` (data file), or `package-json` (the `reactDoctor` key).
+ * `json` (data file), or `package-json` (the `harnessDoctor` key).
  */
-export type ReactDoctorConfigFormat = "module" | "json" | "package-json";
+export type HarnessDoctorConfigFormat = "module" | "json" | "package-json";
 
-export interface LoadedReactDoctorConfig {
-  config: ReactDoctorConfig;
+export interface LoadedHarnessDoctorConfig {
+  config: HarnessDoctorConfig;
   /**
    * Absolute path of the directory that contained the resolved config.
    * Path-valued config fields like `rootDir` are resolved relative to
@@ -39,7 +39,7 @@ export interface LoadedReactDoctorConfig {
   sourceDirectory: string;
   /** Absolute path of the config file (the `package.json` when embedded). */
   configFilePath: string;
-  format: ReactDoctorConfigFormat;
+  format: HarnessDoctorConfigFormat;
 }
 
 // Per-directory lookup outcome. `invalid` means a `doctor.config.*` file is
@@ -47,7 +47,7 @@ export interface LoadedReactDoctorConfig {
 // that must NOT fall through to an ancestor repo's config.
 interface DirectoryConfigResult {
   readonly status: "found" | "absent" | "invalid";
-  readonly loaded: LoadedReactDoctorConfig | null;
+  readonly loaded: LoadedHarnessDoctorConfig | null;
 }
 
 // One jiti instance, reused across loads so its transform cache is warm.
@@ -67,7 +67,7 @@ const loadModuleConfig = async (filePath: string): Promise<unknown> => {
 const readDataConfig = (filePath: string): unknown =>
   parseJSON5(fs.readFileSync(filePath, "utf-8"));
 
-// Reads the `reactDoctor` config object embedded in a directory's
+// Reads the `harnessDoctor` config object embedded in a directory's
 // package.json, or null when it's absent or malformed. A malformed
 // package.json is not ours to police, so it reads as "no embedded config".
 const readEmbeddedPackageJsonConfig = (directory: string): Record<string, unknown> | null => {
@@ -85,11 +85,11 @@ const readEmbeddedPackageJsonConfig = (directory: string): Record<string, unknow
   return null;
 };
 
-const loadPackageJsonConfig = (directory: string): LoadedReactDoctorConfig | null => {
+const loadPackageJsonConfig = (directory: string): LoadedHarnessDoctorConfig | null => {
   const embeddedConfig = readEmbeddedPackageJsonConfig(directory);
   if (!embeddedConfig) return null;
   return {
-    config: validateConfigTypes(embeddedConfig as ReactDoctorConfig),
+    config: validateConfigTypes(embeddedConfig as HarnessDoctorConfig),
     sourceDirectory: directory,
     configFilePath: path.join(directory, PACKAGE_JSON_FILENAME),
     format: "package-json",
@@ -108,7 +108,7 @@ const loadConfigFromDirectory = async (directory: string): Promise<DirectoryConf
         return {
           status: "found",
           loaded: {
-            config: validateConfigTypes(parsed as ReactDoctorConfig),
+            config: validateConfigTypes(parsed as HarnessDoctorConfig),
             sourceDirectory: directory,
             configFilePath: filePath,
             format: isDataFile ? "json" : "module",
@@ -142,7 +142,7 @@ const loadConfigFromDirectory = async (directory: string): Promise<DirectoryConf
 // by absolute directory and stores the in-flight promise so concurrent
 // lookups dedupe; without a cache-clear hook, repeated diagnose() calls
 // would always hit the stale first-resolution result.
-const cachedConfigs = new Map<string, Promise<LoadedReactDoctorConfig | null>>();
+const cachedConfigs = new Map<string, Promise<LoadedHarnessDoctorConfig | null>>();
 
 export const clearConfigCache = (): void => {
   cachedConfigs.clear();
@@ -150,7 +150,7 @@ export const clearConfigCache = (): void => {
 
 const loadConfigWalkingUp = async (
   rootDirectory: string,
-): Promise<LoadedReactDoctorConfig | null> => {
+): Promise<LoadedHarnessDoctorConfig | null> => {
   const localResult = await loadConfigFromDirectory(rootDirectory);
   if (localResult.status === "found") return localResult.loaded;
   // A present-but-unparseable config at the requested root is an explicit
@@ -170,7 +170,7 @@ const loadConfigWalkingUp = async (
 
 export const loadConfigWithSource = (
   rootDirectory: string,
-): Promise<LoadedReactDoctorConfig | null> => {
+): Promise<LoadedHarnessDoctorConfig | null> => {
   const cached = cachedConfigs.get(rootDirectory);
   if (cached !== undefined) return cached;
   const loadPromise = loadConfigWalkingUp(rootDirectory);
@@ -179,14 +179,14 @@ export const loadConfigWithSource = (
 };
 
 export interface LegacyConfigLocation {
-  /** Absolute path of the pre-migration `react-doctor.config.json`. */
+  /** Absolute path of the pre-migration `harness-doctor.config.json`. */
   readonly legacyFilePath: string;
   /** Directory that contains it (where the migrated file should land). */
   readonly directory: string;
 }
 
 // True when the directory already has a current-format config — a
-// `doctor.config.*` file (parseable or not) or a `package.json#reactDoctor`
+// `doctor.config.*` file (parseable or not) or a `package.json#harnessDoctor`
 // key. Such a config supersedes any sibling legacy file, so there's nothing
 // to migrate. Kept side-effect-free (no `validateConfigTypes`) so the
 // detection walk never emits warnings.
@@ -200,7 +200,7 @@ const directoryHasCurrentConfig = (directory: string): boolean => {
 /**
  * Walks up from `rootDirectory` (same boundary semantics as
  * `loadConfigWithSource`) looking for a pre-migration
- * `react-doctor.config.json` that is no longer read. Returns the first one
+ * `harness-doctor.config.json` that is no longer read. Returns the first one
  * found, or `null` when a current-format config supersedes it or none exists
  * before a project boundary. Detection only — the CLI performs the rename.
  */

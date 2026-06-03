@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { parseZodMajor } from "@react-doctor/core";
+import { parseZodMajor } from "@harness-doctor/core";
 
 describe("parseZodMajor", () => {
   it("extracts the lowest supported major from common version specs", () => {

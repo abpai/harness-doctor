@@ -46,7 +46,7 @@ jobs:
           NPM_CONFIG_PROVENANCE: true
           # When `pnpm release` actually publishes, its `sentry-sourcemaps`
           # step injects Debug IDs into dist/cli.js and uploads the maps to
-          # Sentry under `react-doctor@<version>` (no-op if these are unset).
+          # Sentry under `harness-doctor@<version>` (no-op if these are unset).
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
@@ -78,7 +78,7 @@ jobs:
       - name: Compute dev version
         id: dev-version
         run: |
-          base_version="$(node -p "require('./packages/react-doctor/package.json').version")"
+          base_version="$(node -p "require('./packages/harness-doctor/package.json').version")"
           dev_version="${base_version}-dev.$(git rev-parse --short HEAD)"
           echo "version=${dev_version}" >> "$GITHUB_OUTPUT"
           echo "Publishing dev snapshot ${dev_version}"
@@ -87,7 +87,7 @@ jobs:
         env:
           DEV_VERSION: ${{ steps.dev-version.outputs.version }}
         run: |
-          for package_dir in react-doctor oxlint-plugin-react-doctor eslint-plugin-react-doctor; do
+          for package_dir in harness-doctor oxlint-plugin-harness-doctor eslint-plugin-harness-doctor; do
             node -e "const fs = require('node:fs'); const path = 'packages/${package_dir}/package.json'; const manifest = JSON.parse(fs.readFileSync(path, 'utf8')); manifest.version = process.env.DEV_VERSION; fs.writeFileSync(path, JSON.stringify(manifest, null, 2) + '\n');"
           done
 

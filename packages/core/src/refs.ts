@@ -9,14 +9,14 @@ import { resolveScanConcurrency } from "./utils/resolve-scan-concurrency.js";
 /**
  * Per-batch oxlint wall-clock budget. Reads from the env var on
  * startup so the eval harness can raise the budget under sandbox
- * microVMs without recompiling react-doctor. Tests override via
+ * microVMs without recompiling harness-doctor. Tests override via
  * `Layer.succeed(OxlintSpawnTimeoutMs, ...)`.
  */
 export class OxlintSpawnTimeoutMs extends Context.Reference<number>(
-  "react-doctor/OxlintSpawnTimeoutMs",
+  "harness-doctor/OxlintSpawnTimeoutMs",
   {
     defaultValue: () => {
-      const raw = process.env["REACT_DOCTOR_OXLINT_SPAWN_TIMEOUT_MS"];
+      const raw = process.env["HARNESS_DOCTOR_OXLINT_SPAWN_TIMEOUT_MS"];
       if (raw === undefined) return OXLINT_SPAWN_TIMEOUT_MS;
       const parsed = Number(raw);
       if (!Number.isFinite(parsed) || parsed <= 0) return OXLINT_SPAWN_TIMEOUT_MS;
@@ -32,7 +32,7 @@ export class OxlintSpawnTimeoutMs extends Context.Reference<number>(
  * tests that exercise the cap behavior.
  */
 export class OxlintOutputMaxBytes extends Context.Reference<number>(
-  "react-doctor/OxlintOutputMaxBytes",
+  "harness-doctor/OxlintOutputMaxBytes",
   {
     defaultValue: () => OXLINT_OUTPUT_MAX_BYTES,
   },
@@ -43,7 +43,7 @@ export class OxlintOutputMaxBytes extends Context.Reference<number>(
  * to auto-detected CPU cores (parallel) so large repos scan fast out of
  * the box; `spawnLintBatches` transparently falls back to a single worker
  * if a parallel run exhausts system resources. The CLI's `--no-parallel`
- * flag forces serial via `Layer.succeed`; the `REACT_DOCTOR_PARALLEL` env
+ * flag forces serial via `Layer.succeed`; the `HARNESS_DOCTOR_PARALLEL` env
  * var seeds the default for programmatic / CI callers that never touch the
  * flag — parallelism is opt-OUT, so only the explicit serial values pin
  * one worker:
@@ -56,9 +56,9 @@ export class OxlintOutputMaxBytes extends Context.Reference<number>(
  * The resolved value is always within
  * `[MIN_SCAN_CONCURRENCY, MAX_SCAN_CONCURRENCY]`.
  */
-export class OxlintConcurrency extends Context.Reference<number>("react-doctor/OxlintConcurrency", {
+export class OxlintConcurrency extends Context.Reference<number>("harness-doctor/OxlintConcurrency", {
   defaultValue: () => {
-    const raw = process.env["REACT_DOCTOR_PARALLEL"];
+    const raw = process.env["HARNESS_DOCTOR_PARALLEL"];
     if (raw === undefined) return resolveScanConcurrency("auto");
     const normalized = raw.trim().toLowerCase();
     if (normalized === "0" || normalized === "false" || normalized === "off") {

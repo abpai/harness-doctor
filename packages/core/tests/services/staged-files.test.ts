@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { Git, GitInvocationFailed, ReactDoctorError, StagedFiles } from "@react-doctor/core";
+import { Git, GitInvocationFailed, HarnessDoctorError, StagedFiles } from "@harness-doctor/core";
 
 describe("StagedFiles.layerNode (driven by Git.layerOf)", () => {
   it("filters staged files through SOURCE_FILE_PATTERN", async () => {
@@ -63,7 +63,7 @@ describe("StagedFiles.layerNode regression — per-file git failures", () => {
       showStagedContent: (_directory, relativePath) => {
         if (relativePath === "src/a.ts") {
           return Effect.fail(
-            new ReactDoctorError({
+            new HarnessDoctorError({
               reason: new GitInvocationFailed({
                 args: ["show", `:${relativePath}`],
                 directory: "/repo",

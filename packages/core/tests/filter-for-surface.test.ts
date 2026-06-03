@@ -5,12 +5,12 @@ import {
   filterDiagnosticsForSurface,
   isDiagnosticOnSurface,
   isDiagnosticSurface,
-} from "@react-doctor/core";
-import type { Diagnostic, ReactDoctorConfig } from "@react-doctor/core";
+} from "@harness-doctor/core";
+import type { Diagnostic, HarnessDoctorConfig } from "@harness-doctor/core";
 
 const designDiagnostic: Diagnostic = {
   filePath: "src/App.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "design-no-redundant-size-axes",
   severity: "warning",
   message: "w-5 h-5 → use the shorthand size-5 (Tailwind v3.4+)",
@@ -22,7 +22,7 @@ const designDiagnostic: Diagnostic = {
 
 const correctnessDiagnostic: Diagnostic = {
   filePath: "src/Form.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "no-array-index-as-key",
   severity: "error",
   message: "Array index used as React key",
@@ -45,26 +45,18 @@ const externalPluginDiagnostic: Diagnostic = {
 };
 
 describe("filterDiagnosticsForSurface defaults", () => {
-  it("strips `design`-tagged rules from PR comment, score, and CI failure surfaces by default", () => {
+  // The boilerplate ships no rule carrying a default-excluded tag, so by
+  // default every diagnostic passes through to every surface. Integrators
+  // wire surface defaults via `DEFAULT_SURFACE_EXCLUDED_TAGS` once they tag
+  // their own weak-signal rules.
+  it("passes untagged diagnostics through to every surface by default", () => {
     const diagnostics = [designDiagnostic, correctnessDiagnostic];
-
-    expect(filterDiagnosticsForSurface(diagnostics, "prComment", null)).toEqual([
-      correctnessDiagnostic,
-    ]);
-    expect(filterDiagnosticsForSurface(diagnostics, "score", null)).toEqual([
-      correctnessDiagnostic,
-    ]);
-    expect(filterDiagnosticsForSurface(diagnostics, "ciFailure", null)).toEqual([
-      correctnessDiagnostic,
-    ]);
+    for (const surface of DIAGNOSTIC_SURFACES) {
+      expect(filterDiagnosticsForSurface(diagnostics, surface, null)).toEqual(diagnostics);
+    }
   });
 
-  it("keeps `design`-tagged rules visible on the CLI surface (so devs still see suggestions locally)", () => {
-    const diagnostics = [designDiagnostic, correctnessDiagnostic];
-    expect(filterDiagnosticsForSurface(diagnostics, "cli", null)).toEqual(diagnostics);
-  });
-
-  it("does not filter diagnostics from external plugins (no react-doctor tag metadata to consult)", () => {
+  it("does not filter diagnostics from external plugins (no harness-doctor tag metadata to consult)", () => {
     const diagnostics = [externalPluginDiagnostic];
     for (const surface of DIAGNOSTIC_SURFACES) {
       expect(filterDiagnosticsForSurface(diagnostics, surface, null)).toEqual(diagnostics);
@@ -74,44 +66,36 @@ describe("filterDiagnosticsForSurface defaults", () => {
 
 describe("filterDiagnosticsForSurface — user overrides", () => {
   it("`includeTags` promotes excluded rules back into the surface", () => {
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       surfaces: { prComment: { includeTags: ["design"] } },
     };
     const diagnostics = [designDiagnostic, correctnessDiagnostic];
     expect(filterDiagnosticsForSurface(diagnostics, "prComment", config)).toEqual(diagnostics);
   });
 
-  it("`excludeTags` removes additional rule families from a surface", () => {
-    const config: ReactDoctorConfig = {
-      surfaces: { score: { excludeTags: ["test-noise"] } },
-    };
-    const diagnostics = [designDiagnostic, correctnessDiagnostic];
-    expect(filterDiagnosticsForSurface(diagnostics, "score", config)).toEqual([
-      correctnessDiagnostic,
-    ]);
-  });
-
   it("`excludeCategories` removes everything in a category from a surface", () => {
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       surfaces: { ciFailure: { excludeCategories: ["Correctness"] } },
     };
     const diagnostics = [designDiagnostic, correctnessDiagnostic];
-    expect(filterDiagnosticsForSurface(diagnostics, "ciFailure", config)).toEqual([]);
+    expect(filterDiagnosticsForSurface(diagnostics, "ciFailure", config)).toEqual([
+      designDiagnostic,
+    ]);
   });
 
   it("`excludeRules` strips a specific rule even when its tags are otherwise allowed on CLI", () => {
-    const config: ReactDoctorConfig = {
-      surfaces: { cli: { excludeRules: ["react-doctor/no-array-index-as-key"] } },
+    const config: HarnessDoctorConfig = {
+      surfaces: { cli: { excludeRules: ["harness-doctor/no-array-index-as-key"] } },
     };
     const diagnostics = [designDiagnostic, correctnessDiagnostic];
     expect(filterDiagnosticsForSurface(diagnostics, "cli", config)).toEqual([designDiagnostic]);
   });
 
   it("`includeRules` overrides excludeTags for a single rule (include wins)", () => {
-    const config: ReactDoctorConfig = {
+    const config: HarnessDoctorConfig = {
       surfaces: {
         prComment: {
-          includeRules: ["react-doctor/design-no-redundant-size-axes"],
+          includeRules: ["harness-doctor/design-no-redundant-size-axes"],
         },
       },
     };

@@ -9,7 +9,7 @@ import { SUPPRESSION_NEAR_MISS_MAX_LINES } from "./constants.js";
 // in isRuleListedInComment, so only the rule-id tokens before the
 // description are tested against the diagnostic's rule.
 const DISABLE_NEXT_LINE_PATTERN =
-  /(?:\/\/|\/\*)\s*react-doctor-disable-next-line\b(?:\s+([^\r\n]*?))?\s*(?:\*\/)?\s*\}?\s*$/;
+  /(?:\/\/|\/\*)\s*harness-doctor-disable-next-line\b(?:\s+([^\r\n]*?))?\s*(?:\*\/)?\s*\}?\s*$/;
 
 export interface StackedDisableComment {
   commentLineIndex: number;

@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, it } from "vite-plus/test";
-import { findMonorepoRoot, isMonorepoRoot } from "@react-doctor/core";
+import { findMonorepoRoot, isMonorepoRoot } from "@harness-doctor/core";
 
 const FIXTURES_DIRECTORY = path.resolve(import.meta.dirname, "fixtures");
 

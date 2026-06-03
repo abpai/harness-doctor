@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { REDACTED_PLACEHOLDER, redactSensitiveText } from "@react-doctor/core";
+import { REDACTED_PLACEHOLDER, redactSensitiveText } from "@harness-doctor/core";
 
 describe("redactSensitiveText", () => {
   it("returns empty input unchanged", () => {

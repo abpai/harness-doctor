@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 import { deadCodeMaySurfaceWhenWarningsHidden } from "../src/utils/dead-code-may-surface.js";
-import type { ReactDoctorConfig } from "../src/types/index.js";
+import type { HarnessDoctorConfig } from "../src/types/index.js";
 
-const configOf = (config: Partial<ReactDoctorConfig>): ReactDoctorConfig =>
-  config as ReactDoctorConfig;
+const configOf = (config: Partial<HarnessDoctorConfig>): HarnessDoctorConfig =>
+  config as HarnessDoctorConfig;
 
 describe("deadCodeMaySurfaceWhenWarningsHidden", () => {
   it("is false with no config or no severity overrides", () => {
@@ -45,7 +45,7 @@ describe("deadCodeMaySurfaceWhenWarningsHidden", () => {
     ).toBe(false);
     expect(
       deadCodeMaySurfaceWhenWarningsHidden(
-        configOf({ rules: { "react-doctor/no-array-index-key": "error" } }),
+        configOf({ rules: { "harness-doctor/no-array-index-key": "error" } }),
       ),
     ).toBe(false);
   });

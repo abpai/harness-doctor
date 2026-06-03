@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
-import { hasPublishedFixRecipe } from "@react-doctor/core";
+import { hasPublishedFixRecipe } from "@harness-doctor/core";
 
 describe("hasPublishedFixRecipe", () => {
-  it("is true for react-doctor engine rules (recipes are generated from them)", () => {
-    expect(hasPublishedFixRecipe({ plugin: "react-doctor", rule: "no-array-index-key" })).toBe(
-      true,
+  it("is true for harness-doctor engine rules (recipes are generated from them)", () => {
+    expect(hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "no-eval" })).toBe(true);
+  });
+
+  it("is false for harness-doctor-namespaced names that are not registered engine rules", () => {
+    expect(hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "no-derived-state" })).toBe(
+      false,
     );
-    expect(hasPublishedFixRecipe({ plugin: "react-doctor", rule: "no-derived-state" })).toBe(true);
   });
 
   it("is false for dead-code diagnostics (deslop has no recipes)", () => {
@@ -14,13 +17,13 @@ describe("hasPublishedFixRecipe", () => {
     expect(hasPublishedFixRecipe({ plugin: "deslop", rule: "circular-dependency" })).toBe(false);
   });
 
-  it("is false for react-doctor-namespaced synthetic environment checks", () => {
+  it("is false for harness-doctor-namespaced synthetic environment checks", () => {
     // Emitted by checkReducedMotion / checkPnpmHardening — not engine
     // lint rules, so no recipe page exists.
-    expect(hasPublishedFixRecipe({ plugin: "react-doctor", rule: "require-reduced-motion" })).toBe(
+    expect(hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "require-reduced-motion" })).toBe(
       false,
     );
-    expect(hasPublishedFixRecipe({ plugin: "react-doctor", rule: "require-pnpm-hardening" })).toBe(
+    expect(hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "require-pnpm-hardening" })).toBe(
       false,
     );
   });

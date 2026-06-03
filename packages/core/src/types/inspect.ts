@@ -1,4 +1,4 @@
-import type { DiagnosticSurface, ReactDoctorConfig } from "./config.js";
+import type { DiagnosticSurface, HarnessDoctorConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic.js";
 import type { ProjectInfo } from "./project-info.js";
 import type { ScoreResult } from "./score.js";
@@ -63,16 +63,16 @@ export interface InspectResult {
 export interface InspectOptions {
   // ── Engine inputs ────────────────────────────────────────────────
   lint?: boolean;
-  /** See `ReactDoctorConfig.deadCode`. Ignored in diff / staged mode. */
+  /** See `HarnessDoctorConfig.deadCode`. Ignored in diff / staged mode. */
   deadCode?: boolean;
   includePaths?: string[];
-  configOverride?: ReactDoctorConfig | null;
+  configOverride?: HarnessDoctorConfig | null;
   respectInlineDisables?: boolean;
   /**
    * Number of oxlint subprocesses to run in parallel during the lint
    * pass. Overrides the `OxlintConcurrency` Reference (env-seeded) for
    * this run. `undefined` leaves the ambient default in place (parallel:
-   * auto-detect cores unless `REACT_DOCTOR_PARALLEL` pins a count); the
+   * auto-detect cores unless `HARNESS_DOCTOR_PARALLEL` pins a count); the
    * CLI's `--no-parallel` flag resolves to `1` (serial) here. A parallel
    * run automatically falls back to serial if it exhausts system
    * resources. Out-of-range values are clamped to the supported worker
@@ -80,7 +80,7 @@ export interface InspectOptions {
    */
   concurrency?: number;
   /**
-   * Per-call override for `ReactDoctorConfig.warnings`. When omitted,
+   * Per-call override for `HarnessDoctorConfig.warnings`. When omitted,
    * `config.warnings` wins (defaulting to `true`), so `"warning"`-
    * severity diagnostics surface on every surface — CLI, PR comment,
    * score, and the `--fail-on` gate — until explicitly hidden via

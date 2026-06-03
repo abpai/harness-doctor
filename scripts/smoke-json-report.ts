@@ -3,11 +3,11 @@ import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as Schema from "effect/Schema";
-import { JsonReport } from "@react-doctor/core/schemas";
+import { JsonReport } from "@harness-doctor/core/schemas";
 
 const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(SCRIPT_DIRECTORY, "..");
-const CLI_BINARY_PATH = resolve(REPOSITORY_ROOT, "packages/react-doctor/dist/cli.js");
+const CLI_BINARY_PATH = resolve(REPOSITORY_ROOT, "packages/harness-doctor/dist/cli.js");
 const FIXTURE_DIRECTORY = resolve(REPOSITORY_ROOT, "packages/core/tests/fixtures/basic-react");
 
 if (!existsSync(CLI_BINARY_PATH)) {
@@ -23,7 +23,7 @@ if (!existsSync(FIXTURE_DIRECTORY)) {
 // `--no-score --no-lint --no-dead-code` keeps the run fast and
 // deterministic — we're checking that the CLI plumbing produces a
 // schema-valid v1 JsonReport, not that any particular rule fires.
-// The eval harness (react-doctor-evals parity check) is the right
+// The eval harness (harness-doctor-evals parity check) is the right
 // tool for diagnostic-set comparison; this smoke catches structural
 // regressions to the JSON output across refactor PRs.
 const result = spawnSync(

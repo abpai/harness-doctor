@@ -36,7 +36,7 @@ export class NodeResolver extends Context.Service<
     readonly isNvmInstalled: () => Effect.Effect<boolean>;
     readonly installViaNvm: () => Effect.Effect<boolean>;
   }
->()("react-doctor/NodeResolver") {
+>()("harness-doctor/NodeResolver") {
   static readonly layerNode: Layer.Layer<NodeResolver> = Layer.succeed(
     NodeResolver,
     NodeResolver.of({

@@ -32,7 +32,7 @@ export const checkReactNativeLibraryDependencies = (rootDirectory: string): Diag
   return [
     {
       filePath: "package.json",
-      plugin: "react-doctor",
+      plugin: "harness-doctor",
       rule: "rn-library-react-in-dependencies",
       severity: "warning",
       message: `This react-native-builder-bob library lists ${quoted} in \`dependencies\` — that ships a second copy into consumer apps, causing "Invalid hook call" (duplicate React) and duplicate-native-module crashes.`,

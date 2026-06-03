@@ -4,12 +4,12 @@ import {
   Git,
   GitBaseBranchInvalid,
   GitBaseBranchMissing,
-  ReactDoctorError,
-} from "@react-doctor/core";
+  HarnessDoctorError,
+} from "@harness-doctor/core";
 
 const runWith = <Value>(
   layer: ReturnType<typeof Git.layerOf>,
-  program: Effect.Effect<Value, ReactDoctorError, Git>,
+  program: Effect.Effect<Value, HarnessDoctorError, Git>,
 ): Value => Effect.runSync(program.pipe(Effect.provide(layer)));
 
 describe("Git.layerOf", () => {
@@ -52,7 +52,7 @@ describe("Git.layerOf", () => {
   it("returns score metadata fields from the snapshot", () => {
     const layer = Git.layerOf({
       headSha: "abc123",
-      githubRepo: "millionco/react-doctor",
+      githubRepo: "millionco/harness-doctor",
     });
     const result = runWith(
       layer,
@@ -63,14 +63,14 @@ describe("Git.layerOf", () => {
           githubRepo: yield* git.githubRepo("/repo"),
           githubViewerPermission: yield* git.githubViewerPermission({
             directory: "/repo",
-            repo: "millionco/react-doctor",
+            repo: "millionco/harness-doctor",
           }),
         };
       }),
     );
     expect(result).toEqual({
       headSha: "abc123",
-      githubRepo: "millionco/react-doctor",
+      githubRepo: "millionco/harness-doctor",
       githubViewerPermission: null,
     });
   });
@@ -85,7 +85,7 @@ describe("Git.layerOf", () => {
         const git = yield* Git;
         return yield* git.githubViewerPermission({
           directory: "/repo",
-          repo: "millionco/react-doctor",
+          repo: "millionco/harness-doctor",
         });
       }),
     );
@@ -216,9 +216,9 @@ describe("Git.layerOf", () => {
   });
 });
 
-describe("ReactDoctorError shapes raised by Git", () => {
+describe("HarnessDoctorError shapes raised by Git", () => {
   it("constructs a GitBaseBranchInvalid leaf", () => {
-    const error = new ReactDoctorError({
+    const error = new HarnessDoctorError({
       reason: new GitBaseBranchInvalid({ detail: "x" }),
     });
     expect(error.reason._tag).toBe("GitBaseBranchInvalid");
@@ -226,7 +226,7 @@ describe("ReactDoctorError shapes raised by Git", () => {
   });
 
   it("constructs a GitBaseBranchMissing leaf", () => {
-    const error = new ReactDoctorError({
+    const error = new HarnessDoctorError({
       reason: new GitBaseBranchMissing({ branch: "release/9.9" }),
     });
     expect(error.reason._tag).toBe("GitBaseBranchMissing");
@@ -261,7 +261,7 @@ describe("Git.diffSelection — git-flag injection (CVE-2018-17456 shape)", () =
     // promise with the error so we can assert its tag, while an
     // unexpected success would reject (failing the test).
     const error = await Effect.runPromise(program.pipe(Effect.provide(Git.layerNode), Effect.flip));
-    expect(error).toBeInstanceOf(ReactDoctorError);
+    expect(error).toBeInstanceOf(HarnessDoctorError);
     expect(error.reason._tag).toBe("GitBaseBranchInvalid");
   };
 

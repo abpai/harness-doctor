@@ -1,19 +1,19 @@
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
-import { buildDiagnosticIdentity, JsonReportV1, Severity } from "@react-doctor/core";
+import { buildDiagnosticIdentity, JsonReportV1, Severity } from "@harness-doctor/core";
 // `Diagnostic` and `JsonReport` are imported directly from the
 // `schemas.js` module rather than the package barrel because the
 // barrel intentionally elides them — the same names exist as TS
-// types in `@react-doctor/core`'s `types/` subtree, and re-exporting
+// types in `@harness-doctor/core`'s `types/` subtree, and re-exporting
 // the Schema versions would collide. The Schema versions ARE the
 // in-tree validators; consumers wanting them reach in directly.
-import { Diagnostic, JsonReport } from "@react-doctor/core/schemas";
+import { Diagnostic, JsonReport } from "@harness-doctor/core/schemas";
 
 describe("Diagnostic schema", () => {
   it("decodes the minimal shape (required fields only)", () => {
     const decoded = Schema.decodeUnknownSync(Diagnostic)({
       filePath: "/repo/src/App.tsx",
-      plugin: "react-doctor",
+      plugin: "harness-doctor",
       rule: "no-derived-state",
       severity: "error",
       message: "Avoid useState(propX)",
@@ -31,26 +31,26 @@ describe("Diagnostic schema", () => {
   it("decodes optional fields when present", () => {
     const decoded = Schema.decodeUnknownSync(Diagnostic)({
       filePath: "/repo/src/Button.tsx",
-      plugin: "react-doctor",
+      plugin: "harness-doctor",
       rule: "no-barrel-import",
       severity: "warning",
       message: "Barrel import",
       help: "Import directly",
-      url: "https://www.react.doctor/rules/no-barrel-import",
+      url: "https://www.harness.doctor/rules/no-barrel-import",
       line: 1,
       column: 1,
       category: "Bundle Size",
-      suppressionHint: "// react-doctor-disable-next-line no-barrel-import",
+      suppressionHint: "// harness-doctor-disable-next-line no-barrel-import",
     });
-    expect(decoded.url).toBe("https://www.react.doctor/rules/no-barrel-import");
-    expect(decoded.suppressionHint).toBe("// react-doctor-disable-next-line no-barrel-import");
+    expect(decoded.url).toBe("https://www.harness.doctor/rules/no-barrel-import");
+    expect(decoded.suppressionHint).toBe("// harness-doctor-disable-next-line no-barrel-import");
   });
 
   it("rejects an unknown severity value", () => {
     expect(() =>
       Schema.decodeUnknownSync(Diagnostic)({
         filePath: "/repo/src/App.tsx",
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "x",
         severity: "info",
         message: "x",
@@ -101,10 +101,10 @@ describe("buildDiagnosticIdentity", () => {
         filePath: "/repo/src/App.tsx",
         line: 12,
         column: 4,
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "no-derived-state",
       }),
-    ).toBe("/repo/src/App.tsx::12:4::react-doctor/no-derived-state");
+    ).toBe("/repo/src/App.tsx::12:4::harness-doctor/no-derived-state");
   });
 
   it("is deterministic across calls with the same input", () => {

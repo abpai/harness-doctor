@@ -26,8 +26,8 @@ const fallbackReport = {
   },
   elapsedMilliseconds: 0,
   error: {
-    name: "ReactDoctorActionError",
-    message: `react-doctor exited with status ${Number.isFinite(status) ? status : 1} before producing a JSON report.`,
+    name: "HarnessDoctorActionError",
+    message: `harness-doctor exited with status ${Number.isFinite(status) ? status : 1} before producing a JSON report.`,
     chain: [],
   },
 };

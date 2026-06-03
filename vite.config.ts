@@ -11,7 +11,7 @@ export default defineConfig({
       "dist",
       "build",
       "node_modules",
-      "packages/react-doctor/tests/fixtures/**",
+      "packages/harness-doctor/tests/fixtures/**",
     ],
     plugins: ["typescript", "react", "import"],
     rules: {},

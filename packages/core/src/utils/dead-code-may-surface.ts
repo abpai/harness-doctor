@@ -1,6 +1,6 @@
 import { DEAD_CODE_CATEGORY, DEAD_CODE_PLUGIN } from "../check-dead-code.js";
 import { buildRuleSeverityControls } from "../build-rule-severity-controls.js";
-import type { ReactDoctorConfig, RuleSeverityOverride } from "../types/index.js";
+import type { HarnessDoctorConfig, RuleSeverityOverride } from "../types/index.js";
 
 const DEAD_CODE_RULE_KEY_PREFIX = `${DEAD_CODE_PLUGIN}/`;
 
@@ -15,7 +15,7 @@ const isSurfacingOverride = (override: RuleSeverityOverride | undefined): boolea
 // (expensive) analysis must still run even with warnings off, otherwise the
 // findings the user asked to surface are never generated.
 export const deadCodeMaySurfaceWhenWarningsHidden = (
-  userConfig: ReactDoctorConfig | null,
+  userConfig: HarnessDoctorConfig | null,
 ): boolean => {
   const severityControls = buildRuleSeverityControls(userConfig);
   if (!severityControls) return false;

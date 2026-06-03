@@ -4,7 +4,7 @@ import type { Diagnostic } from "../types/index.js";
 // twice (e.g. when a rule's listener visits the same AST node through
 // two overlapping selectors). The duplicates have identical filePath,
 // line, column, plugin, rule, message, and severity. This safety net
-// collapses them on the react-doctor side so downstream consumers
+// collapses them on the harness-doctor side so downstream consumers
 // (renderer, JSON output, score API) always see one diagnostic per
 // unique site — independent of plugin-rule correctness.
 //

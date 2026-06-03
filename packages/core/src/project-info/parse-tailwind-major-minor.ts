@@ -1,4 +1,4 @@
-// HACK: react-doctor reads the project's Tailwind version straight out
+// HACK: harness-doctor reads the project's Tailwind version straight out
 // of package.json (the `tailwindcss` dep), which produces semver ranges
 // (`^3.4.1`, `~3.3.0`, `>=3 <5`, `4.x`, `latest`, etc.) — never a
 // normalized number. Some Tailwind-version-gated rules need the MINOR

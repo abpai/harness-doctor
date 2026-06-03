@@ -1,1 +1,1 @@
-packages/react-doctor/README.md
+packages/harness-doctor/README.md

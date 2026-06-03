@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import { dedupeDiagnostics } from "@react-doctor/core";
-import type { Diagnostic } from "@react-doctor/core";
+import { dedupeDiagnostics } from "@harness-doctor/core";
+import type { Diagnostic } from "@harness-doctor/core";
 
 const buildDiagnostic = (overrides: Partial<Diagnostic> = {}): Diagnostic => ({
   filePath: "src/App.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "no-derived-state",
   severity: "warning",
   message: "useState initialized from prop",

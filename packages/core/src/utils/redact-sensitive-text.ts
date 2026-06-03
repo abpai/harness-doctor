@@ -168,7 +168,7 @@ const redactHighEntropyTokens = (text: string): string =>
  * found anywhere inside a free-text string, returning the scrubbed text.
  * Applied to every diagnostic's `message` / `help` at construction time
  * so secrets never reach the terminal, the JSON report, or the score
- * API — react-doctor must never echo or transmit a user's secrets.
+ * API — harness-doctor must never echo or transmit a user's secrets.
  *
  * Provider tokens keep their non-secret, type-identifying prefix (e.g.
  * `sk_live_<redacted>`, `ghp_<redacted>`, `AKIA<redacted>`) so the leaked

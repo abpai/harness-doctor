@@ -11,15 +11,15 @@ export type {
   ProjectResult,
   ProjectResultError,
   ProjectResultOk,
-  ReactDoctorConfig,
+  HarnessDoctorConfig,
   ScoreResult,
-} from "@react-doctor/core";
+} from "@harness-doctor/core";
 export {
-  ReactDoctorError,
+  HarnessDoctorError,
   ProjectNotFoundError,
   NoReactDependencyError,
   PackageJsonNotFoundError,
   NotADirectoryError,
   AmbiguousProjectError,
-  isReactDoctorError,
-} from "@react-doctor/core";
+  isHarnessDoctorError,
+} from "@harness-doctor/core";

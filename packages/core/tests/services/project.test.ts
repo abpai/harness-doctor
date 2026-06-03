@@ -2,8 +2,8 @@ import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import { describe, expect, it } from "vite-plus/test";
-import type { ProjectInfo } from "@react-doctor/core";
-import { ReactDoctorError } from "../../src/errors.js";
+import type { ProjectInfo } from "@harness-doctor/core";
+import { HarnessDoctorError } from "../../src/errors.js";
 import { Project } from "../../src/services/project.js";
 
 const sampleProject: ProjectInfo = {
@@ -38,7 +38,7 @@ describe("Project.layerOf", () => {
     expect(result.reactMajorVersion).toBe(19);
   });
 
-  it("never fails with a ReactDoctorError", async () => {
+  it("never fails with a HarnessDoctorError", async () => {
     const exit = await Effect.runPromise(
       Effect.gen(function* () {
         const project = yield* Project;
@@ -50,7 +50,7 @@ describe("Project.layerOf", () => {
 });
 
 describe("Project.layerNode", () => {
-  it("translates a missing project directory into a tagged ReactDoctorError", async () => {
+  it("translates a missing project directory into a tagged HarnessDoctorError", async () => {
     const exit = await Effect.runPromise(
       Effect.gen(function* () {
         const project = yield* Project;
@@ -62,8 +62,8 @@ describe("Project.layerNode", () => {
       const failures = exit.cause.reasons.filter(Cause.isFailReason);
       expect(failures.length).toBe(1);
       const error = failures[0].error;
-      expect(error).toBeInstanceOf(ReactDoctorError);
-      if (error instanceof ReactDoctorError) {
+      expect(error).toBeInstanceOf(HarnessDoctorError);
+      if (error instanceof HarnessDoctorError) {
         expect(error.reason._tag).toBe("ProjectNotFound");
       }
     }

@@ -21,7 +21,7 @@ import path from "node:path";
 export type PackageRole = "library" | "app" | "unknown";
 
 // The nearest-`package.json` ancestor walk + safe-manifest read below are
-// INTENTIONALLY duplicated with `oxlint-plugin-react-doctor`'s
+// INTENTIONALLY duplicated with `oxlint-plugin-harness-doctor`'s
 // `plugin/utils/classify-package-platform.ts` — same rationale as
 // `project-info/internal-rn-dependency-names.ts`: this leaf lives in core's
 // pipeline layer, the plugin's copy runs inside oxlint at lint time, and we

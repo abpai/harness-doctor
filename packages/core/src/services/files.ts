@@ -19,7 +19,7 @@ export class Files extends Context.Service<
     readonly isFile: (filePath: string) => Effect.Effect<boolean>;
     readonly isDirectory: (filePath: string) => Effect.Effect<boolean>;
   }
->()("react-doctor/Files") {
+>()("harness-doctor/Files") {
   static readonly layerNode = Layer.succeed(
     Files,
     Files.of({
@@ -35,7 +35,7 @@ export class Files extends Context.Service<
    * Test layer driven by a `Map<absolutePath, content>`. A descendant
    * file at any depth implies the parent path is a directory; an
    * absent path reads back as `null`. Mirrors the in-memory FS
-   * pattern in react-doctor-evals' test layers.
+   * pattern in harness-doctor-evals' test layers.
    */
   static readonly layerInMemory = (tree: ReadonlyMap<string, string>): Layer.Layer<Files> => {
     const resolveAbsolute = (filePath: string, rootDirectory: string): string =>

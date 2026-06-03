@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import type { ReactDoctorConfig } from "@react-doctor/core";
-import { validateConfigTypes } from "@react-doctor/core";
+import type { HarnessDoctorConfig } from "@harness-doctor/core";
+import { validateConfigTypes } from "@harness-doctor/core";
 
 // HACK: validator writes warnings directly to `process.stderr` so they
 // stay visible in `--json` mode (where the logger is silenced). Spy on
@@ -17,7 +17,7 @@ afterEach(() => {
 
 describe("validateConfigTypes", () => {
   it("passes through proper boolean values untouched", () => {
-    const input: ReactDoctorConfig = {
+    const input: HarnessDoctorConfig = {
       lint: true,
       verbose: true,
       noScore: true,
@@ -65,7 +65,7 @@ describe("validateConfigTypes", () => {
   });
 
   it("does not touch non-boolean fields like ignore.rules", () => {
-    const input: ReactDoctorConfig = {
+    const input: HarnessDoctorConfig = {
       ignore: { rules: ["react/no-danger"] },
       textComponents: ["MyText"],
     };
@@ -75,10 +75,10 @@ describe("validateConfigTypes", () => {
 
   describe("surfaces", () => {
     it("passes through a well-formed surfaces config untouched", () => {
-      const input: ReactDoctorConfig = {
+      const input: HarnessDoctorConfig = {
         surfaces: {
           prComment: { includeTags: ["design"], excludeCategories: ["Performance"] },
-          ciFailure: { excludeRules: ["react-doctor/no-vague-button-label"] },
+          ciFailure: { excludeRules: ["harness-doctor/no-vague-button-label"] },
         },
       };
       expect(validateConfigTypes(input)).toEqual(input);
@@ -90,7 +90,7 @@ describe("validateConfigTypes", () => {
         surfaces: {
           prComment: { excludeTags: ["design"] },
           dashboard: { excludeTags: ["foo"] },
-        } as unknown as ReactDoctorConfig["surfaces"],
+        } as unknown as HarnessDoctorConfig["surfaces"],
       });
       expect(result.surfaces).toEqual({ prComment: { excludeTags: ["design"] } });
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("dashboard"));
@@ -110,7 +110,7 @@ describe("validateConfigTypes", () => {
 
     it("drops the entire surfaces field if it isn't an object", () => {
       const result = validateConfigTypes({
-        surfaces: "all" as unknown as ReactDoctorConfig["surfaces"],
+        surfaces: "all" as unknown as HarnessDoctorConfig["surfaces"],
       });
       expect(result.surfaces).toBeUndefined();
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("surfaces"));
@@ -119,8 +119,8 @@ describe("validateConfigTypes", () => {
 
   describe("severity (top-level rules / categories)", () => {
     it("passes through the ESLint-shaped top-level severity fields untouched", () => {
-      const input: ReactDoctorConfig = {
-        rules: { "react-doctor/no-array-index-as-key": "error" },
+      const input: HarnessDoctorConfig = {
+        rules: { "harness-doctor/no-array-index-as-key": "error" },
         categories: { Performance: "warn" },
       };
       expect(validateConfigTypes(input)).toEqual(input);
@@ -158,7 +158,7 @@ describe("validateConfigTypes", () => {
 
     it("drops the entire rules field when it isn't an object", () => {
       const result = validateConfigTypes({
-        rules: "off" as unknown as ReactDoctorConfig["rules"],
+        rules: "off" as unknown as HarnessDoctorConfig["rules"],
       });
       expect(result.rules).toBeUndefined();
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`config field "rules"`));
@@ -166,11 +166,11 @@ describe("validateConfigTypes", () => {
 
     it("drops arrays passed where a severity map is expected, keeping valid siblings", () => {
       const result = validateConfigTypes({
-        categories: ["off"] as unknown as ReactDoctorConfig["categories"],
-        rules: { "react-doctor/no-array-index-as-key": "error" },
+        categories: ["off"] as unknown as HarnessDoctorConfig["categories"],
+        rules: { "harness-doctor/no-array-index-as-key": "error" },
       });
       expect(result.categories).toBeUndefined();
-      expect(result.rules).toEqual({ "react-doctor/no-array-index-as-key": "error" });
+      expect(result.rules).toEqual({ "harness-doctor/no-array-index-as-key": "error" });
       expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining(`config field "categories"`));
     });
   });

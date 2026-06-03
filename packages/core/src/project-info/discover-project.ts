@@ -26,7 +26,7 @@ import { parseReactMajor } from "./parse-react-major.js";
 import { parseZodMajor } from "./parse-zod-major.js";
 import { resolveEffectiveReactMajor } from "./resolve-effective-react-major.js";
 
-export { discoverReactSubprojects } from "./discover-react-subprojects.js";
+export { discoverSubprojects as discoverReactSubprojects } from "./discover-subprojects.js";
 export { formatFrameworkName } from "./detect-framework.js";
 export { listWorkspacePackages } from "./list-workspace-packages.js";
 

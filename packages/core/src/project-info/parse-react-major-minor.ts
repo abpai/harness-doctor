@@ -1,4 +1,4 @@
-// HACK: react-doctor reads the project's React version straight out of
+// HACK: harness-doctor reads the project's React version straight out of
 // package.json (the `react` dep), which produces semver ranges
 // (`^19.2.0`, `~19.0.1`, `>=19 <20`, `19.x`, `latest`, etc.) — never a
 // normalized number. Some React-version-gated rules need the MINOR in

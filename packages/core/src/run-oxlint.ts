@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type { Diagnostic, ProjectInfo, ReactDoctorConfig } from "./types/index.js";
+import type { Diagnostic, ProjectInfo, HarnessDoctorConfig } from "./types/index.js";
 import { batchIncludePaths } from "./batch-include-paths.js";
 import { buildRuleSeverityControls } from "./build-rule-severity-controls.js";
 import { canOxlintExtendConfig } from "./can-oxlint-extend-config.js";
@@ -29,17 +29,17 @@ interface RunOxlintOptions {
   adoptExistingLintConfig?: boolean;
   ignoredTags?: ReadonlySet<string>;
   /**
-   * Optional react-doctor user config (already-loaded
-   * `react-doctor.config.json` or `package.json#reactDoctor`). When
+   * Optional harness-doctor user config (already-loaded
+   * `harness-doctor.config.json` or `package.json#harnessDoctor`). When
    * provided, project-level knobs the rule surface honors —
    * currently `serverAuthFunctionNames` — are forwarded to the
    * generated oxlint settings so plugin rules can read them via
    * `context.settings`. `userConfig.plugins` resolves through
    * `configSourceDirectory` (or `rootDirectory` as the fallback).
    */
-  userConfig?: ReactDoctorConfig | null;
+  userConfig?: HarnessDoctorConfig | null;
   /**
-   * Directory of the `react-doctor.config.json` (or `package.json`)
+   * Directory of the `harness-doctor.config.json` (or `package.json`)
    * that supplied `userConfig`. Used as the resolution base for
    * `userConfig.plugins` entries — relative paths resolve against
    * this directory and npm package names resolve through its
@@ -153,7 +153,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
   // same walk from the canonical view and oxlint's NotFound errors
   // out). Absolute paths sidestep the whole symlink dance. We skip
   // extends entirely under `customRulesOnly` because that mode opts
-  // out of every rule outside the react-doctor plugin.
+  // out of every rule outside the harness-doctor plugin.
   const detectedConfigPaths =
     adoptExistingLintConfig && !customRulesOnly ? detectUserLintConfigPaths(rootDirectory) : [];
   // HACK: filter out `.eslintrc.json` files whose `extends` lists only
@@ -187,7 +187,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
   // user-plugin loading) happens before the temp dir exists — nothing
   // between here and the try can throw, so the finally always owns
   // cleanup.
-  const configDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "react-doctor-oxlintrc-"));
+  const configDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-oxlintrc-"));
   const configPath = path.join(configDirectory, "oxlintrc.json");
 
   try {
@@ -253,7 +253,7 @@ export const runOxlint = async (options: RunOxlintOptions): Promise<Diagnostic[]
       // our curated rules without their extras. Retry once without
       // `extends` and keep the scan useful. The retry is silent:
       // mid-output stderr warning was noisy enough that users took
-      // it as react-doctor itself crashing; the curated-rules scan
+      // it as harness-doctor itself crashing; the curated-rules scan
       // is the graceful path.
       if (extendsPaths.length === 0) throw error;
       // `buildConfig([])` carries every other option through — most

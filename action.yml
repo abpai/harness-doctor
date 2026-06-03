@@ -1,5 +1,5 @@
-name: "React Doctor"
-description: "Scan React codebases for security, performance, and correctness issues"
+name: "Harness Doctor"
+description: "Scan a repository for good agent-harness practices with deterministic checks"
 branding:
   icon: "activity"
   color: "blue"
@@ -27,7 +27,7 @@ inputs:
     description: "Node.js version to use"
     default: "22"
   version:
-    description: "react-doctor npm version or package spec to run"
+    description: "harness-doctor npm version or package spec to run"
     default: "latest"
 
 outputs:
@@ -59,11 +59,11 @@ runs:
       if: ${{ github.event_name == 'pull_request' }}
       uses: actions/github-script@v8
       env:
-        REACT_DOCTOR_CHANGED_FILES: ${{ runner.temp }}/react-doctor-changed-files.txt
+        HARNESS_DOCTOR_CHANGED_FILES: ${{ runner.temp }}/harness-doctor-changed-files.txt
       with:
         script: |
           const fs = require("fs");
-          const outputPath = process.env.REACT_DOCTOR_CHANGED_FILES;
+          const outputPath = process.env.HARNESS_DOCTOR_CHANGED_FILES;
           const pullRequest = context.payload.pull_request;
           if (!pullRequest || !outputPath) return;
           let files;
@@ -75,7 +75,7 @@ runs:
             });
           } catch (error) {
             core.warning(
-              `React Doctor could not list pull request files (${error.message}). ` +
+              `Harness Doctor could not list pull request files (${error.message}). ` +
                 "Scanning the full project instead. Grant the workflow `pull-requests: read` " +
                 "permission to scan only the files changed in the pull request.",
             );
@@ -101,7 +101,7 @@ runs:
         RUNNER_TEMP: ${{ runner.temp }}
         GITHUB_RUN_ID: ${{ github.run_id }}
       run: |
-        REPORT_FILE="${RUNNER_TEMP:-/tmp}/react-doctor-report-${GITHUB_RUN_ID:-$$}.json"
+        REPORT_FILE="${RUNNER_TEMP:-/tmp}/harness-doctor-report-${GITHUB_RUN_ID:-$$}.json"
         echo "report-file=$REPORT_FILE" >> "$GITHUB_OUTPUT"
 
         FLAGS=("--json" "--json-compact" "--fail-on" "$INPUT_FAIL_ON")
@@ -112,11 +112,11 @@ runs:
         if [[ "$INPUT_VERSION" = ./* || "$INPUT_VERSION" = ../* || "$INPUT_VERSION" = /* ]]; then
           PACKAGE_SPEC="$INPUT_VERSION"
         else
-          PACKAGE_SPEC="react-doctor@$INPUT_VERSION"
+          PACKAGE_SPEC="harness-doctor@$INPUT_VERSION"
         fi
 
         set +e
-        npm exec --yes --package "$PACKAGE_SPEC" -- react-doctor "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"
+        npm exec --yes --package "$PACKAGE_SPEC" -- harness-doctor "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"
         SCAN_STATUS=$?
         set -e
 
@@ -130,7 +130,7 @@ runs:
       shell: bash
       env:
         REPORT_FILE: ${{ steps.scan.outputs.report-file }}
-        COMMENT_FILE: ${{ runner.temp }}/react-doctor-comment.md
+        COMMENT_FILE: ${{ runner.temp }}/harness-doctor-comment.md
         GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         node "$GITHUB_ACTION_PATH/scripts/render-github-action-comment.mjs" "$REPORT_FILE" "$COMMENT_FILE"
@@ -140,17 +140,17 @@ runs:
       if: ${{ always() && github.event_name == 'pull_request' && inputs.comment == 'true' }}
       uses: actions/github-script@v8
       env:
-        REACT_DOCTOR_COMMENT_FILE: ${{ steps.render.outputs.comment-file }}
+        HARNESS_DOCTOR_COMMENT_FILE: ${{ steps.render.outputs.comment-file }}
       with:
         script: |
           const fs = require("fs");
-          const commentPath = process.env.REACT_DOCTOR_COMMENT_FILE;
+          const commentPath = process.env.HARNESS_DOCTOR_COMMENT_FILE;
           if (!commentPath || !fs.existsSync(commentPath)) return;
 
           const body = fs.readFileSync(commentPath, "utf8").trim();
           if (!body) return;
 
-          const marker = "<!-- react-doctor:summary -->";
+          const marker = "<!-- harness-doctor:summary -->";
           try {
             const { data: comments } = await github.rest.issues.listComments({
               ...context.repo,
@@ -172,10 +172,10 @@ runs:
               });
             }
           } catch (error) {
-            core.warning(`React Doctor could not update the sticky PR comment: ${error.message}`);
+            core.warning(`Harness Doctor could not update the sticky PR comment: ${error.message}`);
           }
 
-    - name: Fail if React Doctor found blocking issues
+    - name: Fail if Harness Doctor found blocking issues
       if: always()
       shell: bash
       env:
@@ -185,7 +185,7 @@ runs:
         SCAN_STATUS="${SCAN_STATUS:-1}"
         if [ "$INPUT_NON_BLOCKING" = "true" ]; then
           if [ "$SCAN_STATUS" != "0" ]; then
-            echo "::notice title=React Doctor::Scan exited ${SCAN_STATUS}; non-blocking is enabled, so the job will not fail."
+            echo "::notice title=Harness Doctor::Scan exited ${SCAN_STATUS}; non-blocking is enabled, so the job will not fail."
           fi
           exit 0
         fi

@@ -4,13 +4,13 @@ import * as Layer from "effect/Layer";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
 import { describe, expect, it } from "vite-plus/test";
-import type { Diagnostic, ProjectInfo } from "@react-doctor/core";
+import type { Diagnostic, ProjectInfo } from "@harness-doctor/core";
 import {
   DeadCodeAnalysisFailed,
   GitInvocationFailed,
   NoReactDependency,
   OxlintSpawnFailed,
-  ReactDoctorError,
+  HarnessDoctorError,
 } from "../src/errors.js";
 import { runInspect, type InspectInput } from "../src/run-inspect.js";
 import { Config } from "../src/services/config.js";
@@ -45,7 +45,7 @@ const sampleProject: ProjectInfo = {
 
 const lintDiagnostic: Diagnostic = {
   filePath: "/repo/src/App.tsx",
-  plugin: "react-doctor",
+  plugin: "harness-doctor",
   rule: "no-derived-state",
   severity: "error",
   message: "Avoid useState(propX)",
@@ -128,7 +128,6 @@ describe("runInspect — happy path", () => {
       repo: "millionco/sample-app",
       sha: "abc123",
       framework: "vite",
-      reactVersion: "19.0.0",
       sourceFileCount: 1,
       defaultBranch: "main",
     });
@@ -180,7 +179,7 @@ describe("runInspect — happy path", () => {
       defaultBranch: () => Effect.succeed("main"),
       githubViewerPermission: () =>
         Effect.fail(
-          new ReactDoctorError({
+          new HarnessDoctorError({
             reason: new GitInvocationFailed({
               args: ["api", "graphql"],
               directory: "/repo",
@@ -241,7 +240,7 @@ describe("runInspect — missing React dependency", () => {
       Layer.mock(Project, {
         discover: () =>
           Effect.fail(
-            new ReactDoctorError({ reason: new NoReactDependency({ directory: "/repo" }) }),
+            new HarnessDoctorError({ reason: new NoReactDependency({ directory: "/repo" }) }),
           ),
       }),
       Config.layerOf({ config: null, resolvedDirectory: "/repo", configSourceDirectory: null }),
@@ -264,8 +263,8 @@ describe("runInspect — missing React dependency", () => {
       const failedReason = failures.find((r) => r._tag === "Fail");
       expect(failedReason).toBeDefined();
       if (failedReason && failedReason._tag === "Fail") {
-        const error = failedReason.error as ReactDoctorError;
-        expect(error._tag).toBe("ReactDoctorError");
+        const error = failedReason.error as HarnessDoctorError;
+        expect(error._tag).toBe("HarnessDoctorError");
         expect(error.reason._tag).toBe("NoReactDependency");
       }
     }
@@ -277,7 +276,7 @@ describe("runInspect — mid-stream lint failure", () => {
     const failingLinter = Layer.mock(Linter, {
       run: () =>
         Stream.fail(
-          new ReactDoctorError({
+          new HarnessDoctorError({
             reason: new OxlintSpawnFailed({ cause: "synthetic failure" }),
           }),
         ),
@@ -308,7 +307,7 @@ describe("runInspect — dead-code failure", () => {
     const failingDeadCode = Layer.mock(DeadCode, {
       run: () =>
         Stream.fail(
-          new ReactDoctorError({
+          new HarnessDoctorError({
             reason: new DeadCodeAnalysisFailed({ cause: "synthetic boom" }),
           }),
         ),

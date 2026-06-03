@@ -1,7 +1,7 @@
 import type {
   Diagnostic,
   DiagnosticSurface,
-  ReactDoctorConfig,
+  HarnessDoctorConfig,
   SurfaceControls,
 } from "./types/index.js";
 import { DEFAULT_SURFACE_EXCLUDED_TAGS } from "./diagnostic-surface.js";
@@ -46,7 +46,7 @@ const intersects = (values: ReadonlyArray<string>, candidates: ReadonlySet<strin
 export const isDiagnosticOnSurface = (
   diagnostic: Diagnostic,
   surface: DiagnosticSurface,
-  config: ReactDoctorConfig | null,
+  config: HarnessDoctorConfig | null,
 ): boolean => {
   const resolved = buildResolvedControls(surface, config?.surfaces?.[surface]);
   const { ruleKey, category, tags } = getDiagnosticRuleIdentity(diagnostic);
@@ -67,6 +67,6 @@ export const isDiagnosticOnSurface = (
 export const filterDiagnosticsForSurface = (
   diagnostics: Diagnostic[],
   surface: DiagnosticSurface,
-  config: ReactDoctorConfig | null,
+  config: HarnessDoctorConfig | null,
 ): Diagnostic[] =>
   diagnostics.filter((diagnostic) => isDiagnosticOnSurface(diagnostic, surface, config));

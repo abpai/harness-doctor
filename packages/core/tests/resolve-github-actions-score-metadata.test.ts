@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { resolveGithubActionsScoreMetadata } from "@react-doctor/core";
+import { resolveGithubActionsScoreMetadata } from "@harness-doctor/core";
 
 let temporaryDirectory: string;
 
@@ -26,7 +26,7 @@ const buildEnvironment = (overrides: TestEnvironmentOverrides): NodeJS.ProcessEn
 
 describe("resolveGithubActionsScoreMetadata", () => {
   beforeEach(() => {
-    temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "react-doctor-gh-score-"));
+    temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-gh-score-"));
   });
 
   afterEach(() => {

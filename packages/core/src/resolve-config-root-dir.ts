@@ -2,10 +2,10 @@ import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import path from "node:path";
 import { isDirectory } from "./project-info/index.js";
-import type { ReactDoctorConfig } from "./types/index.js";
+import type { HarnessDoctorConfig } from "./types/index.js";
 
 export const resolveConfigRootDir = (
-  config: ReactDoctorConfig | null,
+  config: HarnessDoctorConfig | null,
   configSourceDirectory: string | null,
 ): string | null => {
   if (!config || !configSourceDirectory) return null;
@@ -25,7 +25,7 @@ export const resolveConfigRootDir = (
   if (!isDirectory(resolvedRootDir)) {
     Effect.runSync(
       Console.warn(
-        `react-doctor config "rootDir" points to "${rawRootDir}" (resolved to ${resolvedRootDir}), which is not a directory. Ignoring.`,
+        `harness-doctor config "rootDir" points to "${rawRootDir}" (resolved to ${resolvedRootDir}), which is not a directory. Ignoring.`,
       ),
     );
     return null;

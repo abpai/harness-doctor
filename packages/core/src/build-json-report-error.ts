@@ -1,5 +1,5 @@
 import type { JsonReport, JsonReportMode } from "./types/index.js";
-import { formatReactDoctorError, isReactDoctorError } from "./errors.js";
+import { formatHarnessDoctorError, isHarnessDoctorError } from "./errors.js";
 import { getErrorChainMessages } from "./format-error-chain.js";
 
 interface BuildJsonReportErrorInput {
@@ -28,10 +28,10 @@ const safeGetErrorChain = (error: unknown): string[] => {
 
 export const buildJsonReportError = (input: BuildJsonReportErrorInput): JsonReport => {
   const chain = safeGetErrorChain(input.error);
-  const errorPayload = isReactDoctorError(input.error)
+  const errorPayload = isHarnessDoctorError(input.error)
     ? {
-        message: formatReactDoctorError(input.error),
-        name: `ReactDoctorError(${input.error.reason._tag})`,
+        message: formatHarnessDoctorError(input.error),
+        name: `HarnessDoctorError(${input.error.reason._tag})`,
         chain,
       }
     : input.error instanceof Error

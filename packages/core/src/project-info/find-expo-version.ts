@@ -16,7 +16,7 @@ const getExpoDependencySpec = (packageJson: PackageJson): string | null => {
 };
 
 // The declared `expo` package version spec, looked up in the root manifest
-// and then each workspace package — react-doctor's "is this an Expo
+// and then each workspace package — harness-doctor's "is this an Expo
 // project, and which SDK?" signal. Returns `null` when no package declares
 // `expo`. The `expo` major tracks the Expo SDK release one-to-one
 // (`expo@^51` ⇒ SDK 51), so callers parse the SDK major straight from this.

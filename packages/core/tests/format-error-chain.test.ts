@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { formatErrorChain, getErrorChainMessages } from "@react-doctor/core";
+import { formatErrorChain, getErrorChainMessages } from "@harness-doctor/core";
 
 describe("formatErrorChain", () => {
   it("returns the single message for a flat error", () => {

@@ -1,23 +1,12 @@
 // Project-discovery-side copy of the canonical RN-aware-manifest
-// detection rules. **Intentionally duplicated** with
-// `oxlint-plugin-react-doctor/src/react-native-dependency-names.ts`
-// — the file there is the authoritative source for the rule gate;
-// this one is the equivalent leaf for the workspace-discovery
-// gate, kept local so importing `@react-doctor/core`'s discovery
-// helpers (`discoverProject`, `discoverReactSubprojects`, …) does
-// NOT also pull the entire 286-rule oxlint plugin into the bundle.
-//
-// Keep the two lists in sync when adding a new RN/Expo package — a
-// regression test in oxlint-plugin and the
-// `isPackageJsonReactNativeAware` tests both observe the union.
-// `react-native-web` is intentionally NOT included — it's a DOM
-// compat layer that pairs with `react-dom` / Next / Vite hosts,
-// not a mobile target.
+// detection rules. Retained for the workspace-discovery capability gate
+// (`isPackageJsonReactNativeAware`); the deeper removal of React Native
+// detection from `discoverProject`/`ProjectInfo` is a later
+// generalization step. Kept local so importing the discovery helpers
+// does not pull a larger dependency graph into the bundle.
 
 // Closed set of canonical Expo-managed dependency names — the subset of
 // the RN cohort that marks a manifest as an *Expo* app specifically.
-// Mirrors `EXPO_MANAGED_DEPENDENCY_NAMES` in
-// `oxlint-plugin-react-doctor/src/react-native-dependency-names.ts`.
 const EXPO_MANAGED_NAMES: ReadonlySet<string> = new Set([
   "expo",
   "expo-router",

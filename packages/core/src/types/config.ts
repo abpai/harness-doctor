@@ -1,6 +1,6 @@
 export type FailOnLevel = "error" | "warning" | "none";
 
-export interface ReactDoctorIgnoreOverride {
+export interface HarnessDoctorIgnoreOverride {
   /** Glob patterns the override applies to (e.g. `["src/legacy/**"]`). */
   files: string[];
   /**
@@ -10,12 +10,12 @@ export interface ReactDoctorIgnoreOverride {
   rules?: string[];
 }
 
-interface ReactDoctorIgnoreConfig {
+interface HarnessDoctorIgnoreConfig {
   /**
    * Fully-qualified rule keys (`"<plugin>/<rule>"`) whose diagnostics are
    * dropped AFTER linting. The rule still runs; its findings are filtered
    * out. To stop a rule from running at all, set it to `"off"` in the
-   * top-level `rules` map instead. Prefer `react-doctor rules disable
+   * top-level `rules` map instead. Prefer `harness-doctor rules disable
    * <rule>` to edit this safely.
    */
   rules?: string[];
@@ -25,11 +25,11 @@ interface ReactDoctorIgnoreConfig {
    */
   files?: string[];
   /** Per-path rule suppressions — narrower than the top-level `rules`/`files`. */
-  overrides?: ReactDoctorIgnoreOverride[];
+  overrides?: HarnessDoctorIgnoreOverride[];
   /**
    * Behavioral tags whose rules are disabled BEFORE linting, skipping a
    * whole family at once (e.g. `["design", "test-noise", "migration-hint"]`).
-   * Prefer `react-doctor rules ignore-tag <tag>` to edit this safely.
+   * Prefer `harness-doctor rules ignore-tag <tag>` to edit this safely.
    */
   tags?: string[];
 }
@@ -39,11 +39,11 @@ interface ReactDoctorIgnoreConfig {
  * Each surface is filtered independently so a rule can be visible
  * locally but excluded from PR comments, the score, or the CI gate:
  *
- * - `cli` — local terminal output from `react-doctor` (`printDiagnostics`).
+ * - `cli` — local terminal output from `harness-doctor` (`printDiagnostics`).
  * - `prComment` — diagnostics destined for a sticky pull-request
  *   summary comment. Selected by running the CLI with `--pr-comment`
  *   (sets `outputSurface: "prComment"`).
- * - `score` — diagnostics shipped to the React Doctor score API
+ * - `score` — diagnostics shipped to the Harness Doctor score API
  *   (or counted toward local score calculations).
  * - `ciFailure` — diagnostics that count toward the `--fail-on` exit
  *   code gate. A diagnostic excluded from this surface never fails the
@@ -72,7 +72,7 @@ export type RuleSeverityOverride = "error" | "warn" | "off";
 /**
  * Internal shape consumed by `resolveRuleSeverityOverride` and
  * `buildDiagnosticPipeline`. Assembled at runtime from the top-level
- * `rules` and `categories` fields on `ReactDoctorConfig`. Per-rule
+ * `rules` and `categories` fields on `HarnessDoctorConfig`. Per-rule
  * wins over per-category when both match the same diagnostic.
  */
 export interface RuleSeverityControls {
@@ -116,16 +116,16 @@ export interface SurfaceControls {
   excludeCategories?: string[];
   /**
    * Fully-qualified rule keys (`"<plugin>/<rule>"`, e.g.
-   * `"react-doctor/design-no-redundant-size-axes"`) to force-include.
+   * `"harness-doctor/design-no-redundant-size-axes"`) to force-include.
    */
   includeRules?: string[];
   /** Fully-qualified rule keys to exclude from this surface. */
   excludeRules?: string[];
 }
 
-export interface ReactDoctorConfig {
+export interface HarnessDoctorConfig {
   $schema?: string;
-  ignore?: ReactDoctorIgnoreConfig;
+  ignore?: HarnessDoctorIgnoreConfig;
   lint?: boolean;
   /**
    * Whether to run dead-code analysis (via `deslop-js`) alongside lint.
@@ -153,7 +153,7 @@ export interface ReactDoctorConfig {
   share?: boolean;
   noScore?: boolean;
   /**
-   * Redirect react-doctor at a different project directory than the one
+   * Redirect harness-doctor at a different project directory than the one
    * it was invoked against. Resolved relative to the location of the
    * config file that declared this field (NOT relative to the CWD), so
    * the redirect is stable no matter where the CLI / `diagnose()` is
@@ -166,7 +166,7 @@ export interface ReactDoctorConfig {
    * without anyone needing to `cd` first or pass an explicit path.
    *
    * Ignored if the resolved path does not exist or is not a directory
-   * (a warning is emitted and react-doctor falls back to the originally
+   * (a warning is emitted and harness-doctor falls back to the originally
    * requested directory).
    */
   rootDir?: string;
@@ -197,14 +197,14 @@ export interface ReactDoctorConfig {
    * list, user-provided names are treated as distinctive and never
    * subject to receiver-object disambiguation.
    *
-   * Use this to teach react-doctor about custom auth guards in
+   * Use this to teach harness-doctor about custom auth guards in
    * codebases that wrap their auth library — e.g. a project-local
    * `requireWorkspaceMember` or `ensureSignedIn`.
    */
   serverAuthFunctionNames?: string[];
   /**
    * Whether to respect inline `// eslint-disable*`, `// oxlint-disable*`,
-   * and `// react-doctor-disable*` comments in source files. Default: `true`.
+   * and `// harness-doctor-disable*` comments in source files. Default: `true`.
    *
    * File-level ignores (`.gitignore`, `.eslintignore`, `.oxlintignore`,
    * `.prettierignore`, `.gitattributes` `linguist-vendored` /
@@ -213,7 +213,7 @@ export interface ReactDoctorConfig {
    * genuinely shouldn't be linted at all.
    *
    * Set to `false` for "audit mode": every inline suppression is
-   * neutralized so react-doctor reports every diagnostic regardless
+   * neutralized so harness-doctor reports every diagnostic regardless
    * of historical hide-comments.
    */
   respectInlineDisables?: boolean;
@@ -221,7 +221,7 @@ export interface ReactDoctorConfig {
    * Whether to merge the user's existing JSON oxlint / eslint config
    * (`.oxlintrc.json` or `.eslintrc.json`) into the generated scan via
    * oxlint's `extends` field, so diagnostics from those rules count
-   * toward the react-doctor score. Default: `true`.
+   * toward the harness-doctor score. Default: `true`.
    *
    * Detection runs at the scanned directory and walks up to the
    * nearest project boundary (`.git` directory or monorepo root).
@@ -234,12 +234,12 @@ export interface ReactDoctorConfig {
    * (`oxlint.config.ts`) are silently skipped.
    *
    * Category-level enables in the user's config (`"categories": { ... }`)
-   * are NOT honored — react-doctor explicitly disables every oxlint
+   * are NOT honored — harness-doctor explicitly disables every oxlint
    * category to keep the scan scoped to its curated rule surface, and
    * local config wins over `extends`. Use rule-level severities to
    * fold rules into the score.
    *
-   * Set to `false` to scan only react-doctor's curated rule set.
+   * Set to `false` to scan only harness-doctor's curated rule set.
    */
   adoptExistingLintConfig?: boolean;
   /**
@@ -265,7 +265,7 @@ export interface ReactDoctorConfig {
   /**
    * Per-rule severity map — the exact ESLint / oxlint top-level
    * `rules` field. Keys are fully-qualified rule keys
-   * (`"<plugin>/<rule>"`, e.g. `"react-doctor/no-array-index-as-key"`),
+   * (`"<plugin>/<rule>"`, e.g. `"harness-doctor/no-array-index-as-key"`),
    * values are `"error" | "warn" | "off"`.
    *
    * `"off"` skips registration in the generated lint config so the
@@ -279,13 +279,13 @@ export interface ReactDoctorConfig {
    * wins: `rules` > `categories` > `tags`.
    *
    * ```json
-   * { "rules": { "react-doctor/no-array-index-as-key": "error" } }
+   * { "rules": { "harness-doctor/no-array-index-as-key": "error" } }
    * ```
    */
   rules?: Record<string, RuleSeverityOverride>;
   /**
    * Per-category severity map. Mirrors oxlint's top-level
-   * `categories` field, but keyed by React Doctor's five user-facing
+   * `categories` field, but keyed by Harness Doctor's five user-facing
    * buckets: `"Security"`, `"Bugs"`, `"Performance"`,
    * `"Accessibility"`, `"Maintainability"`.
    *
@@ -314,16 +314,16 @@ export interface ReactDoctorConfig {
   buckets?: SeverityBuckets;
   /**
    * User-defined oxlint plugins to load alongside the built-in
-   * `react-doctor` plugin. Each entry is either:
+   * `harness-doctor` plugin. Each entry is either:
    *
    * - A **relative path** to a JS / TS file (resolved relative to
    *   the directory of the config file that declared it — NOT the
    *   CWD), e.g. `"./lint/my-rules.js"`.
-   * - An **npm package name**, e.g. `"react-doctor-plugin-team-conventions"`.
+   * - An **npm package name**, e.g. `"harness-doctor-plugin-team-conventions"`.
    *
    * The module must default-export an oxlint-shaped plugin:
    * `{ meta: { name: string }, rules: Record<string, HostRule> }`.
-   * Use `defineRule` from `oxlint-plugin-react-doctor` for the
+   * Use `defineRule` from `oxlint-plugin-harness-doctor` for the
    * cleanest authoring shape — see CONTRIBUTING.md → "Writing a
    * custom plugin" for the full template.
    *
@@ -331,14 +331,14 @@ export interface ReactDoctorConfig {
    * doesn't run unless `rules: { "<plugin-name>/<rule>": "warn" | "error" }`
    * explicitly enables it. (Mirrors how `defaultEnabled: false`
    * rules behave in the built-in plugin.) Once enabled, the rule
-   * flows through every react-doctor surface (CLI / PR comment /
+   * flows through every harness-doctor surface (CLI / PR comment /
    * score / CI gate) the same as a built-in rule.
    *
    * ```json
    * {
    *   "plugins": [
    *     "./lint/my-team-rules.js",
-   *     "react-doctor-plugin-shopify-conventions"
+   *     "harness-doctor-plugin-shopify-conventions"
    *   ],
    *   "rules": {
    *     "my-team-rules/no-bare-fetch": "error",

@@ -40,7 +40,7 @@ export const checkReactNativeMetroBabelPreset = (rootDirectory: string): Diagnos
     return [
       {
         filePath: fileName,
-        plugin: "react-doctor",
+        plugin: "harness-doctor",
         rule: "rn-no-metro-babel-preset",
         // Hard-fails the Metro/Babel transform on RN 0.73+ — surface by
         // default, not behind --warnings.

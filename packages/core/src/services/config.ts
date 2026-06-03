@@ -3,15 +3,15 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { CONFIG_CACHE_CAPACITY, CONFIG_CACHE_TTL_MS } from "../constants.js";
-import type { ReactDoctorConfig } from "../types/index.js";
+import type { HarnessDoctorConfig } from "../types/index.js";
 import { loadConfigWithSource } from "../load-config.js";
 import { resolveConfigRootDir } from "../resolve-config-root-dir.js";
 
 export interface ResolvedConfig {
-  readonly config: ReactDoctorConfig | null;
+  readonly config: HarnessDoctorConfig | null;
   readonly resolvedDirectory: string;
   /**
-   * Directory of the `react-doctor.config.json` / `package.json`
+   * Directory of the `harness-doctor.config.json` / `package.json`
    * that supplied `config`. `null` when no config was found.
    * Diverges from `resolvedDirectory` whenever `config.rootDir`
    * redirects the scan — used as the resolution base for relative
@@ -25,7 +25,7 @@ export class Config extends Context.Service<
   {
     readonly resolve: (directory: string) => Effect.Effect<ResolvedConfig>;
   }
->()("react-doctor/Config") {
+>()("harness-doctor/Config") {
   static readonly layerNode = Layer.effect(
     Config,
     Effect.gen(function* () {

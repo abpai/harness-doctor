@@ -14,7 +14,7 @@ import {
   GitBaseBranchInvalid,
   GitBaseBranchMissing,
   GitInvocationFailed,
-  ReactDoctorError,
+  HarnessDoctorError,
 } from "../errors.js";
 
 interface GitInvocationResult {
@@ -183,7 +183,7 @@ interface GitGrepResult {
 }
 
 /**
- * `Git` wraps every `git`-via-subprocess call react-doctor makes
+ * `Git` wraps every `git`-via-subprocess call harness-doctor makes
  * behind a `Context.Service`. The production layer (`layerNode`)
  * runs commands through Effect's `ChildProcessSpawner` + `ChildProcess.make`
  * (from `effect/unstable/process`), so spawning, stdio draining,
@@ -191,28 +191,28 @@ interface GitGrepResult {
  * Effect runtime — no `node:child_process` imports outside this
  * file. Tests swap in `layerOf({ ... })` for a deterministic snapshot.
  *
- * All methods fail with `ReactDoctorError`; "git ran but produced
+ * All methods fail with `HarnessDoctorError`; "git ran but produced
  * no matches" still resolves successfully (with `null` / `[]`).
  */
 export class Git extends Context.Service<
   Git,
   {
     /** `null` when on detached HEAD or `rev-parse` fails. */
-    readonly currentBranch: (directory: string) => Effect.Effect<string | null, ReactDoctorError>;
+    readonly currentBranch: (directory: string) => Effect.Effect<string | null, HarnessDoctorError>;
     /** Best-effort default branch: `origin/HEAD` symref, then `main`/`master`. */
-    readonly defaultBranch: (directory: string) => Effect.Effect<string | null, ReactDoctorError>;
+    readonly defaultBranch: (directory: string) => Effect.Effect<string | null, HarnessDoctorError>;
     /** Current commit SHA, or null when the directory is not a git worktree. */
-    readonly headSha: (directory: string) => Effect.Effect<string | null, ReactDoctorError>;
+    readonly headSha: (directory: string) => Effect.Effect<string | null, HarnessDoctorError>;
     /** GitHub owner/repo parsed from remote.origin.url, or null for non-GitHub remotes. */
-    readonly githubRepo: (directory: string) => Effect.Effect<string | null, ReactDoctorError>;
+    readonly githubRepo: (directory: string) => Effect.Effect<string | null, HarnessDoctorError>;
     readonly githubViewerPermission: (input: {
       readonly directory: string;
       readonly repo: string;
-    }) => Effect.Effect<string | null, ReactDoctorError>;
+    }) => Effect.Effect<string | null, HarnessDoctorError>;
     readonly branchExists: (
       directory: string,
       branch: string,
-    ) => Effect.Effect<boolean, ReactDoctorError>;
+    ) => Effect.Effect<boolean, HarnessDoctorError>;
     /**
      * High-level diff selection: resolves current branch + base
      * branch + changed file list with the same semantics as the
@@ -221,25 +221,25 @@ export class Git extends Context.Service<
      */
     readonly diffSelection: (
       input: GitDiffSelectionInput,
-    ) => Effect.Effect<GitDiffSelection | null, ReactDoctorError>;
+    ) => Effect.Effect<GitDiffSelection | null, HarnessDoctorError>;
     /** Files staged for commit (null-separated, `--diff-filter=ACMR`). */
     readonly stagedFilePaths: (
       directory: string,
-    ) => Effect.Effect<ReadonlyArray<string>, ReactDoctorError>;
+    ) => Effect.Effect<ReadonlyArray<string>, HarnessDoctorError>;
     /** `git show :<path>` contents; `null` when the file isn't in the index. */
     readonly showStagedContent: (
       directory: string,
       relativePath: string,
       options?: GitShowOptions,
-    ) => Effect.Effect<string | null, ReactDoctorError>;
+    ) => Effect.Effect<string | null, HarnessDoctorError>;
     /**
      * `git grep -l` (default). Returns `null` when git itself isn't
      * available or the directory isn't a repository so callers can
      * fall back to a filesystem walk.
      */
-    readonly grep: (input: GitGrepInput) => Effect.Effect<GitGrepResult | null, ReactDoctorError>;
+    readonly grep: (input: GitGrepInput) => Effect.Effect<GitGrepResult | null, HarnessDoctorError>;
   }
->()("react-doctor/Git") {
+>()("harness-doctor/Git") {
   static readonly layerNode: Layer.Layer<Git> = Layer.effect(
     Git,
     Effect.gen(function* () {
@@ -250,13 +250,13 @@ export class Git extends Context.Service<
        * captured `ChildProcessSpawner`. Drains stdout / stderr /
        * exitCode in parallel so the pipe never blocks on a full
        * buffer, and folds any `PlatformError` (binary missing,
-       * ENOENT, EACCES, …) into the tagged `ReactDoctorError({
+       * ENOENT, EACCES, …) into the tagged `HarnessDoctorError({
        * reason: GitInvocationFailed })` so the rest of the codebase
        * sees a single failure channel.
        */
       const runCommand = (
         input: CommandInvocationInput,
-      ): Effect.Effect<GitInvocationResult, ReactDoctorError> =>
+      ): Effect.Effect<GitInvocationResult, HarnessDoctorError> =>
         Effect.scoped(
           Effect.gen(function* () {
             const handle = yield* spawner.spawn(
@@ -287,7 +287,7 @@ export class Git extends Context.Service<
                         Effect.flatMap((total) =>
                           total > maxStdoutBytes
                             ? Effect.fail(
-                                new ReactDoctorError({
+                                new HarnessDoctorError({
                                   reason: new GitInvocationFailed({
                                     args: [...input.args],
                                     directory: input.directory,
@@ -319,7 +319,7 @@ export class Git extends Context.Service<
                 stderr: String(cause),
               } satisfies GitInvocationResult);
             }
-            return new ReactDoctorError({
+            return new HarnessDoctorError({
               reason: new GitInvocationFailed({
                 args: [...input.args],
                 directory: input.directory,
@@ -332,10 +332,10 @@ export class Git extends Context.Service<
       const runGit = (
         directory: string,
         args: ReadonlyArray<string>,
-      ): Effect.Effect<GitInvocationResult, ReactDoctorError> =>
+      ): Effect.Effect<GitInvocationResult, HarnessDoctorError> =>
         runCommand({ command: "git", args, directory });
 
-      const currentBranch = (directory: string): Effect.Effect<string | null, ReactDoctorError> =>
+      const currentBranch = (directory: string): Effect.Effect<string | null, HarnessDoctorError> =>
         runGit(directory, ["rev-parse", "--abbrev-ref", "HEAD"]).pipe(
           Effect.map((result) => {
             if (result.status !== 0) return null;
@@ -350,7 +350,7 @@ export class Git extends Context.Service<
           Effect.orElseSucceed(() => null),
         );
 
-      const defaultBranch = (directory: string): Effect.Effect<string | null, ReactDoctorError> =>
+      const defaultBranch = (directory: string): Effect.Effect<string | null, HarnessDoctorError> =>
         Effect.gen(function* () {
           const symref = yield* runGit(directory, ["symbolic-ref", "refs/remotes/origin/HEAD"]);
           if (symref.status === 0) {
@@ -372,17 +372,17 @@ export class Git extends Context.Service<
       const branchExists = (
         directory: string,
         branch: string,
-      ): Effect.Effect<boolean, ReactDoctorError> =>
+      ): Effect.Effect<boolean, HarnessDoctorError> =>
         runGit(directory, ["rev-parse", "--verify", branch]).pipe(
           Effect.map((result) => result.status === 0),
         );
 
-      const headSha = (directory: string): Effect.Effect<string | null, ReactDoctorError> =>
+      const headSha = (directory: string): Effect.Effect<string | null, HarnessDoctorError> =>
         runGit(directory, ["rev-parse", "HEAD"]).pipe(
           Effect.map((result) => (result.status === 0 ? trimOrNull(result.stdout) : null)),
         );
 
-      const githubRepo = (directory: string): Effect.Effect<string | null, ReactDoctorError> =>
+      const githubRepo = (directory: string): Effect.Effect<string | null, HarnessDoctorError> =>
         runGit(directory, ["config", "--get", "remote.origin.url"]).pipe(
           Effect.map((result) =>
             result.status === 0 ? parseGithubRepoFromRemoteUrl(result.stdout) : null,
@@ -392,7 +392,7 @@ export class Git extends Context.Service<
       const githubViewerPermission = (input: {
         readonly directory: string;
         readonly repo: string;
-      }): Effect.Effect<string | null, ReactDoctorError> =>
+      }): Effect.Effect<string | null, HarnessDoctorError> =>
         Effect.gen(function* () {
           const parsedRepo = parseGithubRepo(input.repo);
           if (parsedRepo === null) return null;
@@ -442,11 +442,11 @@ export class Git extends Context.Service<
         readonly directory: string;
         readonly range: GitDiffRange;
         readonly raw: string;
-      }): Effect.Effect<GitDiffSelection | null, ReactDoctorError> =>
+      }): Effect.Effect<GitDiffSelection | null, HarnessDoctorError> =>
         Effect.gen(function* () {
           if (input.range.base.length === 0 && input.range.head.length === 0) {
             return yield* Effect.fail(
-              new ReactDoctorError({
+              new HarnessDoctorError({
                 reason: new GitBaseBranchInvalid({
                   detail: `Diff range "${input.raw}" must name at least one commit (e.g. "main..feature").`,
                 }),
@@ -460,7 +460,7 @@ export class Git extends Context.Service<
           for (const endpoint of [baseRef, headRef]) {
             if (!isSafeGitRevision(endpoint)) {
               return yield* Effect.fail(
-                new ReactDoctorError({
+                new HarnessDoctorError({
                   reason: new GitBaseBranchInvalid({
                     detail: `Diff range "${input.raw}" has an invalid endpoint "${endpoint}" (${GIT_REF_NAME_RULE}).`,
                   }),
@@ -473,7 +473,7 @@ export class Git extends Context.Service<
             const exists = yield* branchExists(input.directory, endpoint);
             if (!exists) {
               return yield* Effect.fail(
-                new ReactDoctorError({
+                new HarnessDoctorError({
                   reason: new GitBaseBranchMissing({ branch: endpoint }),
                 }),
               );
@@ -523,7 +523,7 @@ export class Git extends Context.Service<
           Effect.gen(function* () {
             if (explicitBaseBranch !== undefined && explicitBaseBranch.trim().length === 0) {
               return yield* Effect.fail(
-                new ReactDoctorError({
+                new HarnessDoctorError({
                   reason: new GitBaseBranchInvalid({
                     detail: "Diff base branch cannot be empty.",
                   }),
@@ -541,7 +541,7 @@ export class Git extends Context.Service<
               }
               if (!isSafeGitRevision(explicitBaseBranch)) {
                 return yield* Effect.fail(
-                  new ReactDoctorError({
+                  new HarnessDoctorError({
                     reason: new GitBaseBranchInvalid({
                       detail: `Diff base branch "${explicitBaseBranch}" is not a valid git ref name (${GIT_REF_NAME_RULE}).`,
                     }),
@@ -563,7 +563,7 @@ export class Git extends Context.Service<
               const exists = yield* branchExists(directory, explicitBaseBranch);
               if (!exists) {
                 return yield* Effect.fail(
-                  new ReactDoctorError({
+                  new HarnessDoctorError({
                     reason: new GitBaseBranchMissing({ branch: explicitBaseBranch }),
                   }),
                 );

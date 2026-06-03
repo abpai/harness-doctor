@@ -1,7 +1,7 @@
 import os from "node:os";
 import * as Effect from "effect/Effect";
 import { afterEach, describe, expect, it } from "vite-plus/test";
-import { Git } from "@react-doctor/core";
+import { Git } from "@harness-doctor/core";
 
 const originalPath = process.env.PATH;
 
@@ -20,7 +20,7 @@ describe("Git.layerNode when the git binary is unavailable", () => {
     // Point PATH at a directory with no `git`, so spawning the binary fails
     // with ENOENT (PlatformError NotFound) — the same shape as running in a
     // bare container without git. The best-effort read must not throw.
-    process.env.PATH = os.tmpdir() + "/react-doctor-no-git-on-path";
+    process.env.PATH = os.tmpdir() + "/harness-doctor-no-git-on-path";
 
     const branch = await Effect.runPromise(
       Effect.gen(function* () {
