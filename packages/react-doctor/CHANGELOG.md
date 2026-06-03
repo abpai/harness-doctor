@@ -1,5 +1,31 @@
 # react-doctor
 
+## 0.2.19
+
+### Patch Changes
+
+- [#655](https://github.com/millionco/react-doctor/pull/655) [`d594f69`](https://github.com/millionco/react-doctor/commit/d594f69f26efaab9b2d0a78140ff97a3ff497ab0) Thanks [@rayhanadev](https://github.com/rayhanadev)! - react-doctor no longer crashes when the `--changed-files-from` file can't be read.
+
+  `--changed-files-from <file>` is user input, so an unreadable file — missing, a directory, permission-denied, or a stale pipe/process-substitution descriptor (`EBADF`, REACT-DOCTOR-V) — is an invocation mistake, not a bug. It now exits non-zero with a clean, single-line message telling you to pass a readable text file, instead of printing the generic "Something went wrong" block and reporting the read failure to Sentry.
+
+- [#654](https://github.com/millionco/react-doctor/pull/654) [`eab6dc2`](https://github.com/millionco/react-doctor/commit/eab6dc27477998c31bfa6fc100c50b33af449795) Thanks [@rayhanadev](https://github.com/rayhanadev)! - react-doctor no longer crashes when a directory can't be enumerated during project discovery.
+
+  The recursive subproject crawl reads directories best-effort and already skipped ones it couldn't open for permission or missing-path reasons (`EACCES`/`EPERM`/`ENOENT`/`ENOTDIR`). It now also skips directories the underlying filesystem rejects outright — `EINVAL` on `scandir` (REACT-DOCTOR-N, seen on special/virtual mounts), plus symlink loops (`ELOOP`) and over-long paths (`ENAMETOOLONG`) — instead of throwing and reporting the environment issue to Sentry. The crawl continues past the unreadable directory.
+
+- [#645](https://github.com/millionco/react-doctor/pull/645) [`4aadaab`](https://github.com/millionco/react-doctor/commit/4aadaabfd488055a4323cc8b7f816c75601e40f1) Thanks [@aidenybai](https://github.com/aidenybai)! - Two React Native rules no longer false-positive on Expo Universal UI (`@expo/ui`).
+
+  `@expo/ui` is a native UI layer (it delegates to SwiftUI / Jetpack Compose), not React Native's core primitives, so several RN-core assumptions don't hold for its components:
+
+  - **`rn-no-raw-text`**: Universal UI's `<ListItem>` renders its raw string children inside the native headline text area, and its compound slot markers (`<ListItem.Leading>`, `<ListItem.Supporting>`, `<ListItem.Trailing>`) forward strings into native text too — so raw text inside them is safe, unlike React Native's core `<View>`. The rule now recognizes them as text-handling.
+  - **`rn-no-scrollview-mapped-list`**: Universal UI's `<ScrollView>` is a native scroll container; React Native's virtualized lists (`FlashList`/`FlatList`) can't compose inside its `<Host>` tree, and `@expo/ui` ships its own virtualized `<List>`. The rule no longer flags mapped children inside an `@expo/ui` `ScrollView`.
+
+  Both checks are gated on the `@expo/ui` import (root, `@expo/ui/swift-ui`, or `@expo/ui/jetpack-compose`, including renamed and namespace imports), so same-named components from other libraries — or with no import — still report.
+
+- [#650](https://github.com/millionco/react-doctor/pull/650) [`3cc9971`](https://github.com/millionco/react-doctor/commit/3cc997108be438d0fc13b00529159c88984ed36a) Thanks [@rayhanadev](https://github.com/rayhanadev)! - A terminal hangup during an interactive prompt no longer crashes the CLI. When the terminal/PTY backing a prompt goes away mid-read (closing the tab, a dropped SSH/tmux session, sleep/wake), Node raises `read EIO` on the raw-mode stdin handle; the CLI now exits cleanly (code 129) instead of surfacing it as a fatal uncaught exception and reporting it to crash telemetry. Genuine stdin errors still funnel to the error reporter unchanged.
+
+- Updated dependencies []:
+  - oxlint-plugin-react-doctor@0.2.19
+
 ## 0.2.18
 
 ### Patch Changes
