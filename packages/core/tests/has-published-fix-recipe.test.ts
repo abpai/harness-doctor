@@ -20,12 +20,12 @@ describe("hasPublishedFixRecipe", () => {
   it("is false for harness-doctor-namespaced synthetic environment checks", () => {
     // Emitted by checkReducedMotion / checkPnpmHardening — not engine
     // lint rules, so no recipe page exists.
-    expect(hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "require-reduced-motion" })).toBe(
-      false,
-    );
-    expect(hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "require-pnpm-hardening" })).toBe(
-      false,
-    );
+    expect(
+      hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "require-reduced-motion" }),
+    ).toBe(false);
+    expect(
+      hasPublishedFixRecipe({ plugin: "harness-doctor", rule: "require-pnpm-hardening" }),
+    ).toBe(false);
   });
 
   it("is false for adopted third-party plugins", () => {

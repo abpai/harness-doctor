@@ -65,7 +65,7 @@ Config lives in `doctor.config.ts` (or `.js`/`.mjs`/`.cjs`/`.json`/`.jsonc`), or
 // doctor.config.ts
 export default {
   rules: { "harness-doctor/no-eval": "off" },
-  categories: { "Maintainability": "warn" },
+  categories: { Maintainability: "warn" },
   ignore: { tags: ["docs-structure"] },
 };
 ```

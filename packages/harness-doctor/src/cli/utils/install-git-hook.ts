@@ -209,7 +209,9 @@ export const detectGitHookTarget = (projectRoot: string): GitHookTarget | null =
   };
 };
 
-export const installHarnessDoctorGitHook = (options: InstallGitHookOptions): InstallGitHookResult => {
+export const installHarnessDoctorGitHook = (
+  options: InstallGitHookOptions,
+): InstallGitHookResult => {
   if (options.kind === GitHookKind.SimpleGitHooks) return installSimpleGitHooks(options);
   if (options.kind === GitHookKind.Lefthook) return installLefthook(options);
   if (options.kind === GitHookKind.PreCommit) return installPreCommit(options);

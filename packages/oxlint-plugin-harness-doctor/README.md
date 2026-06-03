@@ -71,8 +71,8 @@ Each rule can be set to `"error"`, `"warn"`, or `"off"`:
 
 Eight rules ported 1:1 from [`eslint-plugin-react-you-might-not-need-an-effect`](https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-an-effect) (MIT, NickvanDyke) ship natively in this package — same rule IDs, same diagnostic messages, same semantics (195 of 196 upstream test cases pass; the remaining one is upstream's own `todo: true`). Attribution and known divergences live in [`SOURCE.md`](https://github.com/millionco/harness-doctor/blob/main/packages/oxlint-plugin-harness-doctor/src/plugin/rules/state-and-effects/effect/SOURCE.md).
 
-| Rule                                             | What it catches                                                               |
-| ------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Rule                                               | What it catches                                                               |
+| -------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `harness-doctor/no-derived-state`                  | Storing derived state via `useEffect` instead of computing during render      |
 | `harness-doctor/no-chain-state-updates`            | Chaining state updates across effects                                         |
 | `harness-doctor/no-event-handler`                  | Using state + a guarded effect as an event handler                            |

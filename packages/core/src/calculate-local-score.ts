@@ -34,9 +34,7 @@ export const calculateLocalScore = (
   _sourceFileCount: number,
 ): ScoreResult => {
   const errorCount = diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
-  const warningCount = diagnostics.filter(
-    (diagnostic) => diagnostic.severity === "warning",
-  ).length;
+  const warningCount = diagnostics.filter((diagnostic) => diagnostic.severity === "warning").length;
 
   const penalty =
     errorCount * LOCAL_SCORE_ERROR_PENALTY_POINTS +

@@ -62,6 +62,8 @@ describe("resolveRuleSeverityOverride", () => {
 
   it("ignores a category lookup when input has no category", () => {
     const controls: RuleSeverityControls = { categories: { Server: "warn" } };
-    expect(resolveRuleSeverityOverride({ ruleKey: "harness-doctor/foo" }, controls)).toBeUndefined();
+    expect(
+      resolveRuleSeverityOverride({ ruleKey: "harness-doctor/foo" }, controls),
+    ).toBeUndefined();
   });
 });

@@ -96,14 +96,18 @@ describe("HarnessDoctorError leaves", () => {
     const error = new HarnessDoctorError({
       reason: new ProjectNotFound({ directory: "/repo/apps/web" }),
     });
-    expect(formatHarnessDoctorError(error)).toBe("Could not find a React project at /repo/apps/web");
+    expect(formatHarnessDoctorError(error)).toBe(
+      "Could not find a React project at /repo/apps/web",
+    );
   });
 
   it("NoReactDependency names the directory", () => {
     const error = new HarnessDoctorError({
       reason: new NoReactDependency({ directory: "/repo/packages/utils" }),
     });
-    expect(formatHarnessDoctorError(error)).toBe("No React dependency found in /repo/packages/utils");
+    expect(formatHarnessDoctorError(error)).toBe(
+      "No React dependency found in /repo/packages/utils",
+    );
   });
 
   it("AmbiguousProject lists the candidates", () => {

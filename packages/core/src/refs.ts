@@ -56,18 +56,21 @@ export class OxlintOutputMaxBytes extends Context.Reference<number>(
  * The resolved value is always within
  * `[MIN_SCAN_CONCURRENCY, MAX_SCAN_CONCURRENCY]`.
  */
-export class OxlintConcurrency extends Context.Reference<number>("harness-doctor/OxlintConcurrency", {
-  defaultValue: () => {
-    const raw = process.env["HARNESS_DOCTOR_PARALLEL"];
-    if (raw === undefined) return resolveScanConcurrency("auto");
-    const normalized = raw.trim().toLowerCase();
-    if (normalized === "0" || normalized === "false" || normalized === "off") {
-      return MIN_SCAN_CONCURRENCY;
-    }
-    const parsed = Number.parseInt(normalized, 10);
-    // A positive integer pins the worker count; everything else (empty,
-    // `auto`/`true`/`on`, or unparseable) takes the parallel default.
-    if (Number.isInteger(parsed) && parsed > 0) return resolveScanConcurrency(parsed);
-    return resolveScanConcurrency("auto");
+export class OxlintConcurrency extends Context.Reference<number>(
+  "harness-doctor/OxlintConcurrency",
+  {
+    defaultValue: () => {
+      const raw = process.env["HARNESS_DOCTOR_PARALLEL"];
+      if (raw === undefined) return resolveScanConcurrency("auto");
+      const normalized = raw.trim().toLowerCase();
+      if (normalized === "0" || normalized === "false" || normalized === "off") {
+        return MIN_SCAN_CONCURRENCY;
+      }
+      const parsed = Number.parseInt(normalized, 10);
+      // A positive integer pins the worker count; everything else (empty,
+      // `auto`/`true`/`on`, or unparseable) takes the parallel default.
+      if (Number.isInteger(parsed) && parsed > 0) return resolveScanConcurrency(parsed);
+      return resolveScanConcurrency("auto");
+    },
   },
-}) {}
+) {}

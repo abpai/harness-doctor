@@ -134,7 +134,9 @@ export const spawnOxlint = (
       if (!output) {
         const stderrOutput = Buffer.concat(stderrBuffers).toString("utf-8").trim();
         if (stderrOutput) {
-          reject(new HarnessDoctorError({ reason: new OxlintSpawnFailed({ cause: stderrOutput }) }));
+          reject(
+            new HarnessDoctorError({ reason: new OxlintSpawnFailed({ cause: stderrOutput }) }),
+          );
           return;
         }
       }

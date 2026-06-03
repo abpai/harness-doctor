@@ -421,9 +421,9 @@ describe("runInstallHarnessDoctor", () => {
     expect(readFixturePackageJson(fixture.projectRoot).scripts).toEqual({
       doctor: "npx harness-doctor@latest",
     });
-    expect(existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
     expect(existsSync(path.join(nestedDirectory, ".agents"))).toBe(false);
   });
 
@@ -513,9 +513,9 @@ describe("runInstallHarnessDoctor", () => {
       gitHookPath: null,
     });
 
-    expect(existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
     expect(readFileSync(path.join(fixture.projectRoot, "package.json"), "utf8")).toBe(
       "{ invalid json",
     );
@@ -529,9 +529,9 @@ describe("runInstallHarnessDoctor", () => {
       projectRoot: fixture.projectRoot,
       detectedAgents: ["cursor"],
     });
-    expect(existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
   });
 
   it("installs the skill into a vendor-specific directory for a non-universal agent", async () => {
@@ -542,9 +542,9 @@ describe("runInstallHarnessDoctor", () => {
       projectRoot: fixture.projectRoot,
       detectedAgents: ["claude-code"],
     });
-    expect(existsSync(path.join(fixture.projectRoot, ".claude/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".claude/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
   });
 
   it("installs the skill into .factory/skills for the droid agent (upstream agent-install@0.0.3)", async () => {
@@ -572,9 +572,9 @@ describe("runInstallHarnessDoctor", () => {
       gitHookPath: hookPath,
     });
 
-    expect(existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
     expect(readFileSync(hookPath, "utf8")).toContain("harness-doctor --staged --fail-on warning");
     expect(existsSync(path.join(fixture.projectRoot, ".harness-doctor/hooks/pre-commit"))).toBe(
       false,
@@ -593,12 +593,12 @@ describe("runInstallHarnessDoctor", () => {
       gitHookPath: null,
     });
 
-    expect(existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
-    expect(existsSync(path.join(fixture.projectRoot, ".claude/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".claude/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
     expect(readFileSync(path.join(fixture.projectRoot, ".claude/settings.json"), "utf8")).toContain(
       "PostToolBatch",
     );
@@ -700,12 +700,12 @@ describe("runInstallHarnessDoctor", () => {
       gitHookPath: null,
     });
 
-    expect(existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
-    expect(existsSync(path.join(fixture.projectRoot, ".claude/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".claude/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
     expect(existsSync(path.join(fixture.projectRoot, ".cursor/hooks.json"))).toBe(false);
     expect(existsSync(path.join(fixture.projectRoot, ".claude/settings.json"))).toBe(false);
   });
@@ -749,9 +749,9 @@ describe("runInstallHarnessDoctor", () => {
       detectedAgents: ["cursor"],
     });
 
-    expect(existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md"))).toBe(
-      true,
-    );
+    expect(
+      existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
+    ).toBe(true);
     expect(readFileSync(path.join(fixture.projectRoot, ".cursor/hooks.json"), "utf8")).toContain(
       "postToolUse",
     );

@@ -63,9 +63,8 @@ const readFileOrNull = (filePath: string): string | null => {
 // or `null` when none do. Detection order is `AGENT_ENTRY_POINT_FILENAMES`
 // (AGENTS.md first, vendor fallbacks after): a repo only needs one.
 const resolveEntryPointFilename = (rootDirectory: string): string | null =>
-  AGENT_ENTRY_POINT_FILENAMES.find((filename) =>
-    isFile(path.join(rootDirectory, filename)),
-  ) ?? null;
+  AGENT_ENTRY_POINT_FILENAMES.find((filename) => isFile(path.join(rootDirectory, filename))) ??
+  null;
 
 // Markdown links (`[text](target)`) plus bare / inline-code relative path
 // references (`docs/foo.md`, `./docs/foo.md`, `` `docs/foo.md` ``) whose

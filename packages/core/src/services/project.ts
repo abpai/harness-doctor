@@ -18,7 +18,9 @@ import {
 
 const translateProjectInfoError = (cause: unknown, directory: string): HarnessDoctorError => {
   if (cause instanceof NoReactDependencyError) {
-    return new HarnessDoctorError({ reason: new NoReactDependency({ directory: cause.directory }) });
+    return new HarnessDoctorError({
+      reason: new NoReactDependency({ directory: cause.directory }),
+    });
   }
   if (cause instanceof ProjectNotFoundError) {
     return new HarnessDoctorError({ reason: new ProjectNotFound({ directory: cause.directory }) });
