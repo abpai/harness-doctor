@@ -648,7 +648,7 @@ describe("runInstallHarnessDoctor", () => {
     expect(workflowContent).toContain("pull-requests: write");
     expect(workflowContent).toContain("issues: write");
     expect(workflowContent).toContain("actions/checkout@v5");
-    expect(workflowContent).toContain("millionco/harness-doctor@main");
+    expect(workflowContent).toContain("abpai/harness-doctor@main");
     expect(workflowContent).not.toContain("github-token");
     expect(workflowContent).not.toContain("diff: main");
   });
@@ -686,7 +686,7 @@ describe("runInstallHarnessDoctor", () => {
 
     expect(existsSync(hookPath)).toBe(false);
     expect(existsSync(path.join(fixture.projectRoot, ".cursor/hooks.json"))).toBe(false);
-    expect(readFileSync(workflowPath, "utf8")).toContain("millionco/harness-doctor@main");
+    expect(readFileSync(workflowPath, "utf8")).toContain("abpai/harness-doctor@main");
   });
 
   it("--yes does not install native agent hooks unless --agent-hooks is set", async () => {

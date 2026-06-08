@@ -57,7 +57,7 @@ Pick only the configs that match your stack. `recommended` is framework-agnostic
 
 ## Available rules
 
-The full rule list lives in [`rule-registry.ts`](https://github.com/millionco/harness-doctor/blob/main/packages/oxlint-plugin-harness-doctor/src/plugin/rule-registry.ts). Rules are namespaced under `harness-doctor/*`.
+The full rule list lives in [`rule-registry.ts`](https://github.com/abpai/harness-doctor/blob/main/packages/oxlint-plugin-harness-doctor/src/plugin/rule-registry.ts). Rules are namespaced under `harness-doctor/*`.
 
 To override a rule:
 
@@ -83,7 +83,7 @@ This package only ships the ESLint plugin. To run Harness Doctor's full scan (wi
 npx harness-doctor@latest
 ```
 
-See the [Harness Doctor README](https://github.com/millionco/harness-doctor#readme) for the full feature set.
+See the [Harness Doctor README](https://github.com/abpai/harness-doctor#readme) for the full feature set.
 
 ## License
 

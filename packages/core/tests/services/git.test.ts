@@ -52,7 +52,7 @@ describe("Git.layerOf", () => {
   it("returns score metadata fields from the snapshot", () => {
     const layer = Git.layerOf({
       headSha: "abc123",
-      githubRepo: "millionco/harness-doctor",
+      githubRepo: "abpai/harness-doctor",
     });
     const result = runWith(
       layer,
@@ -63,14 +63,14 @@ describe("Git.layerOf", () => {
           githubRepo: yield* git.githubRepo("/repo"),
           githubViewerPermission: yield* git.githubViewerPermission({
             directory: "/repo",
-            repo: "millionco/harness-doctor",
+            repo: "abpai/harness-doctor",
           }),
         };
       }),
     );
     expect(result).toEqual({
       headSha: "abc123",
-      githubRepo: "millionco/harness-doctor",
+      githubRepo: "abpai/harness-doctor",
       githubViewerPermission: null,
     });
   });
@@ -85,7 +85,7 @@ describe("Git.layerOf", () => {
         const git = yield* Git;
         return yield* git.githubViewerPermission({
           directory: "/repo",
-          repo: "millionco/harness-doctor",
+          repo: "abpai/harness-doctor",
         });
       }),
     );

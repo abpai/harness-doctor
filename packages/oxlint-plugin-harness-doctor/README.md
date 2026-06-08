@@ -54,7 +54,7 @@ npx oxlint .
 
 ## Available rules
 
-The full rule list lives in [`rule-registry.ts`](https://github.com/millionco/harness-doctor/blob/main/packages/oxlint-plugin-harness-doctor/src/plugin/rule-registry.ts). All rules are namespaced under `harness-doctor/*`.
+The full rule list lives in [`rule-registry.ts`](https://github.com/abpai/harness-doctor/blob/main/packages/oxlint-plugin-harness-doctor/src/plugin/rule-registry.ts). All rules are namespaced under `harness-doctor/*`.
 
 Each rule can be set to `"error"`, `"warn"`, or `"off"`:
 
@@ -69,7 +69,7 @@ Each rule can be set to `"error"`, `"warn"`, or `"off"`:
 
 ## "You Might Not Need an Effect" rule family
 
-Eight rules ported 1:1 from [`eslint-plugin-react-you-might-not-need-an-effect`](https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-an-effect) (MIT, NickvanDyke) ship natively in this package — same rule IDs, same diagnostic messages, same semantics (195 of 196 upstream test cases pass; the remaining one is upstream's own `todo: true`). Attribution and known divergences live in [`SOURCE.md`](https://github.com/millionco/harness-doctor/blob/main/packages/oxlint-plugin-harness-doctor/src/plugin/rules/state-and-effects/effect/SOURCE.md).
+Eight rules ported 1:1 from [`eslint-plugin-react-you-might-not-need-an-effect`](https://github.com/NickvanDyke/eslint-plugin-react-you-might-not-need-an-effect) (MIT, NickvanDyke) ship natively in this package — same rule IDs, same diagnostic messages, same semantics (195 of 196 upstream test cases pass; the remaining one is upstream's own `todo: true`). Attribution and known divergences live in [`SOURCE.md`](https://github.com/abpai/harness-doctor/blob/main/packages/oxlint-plugin-harness-doctor/src/plugin/rules/state-and-effects/effect/SOURCE.md).
 
 | Rule                                               | What it catches                                                               |
 | -------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -92,7 +92,7 @@ This package only ships the oxlint plugin. To run Harness Doctor's full scan (wi
 npx harness-doctor@latest
 ```
 
-See the [Harness Doctor README](https://github.com/millionco/harness-doctor#readme) for the full feature set.
+See the [Harness Doctor README](https://github.com/abpai/harness-doctor#readme) for the full feature set.
 
 ## License
 

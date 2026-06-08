@@ -115,7 +115,7 @@ const runRenderer = (report: JsonReport) => {
     env: {
       ...process.env,
       GITHUB_OUTPUT: outputPath,
-      GITHUB_RUN_URL: "https://github.com/millionco/harness-doctor/actions/runs/123",
+      GITHUB_RUN_URL: "https://github.com/abpai/harness-doctor/actions/runs/123",
     },
   });
 

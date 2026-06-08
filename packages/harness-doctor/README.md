@@ -89,22 +89,35 @@ import type { HarnessDoctorConfig } from "harness-doctor/api";
 
 export default {
   lint: true,
+  docsContract: true,
   rules: {
     "harness-doctor/no-eval": "error",
   },
 } satisfies HarnessDoctorConfig;
 ```
 
+Set `docsContract: true` when a repo has opted into the Harness docs structure
+and should keep a durable `docs/todos/INDEX.md` queue even before open todo
+specs exist.
+
+## JSON contract
+
+`--json` emits a versioned report with `schemaVersion: 1`. Each finding is a
+diagnostic with `filePath`, `plugin`, `rule`, `severity`, `message`, `help`,
+`line`, `column`, and `category`. Consumers should key behavior off
+`plugin/rule` and `schemaVersion`, not prose.
+
 ## Docs
 
-The guides in [`docs/`](docs/) are the system of record:
+The guides in [`docs/`](../../docs/) are the system of record:
 
-- [**docs/README.md**](docs/README.md) — start here.
-- [**How to write a rule**](docs/HOW_TO_WRITE_A_RULE.md) — author an AST rule.
-- [**How to write a check**](docs/HOW_TO_WRITE_A_CHECK.md) — author a structural
+- [**docs/README.md**](../../docs/README.md) — start here.
+- [**How to write a rule**](../../docs/HOW_TO_WRITE_A_RULE.md) — author an AST rule.
+- [**How to write a check**](../../docs/HOW_TO_WRITE_A_CHECK.md) — author a structural
   check.
-- [**Check fix recipes**](docs/CHECK_FIX_RECIPES.md) — how an agent remediates
+- [**Check fix recipes**](../../docs/CHECK_FIX_RECIPES.md) — how an agent remediates
   each structural finding.
+- [**Documentation index**](../../docs/INDEX.md) — full docs map.
 
 ## Contributing
 

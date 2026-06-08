@@ -135,6 +135,12 @@ export interface HarnessDoctorConfig {
    * is a whole-project property.
    */
   deadCode?: boolean;
+  /**
+   * Opt into the stricter Harness docs contract. When true, docs-structure
+   * checks expect the durable `docs/todos/INDEX.md` queue even before a repo
+   * has open todo specs. Other deterministic docs checks remain always-on.
+   */
+  docsContract?: boolean;
   verbose?: boolean;
   /**
    * Whether to surface `"warning"`-severity diagnostics. Default: `true`

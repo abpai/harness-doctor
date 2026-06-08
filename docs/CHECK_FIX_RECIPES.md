@@ -12,7 +12,7 @@ repository explains itself, so the repair happens in its docs.
 
 ## The idea behind docs-structure
 
-All five docs-structure checks enforce a single principle: **progressive
+The docs-structure checks enforce a single principle: **progressive
 disclosure**. An agent should be routed to the one document it needs, not handed
 a monolith to re-read from the top every time.
 
@@ -61,9 +61,9 @@ of record both exist, but nothing connects them, so an agent reading the
 entry-point never learns the depth is there.
 
 **The fix:** add at least `ENTRY_POINT_MIN_DOCS_LINKS` reference from the
-entry-point into `docs/`. A markdown link (`See [the guide](docs/guide.md)`) or
-a bare relative path (`docs/guide.md`) both count. Point at the documents an
-agent will reach for most.
+entry-point into `docs/`. A markdown link to a real docs file or a bare relative
+path such as `docs/INDEX.md` both count. Point at the documents an agent will
+reach for most.
 
 ## docs-structure/no-monolithic-instruction-file
 
@@ -76,6 +76,86 @@ to prevent.
 one at a time, and cross-link them. A 600-line `docs/GUIDE.md` becomes
 `docs/guide/setup.md`, `docs/guide/testing.md`, and so on — or a few flat files,
 whatever keeps each one under the threshold.
+
+## docs-structure/docs-index-exists
+
+**What fired:** `docs/` exists but has no `INDEX.md`, so there is no stable table
+of contents.
+
+**The fix:** add `docs/INDEX.md` and link to the major docs areas that actually
+exist: architecture, glossary, engineering, design, todos, and domains. Keep it
+as a route map, not a second manual.
+
+## docs-structure/architecture-map-exists
+
+**What fired:** `docs/ARCHITECTURE.md` is missing. Agents need one current map
+of the system before touching shared behavior.
+
+**The fix:** add a compact architecture map that names package boundaries,
+major domains, and where deeper docs live. Keep historical decisions elsewhere
+unless they describe current structure.
+
+## docs-structure/canonical-glossary-exists
+
+**What fired:** no canonical glossary was found.
+
+**The fix:** add `docs/GLOSSARY.md`, or keep one existing convention such as
+`UBIQUITOUS_LANGUAGE.md` or `docs/reference/glossary.md`. Link it from
+`docs/INDEX.md`. Add only terms that prevent confusion or shorten repeated
+project-specific language.
+
+## docs-structure/single-canonical-glossary
+
+**What fired:** more than one canonical glossary candidate exists.
+
+**The fix:** choose one vocabulary file as the source of truth. Turn the others
+into links to it or remove them after moving any unique terms across.
+
+## docs-structure/todos-index-exists
+
+**What fired:** the repo opted into the Harness docs contract, or already has
+`docs/todos/`, but the todo-spec index is missing.
+
+**The fix:** add `docs/todos/INDEX.md` with a table of open durable follow-up
+specs. If the repo intentionally does not keep durable todo specs, remove the
+empty `docs/todos/` directory or leave `docsContract` unset/false.
+
+## docs-structure/domain-docs-complete
+
+**What fired:** a `docs/domains/<domain>/` folder is missing one of the required
+files: `INDEX.md`, `code-map.md`, `invariants.md`, or `test-map.md`.
+
+**The fix:** add the missing files. Keep them boring and consistent: ownership
+in `INDEX.md`, task-to-code routes in `code-map.md`, current constraints in
+`invariants.md`, and validation paths in `test-map.md`.
+
+## docs-structure/no-banned-long-lived-path
+
+**What fired:** a path reserved for temporary or external harness material is
+committed as a long-lived repo default.
+
+**The fix:** remove the path, move durable knowledge into the smallest relevant
+doc, or keep generated scanner output and agent utility tooling outside the
+product repo. The default banned list includes `.agent/`, `scripts/agent/`,
+`.cursor/rules/`, `docs/adr/`, `docs/product-specs/`, `docs/exec-plans/`,
+`docs/references/vendor-docs/`, and `feature-registry.json`.
+
+## docs-structure/markdown-link-target-exists
+
+**What fired:** a markdown link points to a local file or directory that does
+not exist.
+
+**The fix:** update the link to the current repo path, create the missing target
+if it is a real route, or remove the stale reference.
+
+## docs-structure/todo-spec-has-required-sections
+
+**What fired:** a durable todo spec under `docs/todos/` lacks the sections that
+make it pick-up-ready for the next agent.
+
+**The fix:** add status, scope, start points, invariants, validation, and close
+condition sections. If the note cannot name those, it probably belongs in an
+issue, PR note, or branch-local scratch file instead of `docs/todos/`.
 
 ## Tuning, or turning a check off
 

@@ -172,7 +172,7 @@ export const STAGED_FILES_PROJECT_CONFIG_FILENAMES = [
   ".oxlintrc.json",
 ] as const;
 
-export const CANONICAL_GITHUB_URL = "https://github.com/millionco/harness-doctor";
+export const CANONICAL_GITHUB_URL = "https://github.com/abpai/harness-doctor";
 
 export const CANONICAL_DISCORD_URL = "https://harness.doctor/discord";
 
@@ -266,6 +266,46 @@ export const ENTRY_POINT_MIN_DOCS_LINKS = 1;
 // on demand. Set above ENTRY_POINT_MAX_LINES because a system-of-record
 // doc legitimately carries more depth than the top-level map.
 export const MONOLITHIC_DOC_MAX_LINES = 400;
+
+// Deterministic Harness docs-contract files. These stay deliberately
+// structural: the scanner checks whether the routes exist, not whether their
+// prose is wise.
+export const DOCS_INDEX_FILENAME = "INDEX.md";
+
+export const DOCS_ARCHITECTURE_FILENAME = "ARCHITECTURE.md";
+
+export const CANONICAL_GLOSSARY_FILENAMES = [
+  "docs/GLOSSARY.md",
+  "UBIQUITOUS_LANGUAGE.md",
+  "docs/reference/glossary.md",
+] as const;
+
+export const DOMAIN_DOC_REQUIRED_FILENAMES = [
+  "INDEX.md",
+  "code-map.md",
+  "invariants.md",
+  "test-map.md",
+] as const;
+
+export const TODO_SPEC_REQUIRED_SECTIONS = [
+  "status",
+  "scope",
+  "start points",
+  "invariants",
+  "validation",
+  "close condition",
+] as const;
+
+export const BANNED_LONG_LIVED_HARNESS_PATHS = [
+  ".agent",
+  "scripts/agent",
+  ".cursor/rules",
+  "docs/adr",
+  "docs/product-specs",
+  "docs/exec-plans",
+  "docs/references/vendor-docs",
+  "feature-registry.json",
+] as const;
 
 // The closed set of user-facing diagnostic categories. Every rule
 // (collapsed at codegen via `CATEGORY_BUCKET` in

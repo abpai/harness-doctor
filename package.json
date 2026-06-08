@@ -1,13 +1,13 @@
 {
   "name": "harness-doctor",
   "private": true,
-  "homepage": "https://github.com/millionco/harness-doctor#readme",
+  "homepage": "https://github.com/abpai/harness-doctor#readme",
   "bugs": {
-    "url": "https://github.com/millionco/harness-doctor/issues"
+    "url": "https://github.com/abpai/harness-doctor/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/millionco/harness-doctor.git"
+    "url": "https://github.com/abpai/harness-doctor.git"
   },
   "type": "module",
   "scripts": {

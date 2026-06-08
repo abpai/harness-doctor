@@ -406,7 +406,7 @@ const buildWorkflowContent = (): string =>
     "    runs-on: ubuntu-latest",
     "    steps:",
     "      - uses: actions/checkout@v5",
-    "      - uses: millionco/harness-doctor@main",
+    "      - uses: abpai/harness-doctor@main",
     "",
   ].join("\n");
 

@@ -67,7 +67,7 @@ describe("calculateScore", () => {
 
     const result = await calculateScore(sampleDiagnostics, {
       metadata: {
-        repo: "millionco/harness-doctor",
+        repo: "abpai/harness-doctor",
         sha: "abc123",
         framework: "vite",
         sourceFileCount: 42,
@@ -95,7 +95,7 @@ describe("calculateScore", () => {
       severity: "error",
     });
     expect(parsedBody).toMatchObject({
-      repo: "millionco/harness-doctor",
+      repo: "abpai/harness-doctor",
       sha: "abc123",
       framework: "vite",
       sourceFileCount: 42,
