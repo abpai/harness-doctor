@@ -429,6 +429,43 @@ describe("checkDocsStructure", () => {
     expect(ruleKeysFor(rootDirectory)).toContain(AGENTS_BYTE_BUDGET_RULE_KEY);
   });
 
+  it("does not flag sibling AGENTS.md files when no root→leaf chain exceeds the budget", () => {
+    // 30 × 2 KB siblings sum to ~60 KB repo-wide, but Codex only ever loads
+    // root + one package per session (~2.1 KB), so no chain is over budget.
+    const rootDirectory = writeCleanLayout({
+      rootFiles: Array.from({ length: 30 }, (_unused, packageIndex) => ({
+        filename: `packages/pkg-${packageIndex}/AGENTS.md`,
+        contents: `# Package ${packageIndex}\n${"z".repeat(2_000)}\n`,
+      })),
+    });
+    expect(ruleKeysFor(rootDirectory)).not.toContain(AGENTS_BYTE_BUDGET_RULE_KEY);
+  });
+
+  it("points the byte-budget diagnostic at the heaviest file on the offending chain", () => {
+    const rootDirectory = writeCleanLayout({
+      rootFiles: [
+        { filename: "packages/api/AGENTS.md", contents: `# API\n${"y".repeat(33_000)}\n` },
+      ],
+    });
+    const flagged = checkDocsStructure(rootDirectory).find(
+      (diagnostic) => diagnostic.rule === AGENTS_BYTE_BUDGET_RULE_KEY,
+    );
+    expect(flagged?.filePath).toBe("packages/api/AGENTS.md");
+    expect(flagged?.message).toContain("packages/api");
+  });
+
+  it("ignores markdown inside build-output directories", () => {
+    const rootDirectory = writeCleanLayout({
+      rootFiles: [
+        { filename: "dist/notes.md", contents: "[gone](./missing-target.md)\n" },
+        { filename: "coverage/AGENTS.md", contents: `# Coverage\n${"w".repeat(40_000)}\n` },
+      ],
+    });
+    const ruleKeys = ruleKeysFor(rootDirectory);
+    expect(ruleKeys).not.toContain(MARKDOWN_LINK_TARGET_EXISTS_RULE_KEY);
+    expect(ruleKeys).not.toContain(AGENTS_BYTE_BUDGET_RULE_KEY);
+  });
+
   it("flags a CLAUDE.md beside AGENTS.md that never imports it", () => {
     const rootDirectory = writeCleanLayout({
       rootMarkdown: [

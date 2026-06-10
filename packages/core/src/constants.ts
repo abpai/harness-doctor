@@ -322,13 +322,16 @@ export const DOMAIN_DOC_REQUIRED_FILENAMES = [
   "test-map.md",
 ] as const;
 
+// Sections a todo spec must carry to be pick-up-ready. `label` is the
+// canonical name used in diagnostics; `aliases` are the lowercased heading
+// names accepted as carrying that section.
 export const TODO_SPEC_REQUIRED_SECTIONS = [
-  "status",
-  "scope",
-  "start points",
-  "invariants",
-  "validation",
-  "close condition",
+  { label: "Status", aliases: ["status"] },
+  { label: "Scope", aliases: ["scope"] },
+  { label: "Start here", aliases: ["start here", "start points"] },
+  { label: "Invariants", aliases: ["invariants", "invariant"] },
+  { label: "Validation", aliases: ["validation"] },
+  { label: "Close when", aliases: ["close when", "close condition", "done when"] },
 ] as const;
 
 // `docs/adr` is deliberately NOT banned: an existing maintained ADR

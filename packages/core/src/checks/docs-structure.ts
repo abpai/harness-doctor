@@ -16,8 +16,14 @@ import {
   MONOLITHIC_DOC_MAX_LINES,
   SPEC_CONTRACT_REQUIRED_SECTIONS,
   STRUCTURE_MD_FILENAME,
+  TODO_SPEC_REQUIRED_SECTIONS,
 } from "../constants.js";
-import { isDirectory, isFile, readDirectoryEntries } from "../project-info/index.js";
+import {
+  IGNORED_DIRECTORIES,
+  isDirectory,
+  isFile,
+  readDirectoryEntries,
+} from "../project-info/index.js";
 import type { Diagnostic } from "../types/index.js";
 
 const MARKDOWN_FILE_PATTERN = /\.md$/i;
@@ -122,7 +128,7 @@ const listMarkdownFiles = (rootDirectory: string): MarkdownFile[] => {
   const markdownFiles: MarkdownFile[] = [];
   const visitDirectory = (absoluteDirectory: string): void => {
     for (const entry of readDirectoryEntries(absoluteDirectory)) {
-      if (entry.name === "node_modules" || entry.name === ".git") continue;
+      if (IGNORED_DIRECTORIES.has(entry.name)) continue;
       const absolutePath = path.join(absoluteDirectory, entry.name);
       if (entry.isDirectory()) {
         visitDirectory(absolutePath);
@@ -527,21 +533,47 @@ const checkNoStructureMd = (rootDirectory: string): Diagnostic[] => {
 };
 
 // ── docs-structure/agents-md-within-byte-budget ─────────────────────────
-const checkCombinedAgentsByteBudget = (rootDirectory: string): Diagnostic[] => {
-  const agentsFiles = listMarkdownFiles(rootDirectory).filter(
-    (file) => path.posix.basename(file.relativePath) === AGENT_ENTRY_POINT_FILENAMES[0],
-  );
-  const combinedBytes = agentsFiles.reduce(
-    (total, file) => total + Buffer.byteLength(file.content, "utf-8"),
-    0,
-  );
-  if (combinedBytes <= COMBINED_AGENTS_MD_MAX_BYTES) return [];
+// Codex loads the AGENTS.md files on the directory chain from the repo root
+// down to its cwd — `project_doc_max_bytes` caps each chain, not the sum of
+// every AGENTS.md in the repo — so the budget is judged against the heaviest
+// root→leaf chain.
+const isDirectoryOnChainTo = (ancestor: string, leaf: string): boolean =>
+  ancestor === "." || ancestor === leaf || leaf.startsWith(`${ancestor}/`);
+
+const checkCombinedAgentsByteBudget = (
+  markdownFiles: ReadonlyArray<MarkdownFile>,
+): Diagnostic[] => {
+  const agentsFiles = markdownFiles
+    .filter((file) => path.posix.basename(file.relativePath) === AGENT_ENTRY_POINT_FILENAMES[0])
+    .map((file) => ({
+      file,
+      directory: path.posix.dirname(file.relativePath),
+      bytes: Buffer.byteLength(file.content, "utf-8"),
+    }));
+  let worstChain: typeof agentsFiles = [];
+  let worstLeafDirectory = ".";
+  let worstBytes = 0;
+  for (const leaf of agentsFiles) {
+    const chain = agentsFiles.filter((candidate) =>
+      isDirectoryOnChainTo(candidate.directory, leaf.directory),
+    );
+    const chainBytes = chain.reduce((total, entry) => total + entry.bytes, 0);
+    if (chainBytes > worstBytes) {
+      worstBytes = chainBytes;
+      worstChain = chain;
+      worstLeafDirectory = leaf.directory;
+    }
+  }
+  if (worstBytes <= COMBINED_AGENTS_MD_MAX_BYTES) return [];
+  const heaviest = worstChain.reduce((max, entry) => (entry.bytes > max.bytes ? entry : max));
+  const chainLabel =
+    worstLeafDirectory === "." ? "at the repo root" : `on the root → \`${worstLeafDirectory}\` chain`;
   return [
     buildDocsStructureDiagnostic({
-      filePath: AGENT_ENTRY_POINT_FILENAMES[0],
+      filePath: heaviest.file.relativePath,
       rule: AGENTS_BYTE_BUDGET_RULE_KEY,
-      message: `Combined ${AGENT_ENTRY_POINT_FILENAMES[0]} content across ${agentsFiles.length} file(s) is ${combinedBytes} bytes — Codex silently stops loading project docs past its ${COMBINED_AGENTS_MD_MAX_BYTES}-byte budget, so guidance beyond the cap is dropped without warning`,
-      help: `Trim or consolidate ${AGENT_ENTRY_POINT_FILENAMES[0]} files until the combined size is under ${COMBINED_AGENTS_MD_MAX_BYTES} bytes; move depth into \`${DOCS_DIRECTORY_NAME}/\` files that load on demand`,
+      message: `${AGENT_ENTRY_POINT_FILENAMES[0]} content ${chainLabel} is ${worstBytes} bytes across ${worstChain.length} file(s) — Codex silently stops loading project docs past its ${COMBINED_AGENTS_MD_MAX_BYTES}-byte budget, so guidance beyond the cap is dropped without warning`,
+      help: `Trim or consolidate the ${AGENT_ENTRY_POINT_FILENAMES[0]} files on that chain until their combined size is under ${COMBINED_AGENTS_MD_MAX_BYTES} bytes; move depth into \`${DOCS_DIRECTORY_NAME}/\` files that load on demand`,
     }),
   ];
 };
@@ -583,9 +615,12 @@ const checkBannedLongLivedPaths = (rootDirectory: string): Diagnostic[] =>
   );
 
 // ── docs-structure/markdown-link-target-exists ──────────────────────────
-const checkMarkdownLinkTargets = (rootDirectory: string): Diagnostic[] => {
+const checkMarkdownLinkTargets = (
+  rootDirectory: string,
+  markdownFiles: ReadonlyArray<MarkdownFile>,
+): Diagnostic[] => {
   const diagnostics: Diagnostic[] = [];
-  for (const file of listMarkdownFiles(rootDirectory)) {
+  for (const file of markdownFiles) {
     for (const link of collectMarkdownLinks(file)) {
       const absoluteTarget = resolveMarkdownLinkTarget(file, link.target);
       const relativeTarget = path.relative(rootDirectory, absoluteTarget);
@@ -625,14 +660,9 @@ const checkTodoSpecSections = (rootDirectory: string): Diagnostic[] => {
     const content = readFileOrNull(path.join(todosDirectory, entry.name));
     if (content === null) continue;
     const headings = headingNamesFor(content);
-    const missingSections = [
-      hasHeading(headings, ["status"]) ? null : "Status",
-      hasHeading(headings, ["scope"]) ? null : "Scope",
-      hasHeading(headings, ["start here", "start points"]) ? null : "Start here",
-      hasHeading(headings, ["invariants", "invariant"]) ? null : "Invariants",
-      hasHeading(headings, ["validation"]) ? null : "Validation",
-      hasHeading(headings, ["close when", "close condition", "done when"]) ? null : "Close when",
-    ].filter((section): section is string => section !== null);
+    const missingSections = TODO_SPEC_REQUIRED_SECTIONS.filter(
+      (section) => !hasHeading(headings, section.aliases),
+    ).map((section) => section.label);
     if (missingSections.length === 0) continue;
     diagnostics.push(
       buildDocsStructureDiagnostic({
@@ -665,6 +695,7 @@ export const checkDocsStructure = (
   options: DocsStructureOptions = {},
 ): Diagnostic[] => {
   const entryPointFilename = resolveEntryPointFilename(rootDirectory);
+  const markdownFiles = listMarkdownFiles(rootDirectory);
   return [
     ...checkEntryPointExists(entryPointFilename),
     ...checkEntryPointIsAMap(rootDirectory, entryPointFilename),
@@ -678,12 +709,12 @@ export const checkDocsStructure = (
     ...checkSpecContractSections(rootDirectory),
     ...checkEngineeringDocsExist(rootDirectory, options),
     ...checkNoStructureMd(rootDirectory),
-    ...checkCombinedAgentsByteBudget(rootDirectory),
+    ...checkCombinedAgentsByteBudget(markdownFiles),
     ...checkClaudeShimImportsAgents(rootDirectory),
     ...checkTodosIndexExists(rootDirectory, options),
     ...checkDomainDocsComplete(rootDirectory),
     ...checkBannedLongLivedPaths(rootDirectory),
-    ...checkMarkdownLinkTargets(rootDirectory),
+    ...checkMarkdownLinkTargets(rootDirectory, markdownFiles),
     ...checkTodoSpecSections(rootDirectory),
   ];
 };
