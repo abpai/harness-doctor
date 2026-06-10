@@ -50,10 +50,6 @@ import { VERSION } from "./cli/utils/version.js";
 
 const silentConsole = makeNoopConsole();
 
-const runConsole = (effect: Effect.Effect<void>): void => {
-  Effect.runSync(effect);
-};
-
 interface ResolvedInspectOptions {
   deadCode: boolean;
   verbose: boolean;

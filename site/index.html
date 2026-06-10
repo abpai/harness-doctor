@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Harness Doctor — keep your agent harness healthy</title>
+    <meta
+      name="description"
+      content="Deterministic, offline checks that keep your AI agent harness healthy. Harness Doctor scans a repo for the structure agents need, reports what's missing, and scores it 0–100."
+    />
+    <meta name="theme-color" content="#0b0f10" />
+
+    <!-- Open Graph / social -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Harness Doctor" />
+    <meta
+      property="og:description"
+      content="Deterministic checks that keep your agent harness healthy. Scan a repo, see what agents are missing, watch the score climb."
+    />
+    <meta property="og:url" content="https://abpai.github.io/harness-doctor/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Harness Doctor" />
+    <meta
+      name="twitter:description"
+      content="Deterministic checks that keep your agent harness healthy."
+    />
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <header class="nav">
+      <a class="nav__brand" href="#top">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+            <path
+              d="M12 3v6m0 0H6m6 0h6M12 9l-3 9m3-9l3 9"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <circle cx="12" cy="20.5" r="1.5" fill="currentColor" />
+          </svg>
+        </span>
+        <span>Harness&nbsp;Doctor</span>
+      </a>
+      <nav class="nav__links">
+        <a href="#checks">Checks</a>
+        <a href="#start">Quick start</a>
+        <a href="#ci">CI</a>
+        <a class="nav__cta" href="https://github.com/abpai/harness-doctor">GitHub ↗</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <!-- HERO -->
+      <section class="hero">
+        <p class="eyebrow">
+          <span class="dot"></span> Deterministic · Offline · Framework-agnostic
+        </p>
+        <h1 class="hero__title">Keep your agent harness <span class="grad">healthy</span>.</h1>
+        <p class="hero__lede">
+          A coding agent is only as good as the repository it works in. Harness Doctor scans for the
+          structure that keeps agents from guessing, reports what's missing, and scores the repo
+          <strong>0–100</strong> so you can watch it improve.
+        </p>
+
+        <div class="terminal" role="img" aria-label="Terminal showing the harness-doctor command">
+          <div class="terminal__bar">
+            <span class="terminal__dot"></span>
+            <span class="terminal__dot"></span>
+            <span class="terminal__dot"></span>
+            <span class="terminal__title">~/your-project</span>
+          </div>
+          <pre
+            class="terminal__body"
+          ><span class="c-prompt">$</span> <span class="c-cmd">npx @andypai/harness-doctor@latest</span>
+
+  <span class="c-ok">✔</span> AGENTS.md found <span class="c-dim">— short and map-like</span>
+  <span class="c-warn">!</span> docs/ exists but AGENTS.md never points into it
+  <span class="c-err">✘</span> 3 unused exports, 1 circular import
+  <span class="c-dim">────────────────────────────────────────</span>
+  Harness score  <span class="c-score">82</span><span class="c-dim">/100</span></pre>
+        </div>
+
+        <div class="cta-row">
+          <button class="copy" data-copy="npx @andypai/harness-doctor@latest">
+            <code>npx @andypai/harness-doctor@latest</code>
+            <span class="copy__icon" aria-hidden="true">⧉</span>
+          </button>
+          <a class="btn btn--ghost" href="https://github.com/abpai/harness-doctor"
+            >View on GitHub</a
+          >
+        </div>
+        <p class="hero__note">
+          No model calls. No network. The same repo always produces the same score.
+        </p>
+      </section>
+
+      <!-- WHAT IT CHECKS -->
+      <section id="checks" class="section">
+        <h2 class="section__title">What it checks</h2>
+        <p class="section__sub">
+          Two lenses on a repo, both deterministic — the kind of thing you could answer with
+          <code>ls</code> and <code>wc -l</code>, made rigorous.
+        </p>
+
+        <div class="cards">
+          <article class="card">
+            <div class="card__icon">🗺️</div>
+            <h3>Structural checks</h3>
+            <p>
+              Reads your repository off disk — its files, layout, and docs. Does an agent
+              entry-point exist? Is it a short map or a 600-line wall of text? Does it actually
+              point into <code>docs/</code>? Is your pnpm setup hardened against supply-chain
+              attacks?
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card__icon">🧹</div>
+            <h3>Dead-code analysis</h3>
+            <p>
+              Finds unused files, unused exports, unused dependencies, and circular imports — the
+              cruft that misleads an agent reading your codebase and quietly drags the score down.
+            </p>
+          </article>
+
+          <article class="card">
+            <div class="card__icon">🩺</div>
+            <h3>Fix, not just blame</h3>
+            <p>
+              Every finding comes with a one-line explanation of what's wrong and a concrete fix —
+              written to be read by a human or handed straight to a coding agent.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <!-- FEATURE STRIP -->
+      <section class="strip">
+        <div class="strip__item">
+          <span class="strip__num">0–100</span>
+          <span class="strip__label">Deterministic readiness score</span>
+        </div>
+        <div class="strip__item">
+          <span class="strip__num">Offline</span>
+          <span class="strip__label">No model calls, nothing to flake</span>
+        </div>
+        <div class="strip__item">
+          <span class="strip__num">schema&nbsp;v1</span>
+          <span class="strip__label">Versioned JSON contract</span>
+        </div>
+        <div class="strip__item">
+          <span class="strip__num">5+</span>
+          <span class="strip__label">Claude Code, Cursor, Codex, OpenCode…</span>
+        </div>
+      </section>
+
+      <!-- QUICK START -->
+      <section id="start" class="section">
+        <h2 class="section__title">Quick start</h2>
+        <p class="section__sub">From the root of any project.</p>
+
+        <div class="steps">
+          <div class="step">
+            <h3><span class="step__n">1</span> Audit</h3>
+            <p>
+              Get a score and a list of findings. Add <code>--verbose</code> for file and line
+              numbers.
+            </p>
+            <button class="copy copy--block" data-copy="npx @andypai/harness-doctor@latest">
+              <code>npx @andypai/harness-doctor@latest</code>
+              <span class="copy__icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+
+          <div class="step">
+            <h3><span class="step__n">2</span> Install for agents</h3>
+            <p>
+              Wire it into your agent's workflow so it reads findings, fixes them, and keeps the
+              score from sliding.
+            </p>
+            <button class="copy copy--block" data-copy="npx @andypai/harness-doctor@latest install">
+              <code>npx @andypai/harness-doctor@latest install</code>
+              <span class="copy__icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+
+          <div class="step">
+            <h3><span class="step__n">3</span> Get JSON</h3>
+            <p>
+              Emit a versioned report. Key automations off <code>plugin/rule</code> and
+              <code>schemaVersion</code>, not prose.
+            </p>
+            <button class="copy copy--block" data-copy="npx @andypai/harness-doctor@latest --json">
+              <code>npx @andypai/harness-doctor@latest --json</code>
+              <span class="copy__icon" aria-hidden="true">⧉</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- CI -->
+      <section id="ci" class="section section--ci">
+        <div class="ci-grid">
+          <div>
+            <h2 class="section__title">Run it in CI</h2>
+            <p class="section__sub">
+              Scan every pull request and leave findings inline. For hardened CI, pin
+              <code>@v1</code> to a full commit SHA and let Dependabot or Renovate bump it.
+            </p>
+            <a class="btn btn--ghost" href="https://github.com/abpai/harness-doctor#run-in-ci"
+              >CI docs →</a
+            >
+          </div>
+
+          <div class="code-block">
+            <div class="code-block__bar"><span>.github/workflows/harness-doctor.yml</span></div>
+            <pre><span class="y-key">name</span>: Harness Doctor
+
+<span class="y-key">on</span>:
+  <span class="y-key">pull_request</span>:
+    <span class="y-key">types</span>: [opened, synchronize, reopened]
+
+<span class="y-key">permissions</span>:
+  <span class="y-key">contents</span>: read
+  <span class="y-key">pull-requests</span>: write
+  <span class="y-key">issues</span>: write
+
+<span class="y-key">jobs</span>:
+  <span class="y-key">harness-doctor</span>:
+    <span class="y-key">runs-on</span>: ubuntu-latest
+    <span class="y-key">steps</span>:
+      - <span class="y-key">uses</span>: actions/checkout@v5
+      - <span class="y-key">uses</span>: abpai/harness-doctor@v1</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONFIGURE -->
+      <section class="section">
+        <h2 class="section__title">Configure</h2>
+        <p class="section__sub">
+          Drop a <code>harness.config.ts</code> at your project root. Turn rules up, down, or off.
+        </p>
+        <div class="code-block code-block--wide">
+          <div class="code-block__bar"><span>harness.config.ts</span></div>
+          <pre><span class="y-com">// harness.config.ts</span>
+<span class="y-kw">import type</span> { HarnessDoctorConfig } <span class="y-kw">from</span> <span class="y-str">"harness-doctor/api"</span>;
+
+<span class="y-kw">export default</span> {
+  deadCode: <span class="y-num">true</span>,
+  docsContract: <span class="y-num">true</span>,
+  rules: {
+    <span class="y-str">"harness-doctor/docs-structure/spec-contract-exists"</span>: <span class="y-str">"error"</span>,
+  },
+} <span class="y-kw">satisfies</span> HarnessDoctorConfig;</pre>
+        </div>
+      </section>
+
+      <!-- FINAL CTA -->
+      <section class="final">
+        <h2>Ready when your agents are.</h2>
+        <p>Run it once on any repo and see where it stands.</p>
+        <div class="cta-row cta-row--center">
+          <button class="copy" data-copy="npx @andypai/harness-doctor@latest">
+            <code>npx @andypai/harness-doctor@latest</code>
+            <span class="copy__icon" aria-hidden="true">⧉</span>
+          </button>
+          <a class="btn btn--solid" href="https://github.com/abpai/harness-doctor"
+            >Star on GitHub ★</a
+          >
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer__inner">
+        <p>
+          <strong>Harness Doctor</strong> · MIT-licensed · by
+          <a href="https://github.com/abpai">Andy Pai</a>
+        </p>
+        <nav class="footer__links">
+          <a href="https://github.com/abpai/harness-doctor">GitHub</a>
+          <a href="https://www.npmjs.com/package/@andypai/harness-doctor">npm</a>
+          <a href="https://github.com/abpai/harness-doctor/issues">Issues</a>
+          <a href="https://github.com/abpai/harness-doctor/tree/main/docs">Docs</a>
+        </nav>
+      </div>
+      <p class="footer__fine">
+        Inspired by react-doctor by Aiden Bai. An independent project, not affiliated with or
+        endorsed by react-doctor.
+      </p>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite">Copied to clipboard</div>
+
+    <script src="script.js" defer></script>
+  </body>
+</html>
