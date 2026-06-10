@@ -51,9 +51,7 @@
         <a href="#checks">Checks</a>
         <a href="#start">Quick start</a>
         <a href="#ci">CI</a>
-        <a class="nav__cta" href="https://github.com/abpai/harness-doctor"
-          >GitHub ↗</a
-        >
+        <a class="nav__cta" href="https://github.com/abpai/harness-doctor">GitHub ↗</a>
       </nav>
     </header>
 
@@ -63,13 +61,10 @@
         <p class="eyebrow">
           <span class="dot"></span> Deterministic · Offline · Framework-agnostic
         </p>
-        <h1 class="hero__title">
-          Keep your agent harness <span class="grad">healthy</span>.
-        </h1>
+        <h1 class="hero__title">Keep your agent harness <span class="grad">healthy</span>.</h1>
         <p class="hero__lede">
-          A coding agent is only as good as the repository it works in. Harness
-          Doctor scans for the structure that keeps agents from guessing,
-          reports what's missing, and scores the repo
+          A coding agent is only as good as the repository it works in. Harness Doctor scans for the
+          structure that keeps agents from guessing, reports what's missing, and scores the repo
           <strong>0–100</strong> so you can watch it improve.
         </p>
 
@@ -80,7 +75,9 @@
             <span class="terminal__dot"></span>
             <span class="terminal__title">~/your-project</span>
           </div>
-          <pre class="terminal__body"><span class="c-prompt">$</span> <span class="c-cmd">npx @andypai/harness-doctor@latest</span>
+          <pre
+            class="terminal__body"
+          ><span class="c-prompt">$</span> <span class="c-cmd">npx @andypai/harness-doctor@latest</span>
 
   <span class="c-ok">✔</span> AGENTS.md found <span class="c-dim">— short and map-like</span>
   <span class="c-warn">!</span> docs/ exists but AGENTS.md never points into it
@@ -99,8 +96,7 @@
           >
         </div>
         <p class="hero__note">
-          No model calls. No network. The same repo always produces the same
-          score.
+          No model calls. No network. The same repo always produces the same score.
         </p>
       </section>
 
@@ -108,8 +104,8 @@
       <section id="checks" class="section">
         <h2 class="section__title">What it checks</h2>
         <p class="section__sub">
-          Two lenses on a repo, both deterministic — the kind of thing you could
-          answer with <code>ls</code> and <code>wc -l</code>, made rigorous.
+          Two lenses on a repo, both deterministic — the kind of thing you could answer with
+          <code>ls</code> and <code>wc -l</code>, made rigorous.
         </p>
 
         <div class="cards">
@@ -117,10 +113,10 @@
             <div class="card__icon">🗺️</div>
             <h3>Structural checks</h3>
             <p>
-              Reads your repository off disk — its files, layout, and docs. Does
-              an agent entry-point exist? Is it a short map or a 600-line wall of
-              text? Does it actually point into <code>docs/</code>? Is your pnpm
-              setup hardened against supply-chain attacks?
+              Reads your repository off disk — its files, layout, and docs. Does an agent
+              entry-point exist? Is it a short map or a 600-line wall of text? Does it actually
+              point into <code>docs/</code>? Is your pnpm setup hardened against supply-chain
+              attacks?
             </p>
           </article>
 
@@ -128,9 +124,8 @@
             <div class="card__icon">🧹</div>
             <h3>Dead-code analysis</h3>
             <p>
-              Finds unused files, unused exports, unused dependencies, and
-              circular imports — the cruft that misleads an agent reading your
-              codebase and quietly drags the score down.
+              Finds unused files, unused exports, unused dependencies, and circular imports — the
+              cruft that misleads an agent reading your codebase and quietly drags the score down.
             </p>
           </article>
 
@@ -138,9 +133,8 @@
             <div class="card__icon">🩺</div>
             <h3>Fix, not just blame</h3>
             <p>
-              Every finding comes with a one-line explanation of what's wrong and
-              a concrete fix — written to be read by a human or handed straight to
-              a coding agent.
+              Every finding comes with a one-line explanation of what's wrong and a concrete fix —
+              written to be read by a human or handed straight to a coding agent.
             </p>
           </article>
         </div>
@@ -174,7 +168,10 @@
         <div class="steps">
           <div class="step">
             <h3><span class="step__n">1</span> Audit</h3>
-            <p>Get a score and a list of findings. Add <code>--verbose</code> for file and line numbers.</p>
+            <p>
+              Get a score and a list of findings. Add <code>--verbose</code> for file and line
+              numbers.
+            </p>
             <button class="copy copy--block" data-copy="npx @andypai/harness-doctor@latest">
               <code>npx @andypai/harness-doctor@latest</code>
               <span class="copy__icon" aria-hidden="true">⧉</span>
@@ -183,7 +180,10 @@
 
           <div class="step">
             <h3><span class="step__n">2</span> Install for agents</h3>
-            <p>Wire it into your agent's workflow so it reads findings, fixes them, and keeps the score from sliding.</p>
+            <p>
+              Wire it into your agent's workflow so it reads findings, fixes them, and keeps the
+              score from sliding.
+            </p>
             <button class="copy copy--block" data-copy="npx @andypai/harness-doctor@latest install">
               <code>npx @andypai/harness-doctor@latest install</code>
               <span class="copy__icon" aria-hidden="true">⧉</span>
@@ -192,7 +192,10 @@
 
           <div class="step">
             <h3><span class="step__n">3</span> Get JSON</h3>
-            <p>Emit a versioned report. Key automations off <code>plugin/rule</code> and <code>schemaVersion</code>, not prose.</p>
+            <p>
+              Emit a versioned report. Key automations off <code>plugin/rule</code> and
+              <code>schemaVersion</code>, not prose.
+            </p>
             <button class="copy copy--block" data-copy="npx @andypai/harness-doctor@latest --json">
               <code>npx @andypai/harness-doctor@latest --json</code>
               <span class="copy__icon" aria-hidden="true">⧉</span>
@@ -207,9 +210,8 @@
           <div>
             <h2 class="section__title">Run it in CI</h2>
             <p class="section__sub">
-              Scan every pull request and leave findings inline. For hardened CI,
-              pin <code>@v1</code> to a full commit SHA and let Dependabot or
-              Renovate bump it.
+              Scan every pull request and leave findings inline. For hardened CI, pin
+              <code>@v1</code> to a full commit SHA and let Dependabot or Renovate bump it.
             </p>
             <a class="btn btn--ghost" href="https://github.com/abpai/harness-doctor#run-in-ci"
               >CI docs →</a
@@ -243,8 +245,7 @@
       <section class="section">
         <h2 class="section__title">Configure</h2>
         <p class="section__sub">
-          Drop a <code>harness.config.ts</code> at your project root. Turn rules
-          up, down, or off.
+          Drop a <code>harness.config.ts</code> at your project root. Turn rules up, down, or off.
         </p>
         <div class="code-block code-block--wide">
           <div class="code-block__bar"><span>harness.config.ts</span></div>
@@ -291,8 +292,8 @@
         </nav>
       </div>
       <p class="footer__fine">
-        Inspired by react-doctor by Aiden Bai. An independent project, not
-        affiliated with or endorsed by react-doctor.
+        Inspired by react-doctor by Aiden Bai. An independent project, not affiliated with or
+        endorsed by react-doctor.
       </p>
     </footer>
 

@@ -610,10 +610,7 @@ export const runInstallHarnessDoctor = async (
     logger.dim("  Skipped bundled sibling skills (install error).");
   }
 
-  const dependencyResult = await installHarnessDoctorPackageSetup(
-    projectRoot,
-    options.installDependencyRunner,
-  );
+  await installHarnessDoctorPackageSetup(projectRoot, options.installDependencyRunner);
 
   if (shouldInstallGitHook && gitHookTarget !== null && gitHookTarget !== undefined) {
     const hookSpinner = spinner("Installing Harness Doctor pre-commit hook...").start();

@@ -6,6 +6,7 @@
 - [Spec contract](SPEC_CONTRACT.md) - what a ready spec for this repo includes.
 - [Glossary](GLOSSARY.md) - canonical Harness Doctor terms.
 - [Docs README](README.md) - guide map for check authors.
+- [Tooling](TOOLING.md) - local and CI command entry points, plus Vite Plus configuration notes.
 
 ## Authoring
 

@@ -54,7 +54,7 @@ export interface ResolvedScanTarget {
  */
 export const resolveScanTarget = async (
   requestedDirectory: string,
-  options: ResolveDiagnoseTargetOptions = {},
+  _options: ResolveDiagnoseTargetOptions = {},
 ): Promise<ResolvedScanTarget> => {
   const absoluteRequested = path.resolve(requestedDirectory);
   const loadedConfig = await loadConfigWithSource(absoluteRequested);
