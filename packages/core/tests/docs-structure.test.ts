@@ -475,6 +475,38 @@ describe("checkDocsStructure", () => {
     expect(ruleKeysFor(rootDirectory)).toContain(CLAUDE_SHIM_RULE_KEY);
   });
 
+  it("flags a nested CLAUDE.md beside a nested AGENTS.md that never imports it", () => {
+    const rootDirectory = writeCleanLayout({
+      rootFiles: [
+        { filename: "packages/api/AGENTS.md", contents: "# API subtree\n\nLocal commands.\n" },
+        { filename: "packages/api/CLAUDE.md", contents: "# Claude\n\nCompeting instructions.\n" },
+      ],
+    });
+    const flagged = checkDocsStructure(rootDirectory).find(
+      (diagnostic) => diagnostic.rule === CLAUDE_SHIM_RULE_KEY,
+    );
+    expect(flagged?.filePath).toBe("packages/api/CLAUDE.md");
+  });
+
+  it("accepts a nested CLAUDE.md shim that imports its sibling AGENTS.md", () => {
+    const rootDirectory = writeCleanLayout({
+      rootFiles: [
+        { filename: "packages/api/AGENTS.md", contents: "# API subtree\n\nLocal commands.\n" },
+        { filename: "packages/api/CLAUDE.md", contents: "@AGENTS.md\n" },
+      ],
+    });
+    expect(ruleKeysFor(rootDirectory)).not.toContain(CLAUDE_SHIM_RULE_KEY);
+  });
+
+  it("does not flag a nested CLAUDE.md without a sibling AGENTS.md", () => {
+    const rootDirectory = writeCleanLayout({
+      rootFiles: [
+        { filename: "packages/api/CLAUDE.md", contents: "# Claude-only folder context.\n" },
+      ],
+    });
+    expect(ruleKeysFor(rootDirectory)).not.toContain(CLAUDE_SHIM_RULE_KEY);
+  });
+
   it("flags multiple canonical glossaries", () => {
     const rootDirectory = writeCleanLayout({
       rootFiles: [{ filename: "UBIQUITOUS_LANGUAGE.md", contents: "# Ubiquitous language\n" }],

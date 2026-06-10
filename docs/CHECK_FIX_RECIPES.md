@@ -148,11 +148,12 @@ files must not restate the root.
 
 ## docs-structure/claude-shim-imports-agents
 
-**What fired:** `CLAUDE.md` exists beside `AGENTS.md` but never imports it.
-Claude Code reads only `CLAUDE.md` while other agents read `AGENTS.md`, so two
-free-standing entry points drift into competing instructions.
+**What fired:** a `CLAUDE.md` exists beside an `AGENTS.md` — at the repo root
+or in a nested subtree — but never imports it. Claude Code reads only
+`CLAUDE.md` while other agents read `AGENTS.md`, so two free-standing entry
+points in the same directory drift into competing instructions.
 
-**The fix:** replace `CLAUDE.md`'s body with the single import line
+**The fix:** replace that `CLAUDE.md`'s body with the single import line
 `@AGENTS.md` (Claude Code's import syntax). Keep `AGENTS.md` the one source of
 truth; a prose "see AGENTS.md" does not reliably load the file.
 
