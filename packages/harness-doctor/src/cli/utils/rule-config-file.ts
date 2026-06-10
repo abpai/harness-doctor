@@ -5,10 +5,12 @@ import { getConfigFromVariableDeclaration, getDefaultExportOptions } from "magic
 import {
   CONFIG_SCHEMA_URL,
   clearConfigCache,
+  findLegacyConfig,
   isPlainObject,
   loadConfigWithSource,
 } from "@harness-doctor/core";
 import type { HarnessDoctorConfig, HarnessDoctorConfigFormat } from "@harness-doctor/core";
+import { migrateLegacyConfig } from "./migrate-legacy-config.js";
 import { readObjectFile } from "./read-object-file.js";
 
 const NEW_CONFIG_FILENAME = "harness.config.json";
@@ -51,7 +53,19 @@ export const resolveRuleConfigTarget = async (projectRoot: string): Promise<Rule
   // earlier call. A fresh CLI process has an empty cache, so this clear is
   // a no-op in production and only matters for repeated in-process reads.
   clearConfigCache();
-  const loaded = await loadConfigWithSource(projectRoot);
+  let loaded = await loadConfigWithSource(projectRoot);
+
+  // A pre-rename `doctor.config.*` is no longer read, so without this a rules
+  // mutation would create a blank `harness.config.json` and silently drop the
+  // legacy file's settings. Migrate it first, then re-resolve so the edit lands
+  // on the migrated config with the user's other settings intact.
+  if (!loaded) {
+    const legacy = findLegacyConfig(projectRoot);
+    if (legacy && migrateLegacyConfig(legacy) !== null) {
+      clearConfigCache();
+      loaded = await loadConfigWithSource(projectRoot);
+    }
+  }
 
   if (loaded) {
     if (loaded.format === "package-json") {

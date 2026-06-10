@@ -176,6 +176,22 @@ describe("loadConfig", () => {
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("doctor.config.json"));
       warnSpy.mockRestore();
     });
+
+    it("warns for a non-JSON legacy doctor.config.ts so it never silently stops applying", async () => {
+      const legacyDirectory = path.join(tempRootDirectory, "legacy-module-config");
+      fs.mkdirSync(legacyDirectory, { recursive: true });
+      fs.writeFileSync(
+        path.join(legacyDirectory, "doctor.config.ts"),
+        "export default { lint: true };\n",
+      );
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      await loadConfig(legacyDirectory);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("doctor.config.ts is no longer read"),
+      );
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("harness.config.ts"));
+      warnSpy.mockRestore();
+    });
   });
 
   describe("scan options in config", () => {
