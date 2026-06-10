@@ -1,0 +1,60 @@
+name: Release
+
+# Automated npm releases via Changesets. The flow:
+#   1. Every change PR includes a changeset (`pnpm changeset`) describing the
+#      bump (patch/minor/major) and changelog entry.
+#   2. On merge to main, this workflow opens/updates a "Version Packages" PR
+#      that consumes the changesets, bumps versions, and writes CHANGELOGs.
+#   3. Merging that PR runs `changeset publish` here — publishing to npm and
+#      pushing the git tags. No manual `pnpm publish`, no OTP prompt.
+#
+# Auth: set an npm token (Automation or Granular Access with publish rights)
+# as the `NPM_TOKEN` repo secret. To go tokenless later, configure a Trusted
+# Publisher for this workflow on npmjs.com and drop the NPM_TOKEN env below —
+# the `id-token: write` permission is already granted. (Provenance is not
+# generated for private repos, but OIDC auth still works.)
+
+on:
+  push:
+    branches: [main]
+
+# One release run at a time so the Version Packages PR and a publish never race.
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write # push the "Version Packages" PR branch and git tags
+  pull-requests: write # open / update the "Version Packages" PR
+  id-token: write # enables tokenless OIDC trusted publishing if configured
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # changesets needs full history for tags/changelog
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.18.0"
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: pnpm install --frozen-lockfile
+
+      # Pending changesets on main → opens/updates the "Version Packages" PR
+      # (runs `pnpm run version` = `changeset version`). No changesets left
+      # (that PR was merged) → runs `pnpm run release` (build + dep audit +
+      # `changeset publish`) to publish unpublished versions and tag them.
+      - uses: changesets/action@v1
+        with:
+          version: pnpm run version
+          publish: pnpm run release
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
