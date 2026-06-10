@@ -15,8 +15,13 @@ const ENTRY_POINT_LINKS_INTO_DOCS_RULE_KEY = "docs-structure/entry-point-links-i
 const NO_MONOLITHIC_INSTRUCTION_FILE_RULE_KEY = "docs-structure/no-monolithic-instruction-file";
 const DOCS_INDEX_EXISTS_RULE_KEY = "docs-structure/docs-index-exists";
 const ARCHITECTURE_MAP_EXISTS_RULE_KEY = "docs-structure/architecture-map-exists";
-const CANONICAL_GLOSSARY_EXISTS_RULE_KEY = "docs-structure/canonical-glossary-exists";
 const SINGLE_CANONICAL_GLOSSARY_RULE_KEY = "docs-structure/single-canonical-glossary";
+const SPEC_CONTRACT_EXISTS_RULE_KEY = "docs-structure/spec-contract-exists";
+const SPEC_CONTRACT_SECTIONS_RULE_KEY = "docs-structure/spec-contract-has-required-sections";
+const ENGINEERING_DOCS_EXIST_RULE_KEY = "docs-structure/engineering-docs-exist";
+const NO_STRUCTURE_MD_RULE_KEY = "docs-structure/no-structure-md";
+const AGENTS_BYTE_BUDGET_RULE_KEY = "docs-structure/agents-md-within-byte-budget";
+const CLAUDE_SHIM_RULE_KEY = "docs-structure/claude-shim-imports-agents";
 const TODOS_INDEX_EXISTS_RULE_KEY = "docs-structure/todos-index-exists";
 const DOMAIN_DOCS_COMPLETE_RULE_KEY = "docs-structure/domain-docs-complete";
 const BANNED_LONG_LIVED_PATH_RULE_KEY = "docs-structure/no-banned-long-lived-path";
@@ -62,6 +67,11 @@ const cleanDocs: ReadonlyArray<FixtureFile> = [
     contents: "# Glossary\n\n| Term | Definition | Aliases to avoid |\n| --- | --- | --- |\n",
   },
   { filename: "guide.md", contents: "# Guide\n\nDetail lives here.\n" },
+  {
+    filename: "SPEC_CONTRACT.md",
+    contents:
+      "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact |\n| --- | --- | --- |\n| logic | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
+  },
 ];
 
 const completeTodoSpec = `# Pricing entitlement copy
@@ -204,9 +214,42 @@ describe("checkDocsStructure", () => {
         { filename: "domains/pricing/code-map.md", contents: "# Pricing code map\n" },
         { filename: "domains/pricing/invariants.md", contents: "# Pricing invariants\n" },
         { filename: "domains/pricing/test-map.md", contents: "# Pricing validation\n" },
+        { filename: "engineering/commands.md", contents: "# Commands\n\n- `pnpm test`\n" },
+        {
+          filename: "engineering/testing.md",
+          contents: "# Validation\n\n| Change type | Required validation |\n| --- | --- |\n",
+        },
       ],
     });
     expect(checkDocsStructure(rootDirectory, { docsContract: true })).toEqual([]);
+  });
+
+  it("does NOT flag a CLAUDE.md shim that imports AGENTS.md", () => {
+    const rootDirectory = writeCleanLayout({
+      rootMarkdown: [{ filename: "CLAUDE.md", contents: "@AGENTS.md\n" }],
+    });
+    expect(checkDocsStructure(rootDirectory)).toEqual([]);
+  });
+
+  it("does NOT flag docs/adr (an existing ADR convention is preserved, not banned)", () => {
+    const rootDirectory = writeCleanLayout({ directories: ["docs/adr"] });
+    expect(ruleKeysFor(rootDirectory)).not.toContain(BANNED_LONG_LIVED_PATH_RULE_KEY);
+  });
+
+  it("does NOT flag a missing glossary (earned surface, not a default)", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: cleanDocs
+        .filter((docFile) => docFile.filename !== "GLOSSARY.md")
+        .map((docFile) =>
+          docFile.filename === "INDEX.md"
+            ? {
+                filename: "INDEX.md",
+                contents: "# Documentation index\n\n- [Architecture](ARCHITECTURE.md)\n",
+              }
+            : docFile,
+        ),
+    });
+    expect(checkDocsStructure(rootDirectory)).toEqual([]);
   });
 
   // ── Violating layouts (must flag) ─────────────────────────────────────
@@ -323,11 +366,76 @@ describe("checkDocsStructure", () => {
     expect(ruleKeysFor(rootDirectory)).toContain(ARCHITECTURE_MAP_EXISTS_RULE_KEY);
   });
 
-  it("flags a missing canonical glossary", () => {
+  it("flags a missing docs/SPEC_CONTRACT.md", () => {
     const rootDirectory = writeCleanLayout({
-      docs: cleanDocs.filter((docFile) => docFile.filename !== "GLOSSARY.md"),
+      docs: cleanDocs.filter((docFile) => docFile.filename !== "SPEC_CONTRACT.md"),
     });
-    expect(ruleKeysFor(rootDirectory)).toContain(CANONICAL_GLOSSARY_EXISTS_RULE_KEY);
+    expect(ruleKeysFor(rootDirectory)).toContain(SPEC_CONTRACT_EXISTS_RULE_KEY);
+  });
+
+  it("flags a spec contract missing required sections", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: cleanDocs.map((docFile) =>
+        docFile.filename === "SPEC_CONTRACT.md"
+          ? {
+              filename: "SPEC_CONTRACT.md",
+              contents: "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n",
+            }
+          : docFile,
+      ),
+    });
+    const flagged = checkDocsStructure(rootDirectory).find(
+      (diagnostic) => diagnostic.rule === SPEC_CONTRACT_SECTIONS_RULE_KEY,
+    );
+    expect(flagged).toBeDefined();
+    expect(flagged?.message).toContain("proof menu");
+    expect(flagged?.message).toContain("escalation boundaries");
+  });
+
+  it("flags missing engineering docs only under the docs contract", () => {
+    const rootDirectory = writeCleanLayout();
+    expect(ruleKeysFor(rootDirectory)).not.toContain(ENGINEERING_DOCS_EXIST_RULE_KEY);
+    const contractRuleKeys = checkDocsStructure(rootDirectory, { docsContract: true }).map(
+      (diagnostic) => diagnostic.rule,
+    );
+    expect(contractRuleKeys).toContain(ENGINEERING_DOCS_EXIST_RULE_KEY);
+  });
+
+  it("flags STRUCTURE.md as a non-canonical structure map", () => {
+    const rootDirectory = writeCleanLayout({
+      rootMarkdown: [{ filename: "STRUCTURE.md", contents: "# Structure\n\nA parallel map.\n" }],
+    });
+    expect(ruleKeysFor(rootDirectory)).toContain(NO_STRUCTURE_MD_RULE_KEY);
+  });
+
+  it("flags combined AGENTS.md content over the Codex byte budget", () => {
+    const oversized = `See docs/INDEX.md.\n${"x".repeat(33_000)}\n`;
+    const rootDirectory = writeCleanLayout({
+      entryPoint: { filename: "AGENTS.md", contents: oversized },
+    });
+    const flagged = checkDocsStructure(rootDirectory).find(
+      (diagnostic) => diagnostic.rule === AGENTS_BYTE_BUDGET_RULE_KEY,
+    );
+    expect(flagged).toBeDefined();
+    expect(flagged?.message).toContain("32768");
+  });
+
+  it("counts nested AGENTS.md files toward the combined byte budget", () => {
+    const rootDirectory = writeCleanLayout({
+      rootFiles: [
+        { filename: "packages/api/AGENTS.md", contents: `# API\n${"y".repeat(33_000)}\n` },
+      ],
+    });
+    expect(ruleKeysFor(rootDirectory)).toContain(AGENTS_BYTE_BUDGET_RULE_KEY);
+  });
+
+  it("flags a CLAUDE.md beside AGENTS.md that never imports it", () => {
+    const rootDirectory = writeCleanLayout({
+      rootMarkdown: [
+        { filename: "CLAUDE.md", contents: "# Claude\n\nFollow docs/INDEX.md closely.\n" },
+      ],
+    });
+    expect(ruleKeysFor(rootDirectory)).toContain(CLAUDE_SHIM_RULE_KEY);
   });
 
   it("flags multiple canonical glossaries", () => {

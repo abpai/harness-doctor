@@ -3,6 +3,7 @@
 ## System
 
 - [Architecture](ARCHITECTURE.md) - current package map and scan flow.
+- [Spec contract](SPEC_CONTRACT.md) - what a ready spec for this repo includes.
 - [Glossary](GLOSSARY.md) - canonical Harness Doctor terms.
 - [Docs README](README.md) - guide map for rule and check authors.
 

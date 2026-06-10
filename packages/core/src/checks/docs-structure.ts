@@ -4,13 +4,18 @@ import {
   AGENT_ENTRY_POINT_FILENAMES,
   BANNED_LONG_LIVED_HARNESS_PATHS,
   CANONICAL_GLOSSARY_FILENAMES,
+  COMBINED_AGENTS_MD_MAX_BYTES,
   DOCS_ARCHITECTURE_FILENAME,
   DOCS_DIRECTORY_NAME,
   DOCS_INDEX_FILENAME,
+  DOCS_SPEC_CONTRACT_FILENAME,
   DOMAIN_DOC_REQUIRED_FILENAMES,
+  ENGINEERING_REQUIRED_DOC_PATHS,
   ENTRY_POINT_MAX_LINES,
   ENTRY_POINT_MIN_DOCS_LINKS,
   MONOLITHIC_DOC_MAX_LINES,
+  SPEC_CONTRACT_REQUIRED_SECTIONS,
+  STRUCTURE_MD_FILENAME,
 } from "../constants.js";
 import { isDirectory, isFile, readDirectoryEntries } from "../project-info/index.js";
 import type { Diagnostic } from "../types/index.js";
@@ -22,13 +27,18 @@ const HEADING_PATTERN = /^#{1,6}\s+(.+?)\s*#?\s*$/gm;
 const FENCED_CODE_BLOCK_PATTERN = /^ {0,3}(```|~~~)[\s\S]*?^ {0,3}\1[ \t]*$/gm;
 
 const ENTRY_POINT_EXISTS_RULE_KEY = "docs-structure/entry-point-exists";
+const SPEC_CONTRACT_EXISTS_RULE_KEY = "docs-structure/spec-contract-exists";
+const SPEC_CONTRACT_SECTIONS_RULE_KEY = "docs-structure/spec-contract-has-required-sections";
+const ENGINEERING_DOCS_EXIST_RULE_KEY = "docs-structure/engineering-docs-exist";
+const NO_STRUCTURE_MD_RULE_KEY = "docs-structure/no-structure-md";
+const AGENTS_BYTE_BUDGET_RULE_KEY = "docs-structure/agents-md-within-byte-budget";
+const CLAUDE_SHIM_RULE_KEY = "docs-structure/claude-shim-imports-agents";
 const ENTRY_POINT_IS_A_MAP_RULE_KEY = "docs-structure/entry-point-is-a-map";
 const DOCS_DIRECTORY_EXISTS_RULE_KEY = "docs-structure/docs-directory-exists";
 const ENTRY_POINT_LINKS_INTO_DOCS_RULE_KEY = "docs-structure/entry-point-links-into-docs";
 const NO_MONOLITHIC_INSTRUCTION_FILE_RULE_KEY = "docs-structure/no-monolithic-instruction-file";
 const DOCS_INDEX_EXISTS_RULE_KEY = "docs-structure/docs-index-exists";
 const ARCHITECTURE_MAP_EXISTS_RULE_KEY = "docs-structure/architecture-map-exists";
-const CANONICAL_GLOSSARY_EXISTS_RULE_KEY = "docs-structure/canonical-glossary-exists";
 const SINGLE_CANONICAL_GLOSSARY_RULE_KEY = "docs-structure/single-canonical-glossary";
 const TODOS_INDEX_EXISTS_RULE_KEY = "docs-structure/todos-index-exists";
 const DOMAIN_DOCS_COMPLETE_RULE_KEY = "docs-structure/domain-docs-complete";
@@ -64,6 +74,7 @@ interface LinkReference {
 const docsIndexPath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_INDEX_FILENAME);
 const docsArchitecturePath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_ARCHITECTURE_FILENAME);
 const todosIndexPath = path.posix.join(DOCS_DIRECTORY_NAME, "todos", DOCS_INDEX_FILENAME);
+const docsSpecContractPath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_SPEC_CONTRACT_FILENAME);
 
 // Every docs-structure diagnostic shares plugin / severity / category so
 // the group reads as one rule family; only the rule key, file, and prose
@@ -381,25 +392,14 @@ const checkArchitectureMapExists = (rootDirectory: string): Diagnostic[] => {
   ];
 };
 
-// ── docs-structure/canonical-glossary-exists / single-canonical-glossary ─
+// ── docs-structure/single-canonical-glossary ────────────────────────────
+// A glossary is an EARNED surface (created on demonstrated need), so a
+// missing glossary is never a finding — only competing duplicates are.
 const checkCanonicalGlossary = (rootDirectory: string): Diagnostic[] => {
   const presentGlossaries = CANONICAL_GLOSSARY_FILENAMES.filter((filename) =>
     isFile(path.join(rootDirectory, filename)),
   );
-  if (presentGlossaries.length === 1) return [];
-  if (presentGlossaries.length === 0) {
-    return [
-      buildDocsStructureDiagnostic({
-        filePath: CANONICAL_GLOSSARY_FILENAMES[0],
-        rule: CANONICAL_GLOSSARY_EXISTS_RULE_KEY,
-        message:
-          "No canonical glossary found — non-obvious project terms will keep spreading as inconsistent synonyms in docs, code, issues, and agent handoffs",
-        help: `Add \`${CANONICAL_GLOSSARY_FILENAMES[0]}\`, or keep one existing convention (${CANONICAL_GLOSSARY_FILENAMES.join(
-          ", ",
-        )}) and link it from \`${docsIndexPath}\``,
-      }),
-    ];
-  }
+  if (presentGlossaries.length <= 1) return [];
   return [
     buildDocsStructureDiagnostic({
       filePath: presentGlossaries[0] ?? CANONICAL_GLOSSARY_FILENAMES[0],
@@ -457,6 +457,116 @@ const checkDomainDocsComplete = (rootDirectory: string): Diagnostic[] => {
     );
   }
   return diagnostics;
+};
+
+// ── docs-structure/spec-contract-exists ─────────────────────────────────
+const checkSpecContractExists = (rootDirectory: string): Diagnostic[] => {
+  if (isFile(path.join(rootDirectory, docsSpecContractPath))) return [];
+  return [
+    buildDocsStructureDiagnostic({
+      filePath: docsSpecContractPath,
+      rule: SPEC_CONTRACT_EXISTS_RULE_KEY,
+      message:
+        "docs/ has no SPEC_CONTRACT.md — without a spec contract, task intake cannot know which acceptance criteria this repo can verify, so specs arrive promising proofs the repo cannot produce",
+      help: `Add \`${docsSpecContractPath}\` with a quality bar, a proof menu (change type → validation command → proof artifact) derived from the repo's real validation surfaces, and escalation boundaries`,
+    }),
+  ];
+};
+
+// ── docs-structure/spec-contract-has-required-sections ──────────────────
+const checkSpecContractSections = (rootDirectory: string): Diagnostic[] => {
+  const content = readFileOrNull(path.join(rootDirectory, docsSpecContractPath));
+  if (content === null) return [];
+  const headings = headingNamesFor(content);
+  const missingSections = SPEC_CONTRACT_REQUIRED_SECTIONS.filter(
+    (section) => !hasHeading(headings, [section]),
+  );
+  if (missingSections.length === 0) return [];
+  return [
+    buildDocsStructureDiagnostic({
+      filePath: docsSpecContractPath,
+      rule: SPEC_CONTRACT_SECTIONS_RULE_KEY,
+      message: `${docsSpecContractPath} is missing sections (${missingSections.join(
+        ", ",
+      )}) — a spec contract needs a quality bar, a proof menu, and escalation boundaries to be consumable by task intake`,
+      help: `Add the missing sections to \`${docsSpecContractPath}\`; every proof-menu row must reference a validation command that exists and runs`,
+    }),
+  ];
+};
+
+// ── docs-structure/engineering-docs-exist ───────────────────────────────
+const checkEngineeringDocsExist = (
+  rootDirectory: string,
+  options: DocsStructureOptions,
+): Diagnostic[] => {
+  if (options.docsContract !== true) return [];
+  return ENGINEERING_REQUIRED_DOC_PATHS.filter(
+    (relativePath) => !isFile(path.join(rootDirectory, relativePath)),
+  ).map((relativePath) =>
+    buildDocsStructureDiagnostic({
+      filePath: relativePath,
+      rule: ENGINEERING_DOCS_EXIST_RULE_KEY,
+      message: `The Harness docs contract needs ${relativePath} — agents need canonical commands and a change-type → validation map before they can prove their work end-to-end`,
+      help: `Add \`${relativePath}\` (validate every command by running it), or leave \`docsContract\` unset/false if this repo has not adopted the strict contract`,
+    }),
+  );
+};
+
+// ── docs-structure/no-structure-md ──────────────────────────────────────
+const checkNoStructureMd = (rootDirectory: string): Diagnostic[] => {
+  if (!isFile(path.join(rootDirectory, STRUCTURE_MD_FILENAME))) return [];
+  return [
+    buildDocsStructureDiagnostic({
+      filePath: STRUCTURE_MD_FILENAME,
+      rule: NO_STRUCTURE_MD_RULE_KEY,
+      message:
+        "STRUCTURE.md is a non-canonical structure map — the contract route is docs/ARCHITECTURE.md linked from docs/INDEX.md, and a parallel root map drifts from it",
+      help: `Move durable structure information into \`${docsArchitecturePath}\`, route to it from \`${docsIndexPath}\`, and delete \`${STRUCTURE_MD_FILENAME}\`; repos mid-migration can set \`"harness-doctor/${NO_STRUCTURE_MD_RULE_KEY}": "off"\` in doctor.config`,
+    }),
+  ];
+};
+
+// ── docs-structure/agents-md-within-byte-budget ─────────────────────────
+const checkCombinedAgentsByteBudget = (rootDirectory: string): Diagnostic[] => {
+  const agentsFiles = listMarkdownFiles(rootDirectory).filter(
+    (file) => path.posix.basename(file.relativePath) === AGENT_ENTRY_POINT_FILENAMES[0],
+  );
+  const combinedBytes = agentsFiles.reduce(
+    (total, file) => total + Buffer.byteLength(file.content, "utf-8"),
+    0,
+  );
+  if (combinedBytes <= COMBINED_AGENTS_MD_MAX_BYTES) return [];
+  return [
+    buildDocsStructureDiagnostic({
+      filePath: AGENT_ENTRY_POINT_FILENAMES[0],
+      rule: AGENTS_BYTE_BUDGET_RULE_KEY,
+      message: `Combined ${AGENT_ENTRY_POINT_FILENAMES[0]} content across ${agentsFiles.length} file(s) is ${combinedBytes} bytes — Codex silently stops loading project docs past its ${COMBINED_AGENTS_MD_MAX_BYTES}-byte budget, so guidance beyond the cap is dropped without warning`,
+      help: `Trim or consolidate ${AGENT_ENTRY_POINT_FILENAMES[0]} files until the combined size is under ${COMBINED_AGENTS_MD_MAX_BYTES} bytes; move depth into \`${DOCS_DIRECTORY_NAME}/\` files that load on demand`,
+    }),
+  ];
+};
+
+// ── docs-structure/claude-shim-imports-agents ───────────────────────────
+// Claude Code reads only CLAUDE.md while other agents read AGENTS.md, so
+// when both exist the CLAUDE.md must be a shim importing AGENTS.md —
+// otherwise the two entry points drift into competing instructions.
+const CLAUDE_SHIM_IMPORT_PATTERN = /(^|\s)@AGENTS\.md(\s|$)/;
+
+const checkClaudeShimImportsAgents = (rootDirectory: string): Diagnostic[] => {
+  if (!isFile(path.join(rootDirectory, AGENT_ENTRY_POINT_FILENAMES[0]))) return [];
+  const claudeAbsolutePath = path.join(rootDirectory, "CLAUDE.md");
+  if (!isFile(claudeAbsolutePath)) return [];
+  const content = readFileOrNull(claudeAbsolutePath);
+  if (content === null || CLAUDE_SHIM_IMPORT_PATTERN.test(content)) return [];
+  return [
+    buildDocsStructureDiagnostic({
+      filePath: "CLAUDE.md",
+      rule: CLAUDE_SHIM_RULE_KEY,
+      message:
+        "CLAUDE.md exists alongside AGENTS.md but never imports it — Claude Code reads only CLAUDE.md and other agents read AGENTS.md, so two free-standing entry points drift into competing instructions",
+      help: "Make CLAUDE.md a shim whose content is the import line `@AGENTS.md` (Claude Code's import syntax), keeping AGENTS.md the single source of truth",
+    }),
+  ];
 };
 
 // ── docs-structure/no-banned-long-lived-path ────────────────────────────
@@ -564,6 +674,12 @@ export const checkDocsStructure = (
     ...checkDocsIndexExists(rootDirectory),
     ...checkArchitectureMapExists(rootDirectory),
     ...checkCanonicalGlossary(rootDirectory),
+    ...checkSpecContractExists(rootDirectory),
+    ...checkSpecContractSections(rootDirectory),
+    ...checkEngineeringDocsExist(rootDirectory, options),
+    ...checkNoStructureMd(rootDirectory),
+    ...checkCombinedAgentsByteBudget(rootDirectory),
+    ...checkClaudeShimImportsAgents(rootDirectory),
     ...checkTodosIndexExists(rootDirectory, options),
     ...checkDomainDocsComplete(rootDirectory),
     ...checkBannedLongLivedPaths(rootDirectory),

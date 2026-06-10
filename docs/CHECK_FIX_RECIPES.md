@@ -95,14 +95,66 @@ of the system before touching shared behavior.
 major domains, and where deeper docs live. Keep historical decisions elsewhere
 unless they describe current structure.
 
-## docs-structure/canonical-glossary-exists
+## docs-structure/spec-contract-exists
 
-**What fired:** no canonical glossary was found.
+**What fired:** `docs/SPEC_CONTRACT.md` is missing, so task intake cannot know
+which acceptance criteria this repo can verify.
 
-**The fix:** add `docs/GLOSSARY.md`, or keep one existing convention such as
-`UBIQUITOUS_LANGUAGE.md` or `docs/reference/glossary.md`. Link it from
-`docs/INDEX.md`. Add only terms that prevent confusion or shorten repeated
-project-specific language.
+**The fix:** add `docs/SPEC_CONTRACT.md` with three sections: a _quality bar_
+(what a ready spec contains), a _proof menu_ table mapping change type →
+validation command → proof artifact, and _escalation boundaries_. Derive every
+proof-menu row from a validation command that exists and runs — never invent
+commands. Route to the file from the agent entry-point.
+
+## docs-structure/spec-contract-has-required-sections
+
+**What fired:** `docs/SPEC_CONTRACT.md` exists but lacks one of its required
+sections (quality bar, proof menu, escalation boundaries).
+
+**The fix:** add the missing sections. The proof menu is the load-bearing part:
+a contract without it cannot tell intake what this repo can prove.
+
+## docs-structure/engineering-docs-exist
+
+**What fired:** the repo opted into the Harness docs contract
+(`docsContract: true`) but is missing `docs/engineering/commands.md` or
+`docs/engineering/testing.md`.
+
+**The fix:** add the missing file. `commands.md` holds canonical
+install/dev/test/lint/build commands — run each one before documenting it.
+`testing.md` maps change type → required validation → proof, seeded from the
+spec-contract proof menu.
+
+## docs-structure/no-structure-md
+
+**What fired:** a root `STRUCTURE.md` exists as a parallel, non-canonical
+structure map.
+
+**The fix:** move durable structure information into `docs/ARCHITECTURE.md`,
+route to it from `docs/INDEX.md`, and delete `STRUCTURE.md`. A repo
+mid-migration can set `"harness-doctor/docs-structure/no-structure-md": "off"`
+in `doctor.config.*` until the move lands.
+
+## docs-structure/agents-md-within-byte-budget
+
+**What fired:** the combined size of every `AGENTS.md` in the repo exceeds
+32 KiB — Codex silently stops loading project docs past its
+`project_doc_max_bytes` budget, so guidance beyond the cap is dropped without
+warning.
+
+**The fix:** trim or consolidate `AGENTS.md` files. Keep each one a short map
+and move depth into `docs/` files that load on demand; nested `AGENTS.md`
+files must not restate the root.
+
+## docs-structure/claude-shim-imports-agents
+
+**What fired:** `CLAUDE.md` exists beside `AGENTS.md` but never imports it.
+Claude Code reads only `CLAUDE.md` while other agents read `AGENTS.md`, so two
+free-standing entry points drift into competing instructions.
+
+**The fix:** replace `CLAUDE.md`'s body with the single import line
+`@AGENTS.md` (Claude Code's import syntax). Keep `AGENTS.md` the one source of
+truth; a prose "see AGENTS.md" does not reliably load the file.
 
 ## docs-structure/single-canonical-glossary
 
@@ -137,8 +189,10 @@ committed as a long-lived repo default.
 **The fix:** remove the path, move durable knowledge into the smallest relevant
 doc, or keep generated scanner output and agent utility tooling outside the
 product repo. The default banned list includes `.agent/`, `scripts/agent/`,
-`.cursor/rules/`, `docs/adr/`, `docs/product-specs/`, `docs/exec-plans/`,
-`docs/references/vendor-docs/`, and `feature-registry.json`.
+`.cursor/rules/`, `docs/product-specs/`, `docs/exec-plans/`,
+`docs/references/vendor-docs/`, and `feature-registry.json`. (`docs/adr/` is
+deliberately not banned — an existing maintained ADR convention is preserved
+and linked from `docs/INDEX.md`.)
 
 ## docs-structure/markdown-link-target-exists
 
