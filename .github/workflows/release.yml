@@ -1,0 +1,62 @@
+name: Release
+
+# Automated npm releases via Changesets, authenticated with OIDC trusted
+# publishing — no npm token to store, leak, or rotate. The flow:
+#   1. Every change PR includes a changeset (`pnpm changeset`) describing the
+#      bump (patch/minor/major) and changelog entry.
+#   2. On merge to main, this workflow opens/updates a "Version Packages" PR
+#      that consumes the changesets, bumps versions, and writes CHANGELOGs.
+#   3. Merging that PR runs `changeset publish` here — publishing to npm and
+#      pushing the git tags. No manual `pnpm publish`, no OTP prompt.
+#
+# Auth: configure a Trusted Publisher for THIS workflow file (release.yml) on
+# npmjs.com for @andypai/harness-doctor — no NPM_TOKEN secret is needed. npm
+# mints a short-lived OIDC token per run and auto-generates provenance
+# attestations (the repo is public, so provenance is published).
+
+on:
+  push:
+    branches: [main]
+
+# One release run at a time so the Version Packages PR and a publish never race.
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write # push the "Version Packages" PR branch and git tags
+  pull-requests: write # open / update the "Version Packages" PR
+  id-token: write # mint the OIDC token for trusted publishing + provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # changesets needs full history for tags/changelog
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      # OIDC trusted publishing requires npm >= 11.5.1; the version bundled with
+      # Node can lag, so pin the latest before publishing.
+      - run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+
+      # Pending changesets on main → opens/updates the "Version Packages" PR
+      # (runs `pnpm run version` = `changeset version`). No changesets left
+      # (that PR was merged) → runs `pnpm run release` (build + dep audit +
+      # `changeset publish`) to publish unpublished versions and tag them.
+      - uses: changesets/action@v1
+        with:
+          version: pnpm run version
+          publish: pnpm run release
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
