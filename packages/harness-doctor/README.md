@@ -2,6 +2,10 @@
 
 Deterministic checks that keep your agent harness healthy.
 
+**[Website](https://abpai.github.io/harness-doctor/)** ·
+[npm](https://www.npmjs.com/package/@andypai/harness-doctor) ·
+[Docs](../../docs/README.md)
+
 A coding agent is only as good as the repository it works in. If conventions
 live in one developer's head, if there's no entry-point file, if the one that
 exists is a 600-line wall of text — every agent starts from zero and guesses.
