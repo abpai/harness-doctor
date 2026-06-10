@@ -16,6 +16,7 @@ could answer the question with `ls` and `wc -l`, it's a check. To add one, read
 | [Documentation index](./INDEX.md)                 | Top-level map for the repo docs.                                                                                         |
 | [Architecture](./ARCHITECTURE.md)                 | Current package map and scan flow.                                                                                       |
 | [Glossary](./GLOSSARY.md)                         | Canonical Harness Doctor terms.                                                                                          |
+| [Tooling](./TOOLING.md)                           | Local and CI command entry points, plus Vite Plus configuration notes.                                                   |
 | [How to write a check](./HOW_TO_WRITE_A_CHECK.md) | Authoring a structural check that reads files off disk and emits diagnostics. Worked example: the docs-structure checks. |
 | [Check fix recipes](./CHECK_FIX_RECIPES.md)       | The longer-form remediation an agent follows when a structural check fires — one recipe per finding.                     |
 | [Todo specs](./todos/INDEX.md)                    | Durable follow-up queue.                                                                                                 |
