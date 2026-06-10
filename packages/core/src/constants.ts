@@ -172,7 +172,7 @@ export const STAGED_FILES_PROJECT_CONFIG_FILENAMES = [
   ".oxlintrc.json",
 ] as const;
 
-export const CANONICAL_GITHUB_URL = "https://github.com/millionco/harness-doctor";
+export const CANONICAL_GITHUB_URL = "https://github.com/abpai/harness-doctor";
 
 export const CANONICAL_DISCORD_URL = "https://harness.doctor/discord";
 
@@ -266,6 +266,86 @@ export const ENTRY_POINT_MIN_DOCS_LINKS = 1;
 // on demand. Set above ENTRY_POINT_MAX_LINES because a system-of-record
 // doc legitimately carries more depth than the top-level map.
 export const MONOLITHIC_DOC_MAX_LINES = 400;
+
+// Deterministic Harness docs-contract files. These stay deliberately
+// structural: the scanner checks whether the routes exist, not whether their
+// prose is wise.
+export const DOCS_INDEX_FILENAME = "INDEX.md";
+
+export const DOCS_ARCHITECTURE_FILENAME = "ARCHITECTURE.md";
+
+// The spec contract: what a good SPEC.md looks like for this repo, so
+// task intake produces specs the repo can verify. The scanner checks the
+// route and section shape exist; whether the proof menu is wise stays a
+// semantic judgment for the harness skill.
+export const DOCS_SPEC_CONTRACT_FILENAME = "SPEC_CONTRACT.md";
+
+// Heading names (lowercased) a spec contract must carry to be consumable
+// by task intake: the generic quality bar, the change-type → validation
+// proof menu, and the escalation boundaries.
+export const SPEC_CONTRACT_REQUIRED_SECTIONS = [
+  "quality bar",
+  "proof menu",
+  "escalation boundaries",
+] as const;
+
+// Engineering core docs the strict docs contract expects: canonical
+// commands (validated by running them) and the change-type → validation
+// map. Only enforced when `docsContract: true` — outside the contract,
+// commands may legitimately live in README or the proof menu.
+export const ENGINEERING_REQUIRED_DOC_PATHS = [
+  "docs/engineering/commands.md",
+  "docs/engineering/testing.md",
+] as const;
+
+// Non-canonical structure-map filename. The contract route is
+// docs/ARCHITECTURE.md linked from docs/INDEX.md; a parallel root map
+// drifts. Repos mid-migration disable `docs-structure/no-structure-md`.
+export const STRUCTURE_MD_FILENAME = "STRUCTURE.md";
+
+// Codex concatenates every AGENTS.md (root → leaf) and silently stops
+// adding files once the combined size reaches `project_doc_max_bytes`
+// (32 KiB by default) — guidance beyond the cap is dropped without
+// warning, so the combined corpus must stay under it.
+export const COMBINED_AGENTS_MD_MAX_BYTES = 32 * 1024;
+
+export const CANONICAL_GLOSSARY_FILENAMES = [
+  "docs/GLOSSARY.md",
+  "UBIQUITOUS_LANGUAGE.md",
+  "docs/reference/glossary.md",
+] as const;
+
+export const DOMAIN_DOC_REQUIRED_FILENAMES = [
+  "INDEX.md",
+  "code-map.md",
+  "invariants.md",
+  "test-map.md",
+] as const;
+
+// Sections a todo spec must carry to be pick-up-ready. `label` is the
+// canonical name used in diagnostics; `aliases` are the lowercased heading
+// names accepted as carrying that section.
+export const TODO_SPEC_REQUIRED_SECTIONS = [
+  { label: "Status", aliases: ["status"] },
+  { label: "Scope", aliases: ["scope"] },
+  { label: "Start here", aliases: ["start here", "start points"] },
+  { label: "Invariants", aliases: ["invariants", "invariant"] },
+  { label: "Validation", aliases: ["validation"] },
+  { label: "Close when", aliases: ["close when", "close condition", "done when"] },
+] as const;
+
+// `docs/adr` is deliberately NOT banned: an existing maintained ADR
+// convention is a legitimate architecture-history home the docs contract
+// says to preserve and link from docs/INDEX.md.
+export const BANNED_LONG_LIVED_HARNESS_PATHS = [
+  ".agent",
+  "scripts/agent",
+  ".cursor/rules",
+  "docs/product-specs",
+  "docs/exec-plans",
+  "docs/references/vendor-docs",
+  "feature-registry.json",
+] as const;
 
 // The closed set of user-facing diagnostic categories. Every rule
 // (collapsed at codegen via `CATEGORY_BUCKET` in

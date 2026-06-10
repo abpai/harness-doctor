@@ -137,9 +137,7 @@ export const inspect = async (
   // When the caller pre-loaded a config (CLI's `inspectAction` does
   // this so it can render the rootDir-redirect hint before the scan
   // starts), use it verbatim. Otherwise, run the canonical scan-target
-  // resolver: load the on-disk config, honor `rootDir`, and walk
-  // into a nested React subproject if the requested directory itself
-  // lacks a package.json.
+  // resolver: load the on-disk config and honor `rootDir`.
   let scanDirectory: string;
   let userConfig: HarnessDoctorConfig | null;
   // Source directory of the config file that supplied `userConfig`,
@@ -319,7 +317,7 @@ const runInspectWithRuntime = async (
       runConsole(
         Console.log(
           highlighter.gray(
-            `  Upgrade to Node ${OXLINT_NODE_REQUIREMENT} or run: npx -p oxlint@latest harness-doctor@latest`,
+            `  Upgrade to Node ${OXLINT_NODE_REQUIREMENT} or run: npx -p oxlint@latest @andypai/harness-doctor@latest`,
           ),
         ),
       );
@@ -544,7 +542,7 @@ const finalizeAndRender = (input: FinalizeInput): Effect.Effect<InspectResult> =
     if (demotedDiagnosticCount > 0) {
       yield* Console.log(
         highlighter.gray(
-          `  ${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface (e.g. design cleanup) — run \`npx harness-doctor@latest .\` locally for the full list.`,
+          `  ${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface (e.g. design cleanup) — run \`npx @andypai/harness-doctor@latest .\` locally for the full list.`,
         ),
       );
       yield* Console.log("");

@@ -62,7 +62,7 @@ export default defineConfig({
     {
       entry: { cli: "./src/cli/index.ts" },
       deps: {
-        // Inline pure-JS CLI deps so `npm i harness-doctor` skips
+        // Inline pure-JS CLI deps so `npm i @andypai/harness-doctor` skips
         // ~15 transitive installs (commander, ora, and ora's spinner
         // / cursor / log-symbols / string-width chain). Native
         // (oxlint), the lint plugin, prompts (we monkey-patch it via

@@ -62,7 +62,7 @@ const installDependencyForTest: NonNullable<
       !Array.isArray(packageJson.devDependencies)
         ? packageJson.devDependencies
         : {}),
-      "harness-doctor": "latest",
+      "@andypai/harness-doctor": "latest",
     },
   });
 };
@@ -268,10 +268,10 @@ describe("runInstallHarnessDoctor", () => {
 
     expect(readFixturePackageJson(fixture.projectRoot).scripts).toEqual({
       test: "vite-plus test",
-      doctor: "npx harness-doctor@latest",
+      doctor: "npx @andypai/harness-doctor@latest",
     });
     expect(readFixturePackageJson(fixture.projectRoot).devDependencies).toEqual({
-      "harness-doctor": "latest",
+      "@andypai/harness-doctor": "latest",
     });
   });
 
@@ -293,7 +293,7 @@ describe("runInstallHarnessDoctor", () => {
     expect(dependencyInstallCalls).toEqual([
       {
         command: "pnpm",
-        args: ["add", "--save-dev", "harness-doctor@latest"],
+        args: ["add", "--save-dev", "@andypai/harness-doctor@latest"],
         cwd: fixture.projectRoot,
       },
     ]);
@@ -321,12 +321,12 @@ describe("runInstallHarnessDoctor", () => {
     expect(dependencyInstallCalls).toEqual([
       {
         command: "npm",
-        args: ["install", "--save-dev", "harness-doctor@latest"],
+        args: ["install", "--save-dev", "@andypai/harness-doctor@latest"],
         cwd: fixture.projectRoot,
       },
     ]);
     expect(readFixturePackageJson(fixture.projectRoot).scripts).toEqual({
-      doctor: "npx harness-doctor@latest",
+      doctor: "npx @andypai/harness-doctor@latest",
     });
     expect(readFixturePackageJson(fixture.projectRoot)).not.toHaveProperty("devDependencies");
   });
@@ -351,7 +351,7 @@ describe("runInstallHarnessDoctor", () => {
 
     expect(process.exitCode).toBe(0);
     expect(readFixturePackageJson(fixture.projectRoot).scripts).toEqual({
-      doctor: "npx harness-doctor@latest",
+      doctor: "npx @andypai/harness-doctor@latest",
     });
     expect(readFixturePackageJson(fixture.projectRoot)).not.toHaveProperty("devDependencies");
   });
@@ -380,7 +380,7 @@ describe("runInstallHarnessDoctor", () => {
     expect(dependencyInstallCalls).toEqual([
       {
         command: "pnpm",
-        args: ["add", "--save-dev", "-w", "harness-doctor@latest"],
+        args: ["add", "--save-dev", "-w", "@andypai/harness-doctor@latest"],
         cwd: appDirectory,
       },
     ]);
@@ -419,7 +419,7 @@ describe("runInstallHarnessDoctor", () => {
     });
 
     expect(readFixturePackageJson(fixture.projectRoot).scripts).toEqual({
-      doctor: "npx harness-doctor@latest",
+      doctor: "npx @andypai/harness-doctor@latest",
     });
     expect(
       existsSync(path.join(fixture.projectRoot, ".agents/skills/harness-doctor/SKILL.md")),
@@ -447,7 +447,7 @@ describe("runInstallHarnessDoctor", () => {
       doctor: "pnpm harness-doctor --verbose",
     });
     expect(readFixturePackageJson(fixture.projectRoot).devDependencies).toEqual({
-      "harness-doctor": "latest",
+      "@andypai/harness-doctor": "latest",
     });
   });
 
@@ -469,10 +469,10 @@ describe("runInstallHarnessDoctor", () => {
 
     expect(readFixturePackageJson(fixture.projectRoot).scripts).toEqual({
       doctor: "vitest --run",
-      "harness-doctor": "npx harness-doctor@latest",
+      "harness-doctor": "npx @andypai/harness-doctor@latest",
     });
     expect(readFixturePackageJson(fixture.projectRoot).devDependencies).toEqual({
-      "harness-doctor": "latest",
+      "@andypai/harness-doctor": "latest",
     });
   });
 
@@ -480,7 +480,7 @@ describe("runInstallHarnessDoctor", () => {
     writeValidSkill(fixture.sourceDir);
     writePackageJson(fixture.projectRoot, {
       devDependencies: {
-        "harness-doctor": "^1.2.3",
+        "@andypai/harness-doctor": "^1.2.3",
       },
       scripts: {},
     });
@@ -494,10 +494,10 @@ describe("runInstallHarnessDoctor", () => {
     });
 
     expect(readFixturePackageJson(fixture.projectRoot).scripts).toEqual({
-      doctor: "npx harness-doctor@latest",
+      doctor: "npx @andypai/harness-doctor@latest",
     });
     expect(readFixturePackageJson(fixture.projectRoot).devDependencies).toEqual({
-      "harness-doctor": "^1.2.3",
+      "@andypai/harness-doctor": "^1.2.3",
     });
   });
 
@@ -648,7 +648,7 @@ describe("runInstallHarnessDoctor", () => {
     expect(workflowContent).toContain("pull-requests: write");
     expect(workflowContent).toContain("issues: write");
     expect(workflowContent).toContain("actions/checkout@v5");
-    expect(workflowContent).toContain("millionco/harness-doctor@main");
+    expect(workflowContent).toContain("abpai/harness-doctor@main");
     expect(workflowContent).not.toContain("github-token");
     expect(workflowContent).not.toContain("diff: main");
   });
@@ -686,7 +686,7 @@ describe("runInstallHarnessDoctor", () => {
 
     expect(existsSync(hookPath)).toBe(false);
     expect(existsSync(path.join(fixture.projectRoot, ".cursor/hooks.json"))).toBe(false);
-    expect(readFileSync(workflowPath, "utf8")).toContain("millionco/harness-doctor@main");
+    expect(readFileSync(workflowPath, "utf8")).toContain("abpai/harness-doctor@main");
   });
 
   it("--yes does not install native agent hooks unless --agent-hooks is set", async () => {

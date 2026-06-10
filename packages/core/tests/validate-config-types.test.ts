@@ -19,6 +19,7 @@ describe("validateConfigTypes", () => {
   it("passes through proper boolean values untouched", () => {
     const input: HarnessDoctorConfig = {
       lint: true,
+      docsContract: true,
       verbose: true,
       noScore: true,
       respectInlineDisables: false,
@@ -44,6 +45,14 @@ describe("validateConfigTypes", () => {
         .adoptExistingLintConfig,
     ).toBe(false);
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("adoptExistingLintConfig"));
+  });
+
+  it("passes through docsContract and coerces stringy variants", () => {
+    expect(validateConfigTypes({ docsContract: true }).docsContract).toBe(true);
+    expect(validateConfigTypes({ docsContract: "false" as unknown as boolean }).docsContract).toBe(
+      false,
+    );
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("docsContract"));
   });
 
   it('coerces the string `"false"` to boolean false and writes to stderr', () => {

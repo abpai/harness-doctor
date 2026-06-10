@@ -1,5 +1,5 @@
 {
-  "name": "harness-doctor",
+  "name": "@andypai/harness-doctor",
   "version": "0.2.18",
   "description": "Diagnose and fix React codebases for security, performance, correctness, accessibility, bundle-size, and architecture issues",
   "keywords": [
@@ -16,15 +16,15 @@
     "tanstack",
     "typescript"
   ],
-  "homepage": "https://github.com/millionco/harness-doctor#readme",
+  "homepage": "https://github.com/abpai/harness-doctor#readme",
   "bugs": {
-    "url": "https://github.com/millionco/harness-doctor/issues"
+    "url": "https://github.com/abpai/harness-doctor/issues"
   },
   "license": "MIT",
   "author": "Aiden Bai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/millionco/harness-doctor.git",
+    "url": "https://github.com/abpai/harness-doctor.git",
     "directory": "packages/harness-doctor"
   },
   "bin": {
@@ -47,6 +47,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "vp pack --watch",

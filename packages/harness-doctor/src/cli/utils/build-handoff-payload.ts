@@ -56,7 +56,7 @@ export const buildHandoffPayload = (input: HandoffPayloadInput): string => {
   lines.push(
     "Read each file and fix the root cause — don't suppress or silence the rule.",
     "",
-    "Verify against the real thing, don't assume: confirm each change matches the canonical fix recipe you fetched for that rule, then re-run `npx harness-doctor@latest --verbose` and check the issue is actually gone against the real tool before moving on.",
+    "Verify against the real thing, don't assume: confirm each change matches the canonical fix recipe you fetched for that rule, then re-run `npx @andypai/harness-doctor@latest --verbose` and check the issue is actually gone against the real tool before moving on.",
     "",
     'Teach me as you go: for every issue you touch, explain it in plain language (no jargon) — what the problem is, why it\'s a problem, and how serious it is in human terms. Describe the real-world impact and severity concretely (e.g. "this crashes the page for users on Safari" vs. "this is a minor cleanup with no user impact") so I understand why it matters, not just what changed.',
     "",

@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { PackageJsonNotFoundError } from "./errors.js";
+import { ProjectNotFoundError } from "./errors.js";
 import type { ProjectInfo } from "../types/index.js";
+import { isDirectory } from "./utils/is-directory.js";
 import { isFile } from "./utils/is-file.js";
 import { countSourceFiles } from "./count-source-files.js";
 import { detectReactCompiler } from "./detect-react-compiler.js";
@@ -42,10 +43,33 @@ export const clearProjectCache = (): void => {
 export const discoverProject = (directory: string): ProjectInfo => {
   const cached = cachedProjectInfos.get(directory);
   if (cached !== undefined) return cached;
+  if (!isDirectory(directory)) {
+    throw new ProjectNotFoundError(directory, { kind: "missing-path" });
+  }
 
   const packageJsonPath = path.join(directory, "package.json");
   if (!isFile(packageJsonPath)) {
-    throw new PackageJsonNotFoundError(directory);
+    const projectInfo: ProjectInfo = {
+      rootDirectory: directory,
+      projectName: path.basename(directory),
+      reactVersion: null,
+      reactMajorVersion: null,
+      tailwindVersion: null,
+      zodVersion: null,
+      zodMajorVersion: null,
+      framework: "unknown",
+      hasTypeScript: fs.existsSync(path.join(directory, "tsconfig.json")),
+      hasReactCompiler: false,
+      hasTanStackQuery: false,
+      preactVersion: null,
+      preactMajorVersion: null,
+      hasReactNativeWorkspace: false,
+      expoVersion: null,
+      hasReanimated: false,
+      sourceFileCount: countSourceFiles(directory),
+    };
+    cachedProjectInfos.set(directory, projectInfo);
+    return projectInfo;
   }
 
   const packageJson = readPackageJson(packageJsonPath);

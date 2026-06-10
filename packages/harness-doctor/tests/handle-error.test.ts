@@ -39,7 +39,7 @@ describe("handleError", () => {
     const body = issueUrl.searchParams.get("body") ?? "";
 
     expect(issueUrl.origin + issueUrl.pathname).toBe(
-      "https://github.com/millionco/harness-doctor/issues/new",
+      "https://github.com/abpai/harness-doctor/issues/new",
     );
     expect(issueUrl.searchParams.get("title")).toBe("CLI error: boom");
     expect(issueUrl.searchParams.get("labels")).toBe("bug");

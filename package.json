@@ -1,19 +1,19 @@
 {
   "name": "harness-doctor",
   "private": true,
-  "homepage": "https://github.com/millionco/harness-doctor#readme",
+  "homepage": "https://github.com/abpai/harness-doctor#readme",
   "bugs": {
-    "url": "https://github.com/millionco/harness-doctor/issues"
+    "url": "https://github.com/abpai/harness-doctor/issues"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/millionco/harness-doctor.git"
+    "url": "https://github.com/abpai/harness-doctor.git"
   },
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev --filter=harness-doctor",
+    "dev": "turbo run dev --filter=@andypai/harness-doctor",
     "build": "turbo run build",
-    "test": "turbo run test --filter=harness-doctor --filter=@harness-doctor/core --filter=@harness-doctor/api",
+    "test": "turbo run test --filter=@andypai/harness-doctor --filter=@harness-doctor/core --filter=@harness-doctor/api",
     "typecheck": "turbo run typecheck",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",

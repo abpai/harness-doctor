@@ -103,7 +103,7 @@ describe("GitHub Action contract", () => {
     expect(scanStep).toContain(
       'npm exec --yes --package "$PACKAGE_SPEC" -- harness-doctor "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"',
     );
-    expect(scanStep).toContain('PACKAGE_SPEC="harness-doctor@$INPUT_VERSION"');
+    expect(scanStep).toContain('PACKAGE_SPEC="@andypai/harness-doctor@$INPUT_VERSION"');
     expect(scanStep).toContain("SCAN_STATUS=$?");
     expect(scanStep).toContain("scripts/ensure-json-report.mjs");
     expect(readActionYaml()).not.toContain("--score");

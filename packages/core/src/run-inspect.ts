@@ -309,7 +309,12 @@ export const runInspect = <HooksR = never>(
     // ── Phase: environment checks ──────────────────────────────────
     const environmentDiagnostics: ReadonlyArray<Diagnostic> = isDiffMode
       ? []
-      : [...checkPnpmHardening(scanDirectory), ...checkDocsStructure(scanDirectory)];
+      : [
+          ...checkPnpmHardening(scanDirectory),
+          ...checkDocsStructure(scanDirectory, {
+            docsContract: resolvedConfig.config?.docsContract === true,
+          }),
+        ];
     const envCollected = yield* Stream.runCollect(
       applyPerElementPipeline(Stream.fromIterable(environmentDiagnostics)),
     );

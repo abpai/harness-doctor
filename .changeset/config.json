@@ -1,11 +1,13 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.1.2/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "millionco/harness-doctor" }],
+  "changelog": ["@changesets/changelog-github", { "repo": "abpai/harness-doctor" }],
   "commit": false,
-  "fixed": [["harness-doctor", "eslint-plugin-harness-doctor", "oxlint-plugin-harness-doctor"]],
+  "fixed": [
+    ["@andypai/harness-doctor", "eslint-plugin-harness-doctor", "oxlint-plugin-harness-doctor"]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["website"]
+  "ignore": []
 }

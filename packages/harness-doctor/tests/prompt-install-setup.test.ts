@@ -307,7 +307,7 @@ describe("shouldShowAgentInstallHint", () => {
 
   it("returns false when the fallback harness-doctor script exists", () => {
     writePackageJson(fixture.projectRoot, {
-      scripts: { doctor: "vitest", "harness-doctor": "npx harness-doctor@latest" },
+      scripts: { doctor: "vitest", "harness-doctor": "npx @andypai/harness-doctor@latest" },
     });
 
     expect(
@@ -351,7 +351,7 @@ describe("printAgentInstallHint", () => {
     });
     const output = writtenLines.join("\n");
 
-    expect(output).toContain("npx harness-doctor install --yes");
+    expect(output).toContain("npx @andypai/harness-doctor install --yes");
     expect(output).toContain("not installed");
     expect(output).toContain("Ask the user");
   });
@@ -359,7 +359,9 @@ describe("printAgentInstallHint", () => {
   it("AGENT_INSTALL_HINT_LINES contains the install command", () => {
     expect(AGENT_INSTALL_HINT_LINES.length).toBeGreaterThan(0);
     expect(
-      AGENT_INSTALL_HINT_LINES.some((line) => line.includes("npx harness-doctor install --yes")),
+      AGENT_INSTALL_HINT_LINES.some((line) =>
+        line.includes("npx @andypai/harness-doctor install --yes"),
+      ),
     ).toBe(true);
   });
 });

@@ -1,3 +1,3 @@
 # Sample
 
-Map. See docs/guide.md.
+Map. See docs/INDEX.md.

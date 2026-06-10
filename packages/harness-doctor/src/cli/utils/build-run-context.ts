@@ -27,7 +27,7 @@ export interface RunContext {
   jsonMode: boolean;
   // Package-manager / runner the CLI was launched through (npm, pnpm, yarn,
   // bun, or "unknown"), derived from `npm_config_user_agent`. Distinguishes
-  // `npx harness-doctor` (npm) from `pnpm dlx` / global installs in triage.
+  // `npx @andypai/harness-doctor` (npm) from `pnpm dlx` / global installs in triage.
   invokedVia: string;
 }
 

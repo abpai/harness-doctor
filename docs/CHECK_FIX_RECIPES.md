@@ -12,7 +12,7 @@ repository explains itself, so the repair happens in its docs.
 
 ## The idea behind docs-structure
 
-All five docs-structure checks enforce a single principle: **progressive
+The docs-structure checks enforce a single principle: **progressive
 disclosure**. An agent should be routed to the one document it needs, not handed
 a monolith to re-read from the top every time.
 
@@ -61,9 +61,9 @@ of record both exist, but nothing connects them, so an agent reading the
 entry-point never learns the depth is there.
 
 **The fix:** add at least `ENTRY_POINT_MIN_DOCS_LINKS` reference from the
-entry-point into `docs/`. A markdown link (`See [the guide](docs/guide.md)`) or
-a bare relative path (`docs/guide.md`) both count. Point at the documents an
-agent will reach for most.
+entry-point into `docs/`. A markdown link to a real docs file or a bare relative
+path such as `docs/INDEX.md` both count. Point at the documents an agent will
+reach for most.
 
 ## docs-structure/no-monolithic-instruction-file
 
@@ -76,6 +76,140 @@ to prevent.
 one at a time, and cross-link them. A 600-line `docs/GUIDE.md` becomes
 `docs/guide/setup.md`, `docs/guide/testing.md`, and so on — or a few flat files,
 whatever keeps each one under the threshold.
+
+## docs-structure/docs-index-exists
+
+**What fired:** `docs/` exists but has no `INDEX.md`, so there is no stable table
+of contents.
+
+**The fix:** add `docs/INDEX.md` and link to the major docs areas that actually
+exist: architecture, glossary, engineering, design, todos, and domains. Keep it
+as a route map, not a second manual.
+
+## docs-structure/architecture-map-exists
+
+**What fired:** `docs/ARCHITECTURE.md` is missing. Agents need one current map
+of the system before touching shared behavior.
+
+**The fix:** add a compact architecture map that names package boundaries,
+major domains, and where deeper docs live. Keep historical decisions elsewhere
+unless they describe current structure.
+
+## docs-structure/spec-contract-exists
+
+**What fired:** `docs/SPEC_CONTRACT.md` is missing, so task intake cannot know
+which acceptance criteria this repo can verify.
+
+**The fix:** add `docs/SPEC_CONTRACT.md` with three sections: a _quality bar_
+(what a ready spec contains), a _proof menu_ table mapping change type →
+validation command → proof artifact, and _escalation boundaries_. Derive every
+proof-menu row from a validation command that exists and runs — never invent
+commands. Route to the file from the agent entry-point.
+
+## docs-structure/spec-contract-has-required-sections
+
+**What fired:** `docs/SPEC_CONTRACT.md` exists but lacks one of its required
+sections (quality bar, proof menu, escalation boundaries).
+
+**The fix:** add the missing sections. The proof menu is the load-bearing part:
+a contract without it cannot tell intake what this repo can prove.
+
+## docs-structure/engineering-docs-exist
+
+**What fired:** the repo opted into the Harness docs contract
+(`docsContract: true`) but is missing `docs/engineering/commands.md` or
+`docs/engineering/testing.md`.
+
+**The fix:** add the missing file. `commands.md` holds canonical
+install/dev/test/lint/build commands — run each one before documenting it.
+`testing.md` maps change type → required validation → proof, seeded from the
+spec-contract proof menu.
+
+## docs-structure/no-structure-md
+
+**What fired:** a root `STRUCTURE.md` exists as a parallel, non-canonical
+structure map.
+
+**The fix:** move durable structure information into `docs/ARCHITECTURE.md`,
+route to it from `docs/INDEX.md`, and delete `STRUCTURE.md`. A repo
+mid-migration can set `"harness-doctor/docs-structure/no-structure-md": "off"`
+in `doctor.config.*` until the move lands.
+
+## docs-structure/agents-md-within-byte-budget
+
+**What fired:** the combined size of every `AGENTS.md` in the repo exceeds
+32 KiB — Codex silently stops loading project docs past its
+`project_doc_max_bytes` budget, so guidance beyond the cap is dropped without
+warning.
+
+**The fix:** trim or consolidate `AGENTS.md` files. Keep each one a short map
+and move depth into `docs/` files that load on demand; nested `AGENTS.md`
+files must not restate the root.
+
+## docs-structure/claude-shim-imports-agents
+
+**What fired:** `CLAUDE.md` exists beside `AGENTS.md` but never imports it.
+Claude Code reads only `CLAUDE.md` while other agents read `AGENTS.md`, so two
+free-standing entry points drift into competing instructions.
+
+**The fix:** replace `CLAUDE.md`'s body with the single import line
+`@AGENTS.md` (Claude Code's import syntax). Keep `AGENTS.md` the one source of
+truth; a prose "see AGENTS.md" does not reliably load the file.
+
+## docs-structure/single-canonical-glossary
+
+**What fired:** more than one canonical glossary candidate exists.
+
+**The fix:** choose one vocabulary file as the source of truth. Turn the others
+into links to it or remove them after moving any unique terms across.
+
+## docs-structure/todos-index-exists
+
+**What fired:** the repo opted into the Harness docs contract, or already has
+`docs/todos/`, but the todo-spec index is missing.
+
+**The fix:** add `docs/todos/INDEX.md` with a table of open durable follow-up
+specs. If the repo intentionally does not keep durable todo specs, remove the
+empty `docs/todos/` directory or leave `docsContract` unset/false.
+
+## docs-structure/domain-docs-complete
+
+**What fired:** a `docs/domains/<domain>/` folder is missing one of the required
+files: `INDEX.md`, `code-map.md`, `invariants.md`, or `test-map.md`.
+
+**The fix:** add the missing files. Keep them boring and consistent: ownership
+in `INDEX.md`, task-to-code routes in `code-map.md`, current constraints in
+`invariants.md`, and validation paths in `test-map.md`.
+
+## docs-structure/no-banned-long-lived-path
+
+**What fired:** a path reserved for temporary or external harness material is
+committed as a long-lived repo default.
+
+**The fix:** remove the path, move durable knowledge into the smallest relevant
+doc, or keep generated scanner output and agent utility tooling outside the
+product repo. The default banned list includes `.agent/`, `scripts/agent/`,
+`.cursor/rules/`, `docs/product-specs/`, `docs/exec-plans/`,
+`docs/references/vendor-docs/`, and `feature-registry.json`. (`docs/adr/` is
+deliberately not banned — an existing maintained ADR convention is preserved
+and linked from `docs/INDEX.md`.)
+
+## docs-structure/markdown-link-target-exists
+
+**What fired:** a markdown link points to a local file or directory that does
+not exist.
+
+**The fix:** update the link to the current repo path, create the missing target
+if it is a real route, or remove the stale reference.
+
+## docs-structure/todo-spec-has-required-sections
+
+**What fired:** a durable todo spec under `docs/todos/` lacks the sections that
+make it pick-up-ready for the next agent.
+
+**The fix:** add status, scope, start points, invariants, validation, and close
+condition sections. If the note cannot name those, it probably belongs in an
+issue, PR note, or branch-local scratch file instead of `docs/todos/`.
 
 ## Tuning, or turning a check off
 

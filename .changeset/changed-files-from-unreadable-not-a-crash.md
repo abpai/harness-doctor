@@ -1,5 +1,5 @@
 ---
-"harness-doctor": patch
+"@andypai/harness-doctor": patch
 ---
 
 harness-doctor no longer crashes when the `--changed-files-from` file can't be read.

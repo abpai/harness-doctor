@@ -1,5 +1,5 @@
 ---
-"harness-doctor": patch
+"@andypai/harness-doctor": patch
 ---
 
 harness-doctor no longer crashes when a directory can't be enumerated during project discovery.

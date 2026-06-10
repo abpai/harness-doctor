@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -50,6 +53,28 @@ describe("Project.layerOf", () => {
 });
 
 describe("Project.layerNode", () => {
+  it("discovers a docs-only repo without a package.json", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-docs-only-"));
+    try {
+      fs.writeFileSync(path.join(directory, "AGENTS.md"), "# Agent guide\n");
+      const result = await Effect.runPromise(
+        Effect.gen(function* () {
+          const project = yield* Project;
+          return yield* project.discover(directory);
+        }).pipe(Effect.provide(Project.layerNode)),
+      );
+      expect(result).toMatchObject({
+        rootDirectory: directory,
+        projectName: path.basename(directory),
+        framework: "unknown",
+        reactVersion: null,
+        sourceFileCount: 0,
+      });
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("translates a missing project directory into a tagged HarnessDoctorError", async () => {
     const exit = await Effect.runPromise(
       Effect.gen(function* () {

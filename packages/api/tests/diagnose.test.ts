@@ -51,10 +51,18 @@ describe("diagnose", () => {
     expect(Array.isArray(result.diagnostics)).toBe(true);
   });
 
-  it("throws ProjectNotFoundError when the directory has no package.json and no React subprojects", async () => {
+  it("diagnoses a docs-only directory without a package.json", async () => {
     const emptyDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "rdc-empty-"));
     try {
-      await expect(diagnose(emptyDirectory, { lint: false })).rejects.toThrow(ProjectNotFoundError);
+      const result = await diagnose(emptyDirectory, { lint: false, deadCode: false });
+      expect(result.project).toMatchObject({
+        rootDirectory: emptyDirectory,
+        framework: "unknown",
+        reactVersion: null,
+      });
+      expect(result.diagnostics.map((diagnostic) => diagnostic.rule)).toContain(
+        "docs-structure/entry-point-exists",
+      );
     } finally {
       fs.rmSync(emptyDirectory, { recursive: true, force: true });
     }
@@ -178,7 +186,8 @@ describe("diagnoseProjects", () => {
   });
 
   it("collects failing projects with ok: false without aborting the batch", async () => {
-    const missingProjectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "rdc-api-missing-"));
+    const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "rdc-api-missing-"));
+    const missingProjectDirectory = path.join(tempDirectory, "does-not-exist");
     try {
       const result = await diagnoseProjects({
         projects: [
@@ -196,9 +205,9 @@ describe("diagnoseProjects", () => {
       expect(succeeded[0].ok && succeeded[0].project.projectName).toBe("test-basic-react");
       expect(failed).toHaveLength(1);
       expect(failed[0].directory).toBe(missingProjectDirectory);
-      expect(!failed[0].ok && failed[0].error).toBeInstanceOf(Error);
+      expect(!failed[0].ok && failed[0].error).toBeInstanceOf(ProjectNotFoundError);
     } finally {
-      fs.rmSync(missingProjectDirectory, { recursive: true, force: true });
+      fs.rmSync(tempDirectory, { recursive: true, force: true });
     }
   });
 
