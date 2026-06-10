@@ -75,7 +75,7 @@ export const DOCS_URL = "https://harness.doctor/docs";
 // live under `https://www.harness.doctor/prompts/rules/<plugin>/<rule>.md`.
 export const DOCS_RULES_BASE_URL = `${DOCS_URL}/rules`;
 
-// Canonical JSON Schema for `doctor.config.json`. Stamped as the
+// Canonical JSON Schema for `harness.config.json`. Stamped as the
 // `$schema` field when the rule-config CLI creates a config file so
 // editors get autocomplete + hover docs (matches the README guidance).
 export const CONFIG_SCHEMA_URL = "https://harness.doctor/schema/config.json";
@@ -99,14 +99,14 @@ export const STAGED_FILES_PROJECT_CONFIG_FILENAMES = [
   "tsconfig.json",
   "tsconfig.base.json",
   "package.json",
-  "doctor.config.ts",
-  "doctor.config.mts",
-  "doctor.config.cts",
-  "doctor.config.js",
-  "doctor.config.mjs",
-  "doctor.config.cjs",
-  "doctor.config.json",
-  "doctor.config.jsonc",
+  "harness.config.ts",
+  "harness.config.mts",
+  "harness.config.cts",
+  "harness.config.js",
+  "harness.config.mjs",
+  "harness.config.cjs",
+  "harness.config.json",
+  "harness.config.jsonc",
 ] as const;
 
 export const CANONICAL_GITHUB_URL = "https://github.com/abpai/harness-doctor";
@@ -324,7 +324,7 @@ export const MAX_GLOB_PATTERN_WILDCARD_COUNT = 24;
 
 // `Config.layerNode` caches resolved configs per directory so the CLI's
 // repeated `inspect()` calls (one per project in a monorepo loop) don't
-// reload the same `harness-doctor.config.json` each time. Capacity bounds
+// reload the same `harness.config.*` each time. Capacity bounds
 // memory on monorepos with hundreds of workspace packages; TTL handles
 // long-running consumers (watch-mode tools, language servers).
 export const CONFIG_CACHE_CAPACITY = 16;

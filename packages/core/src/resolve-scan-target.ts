@@ -20,7 +20,7 @@ export interface ResolvedScanTarget {
   /** The loaded user config, or `null` when no config file was found. */
   readonly userConfig: HarnessDoctorConfig | null;
   /**
-   * Directory of the `harness-doctor.config.json` / `package.json` that
+   * Directory of the `harness.config.*` / `package.json` that
    * supplied `userConfig`. `null` when no config was loaded. Used as
    * the resolution base for `userConfig.plugins` entries.
    */
@@ -38,7 +38,7 @@ export interface ResolvedScanTarget {
  * (`inspect()`, `diagnose()`, and the CLI's `inspectAction`):
  *
  *   1. Resolve the requested directory to absolute.
- *   2. Load `doctor.config.*` / `package.json#harnessDoctor` if present.
+ *   2. Load `harness.config.*` / `package.json#harnessDoctor` if present.
  *   3. Honor `config.rootDir` to redirect the scan to a nested
  *      project root, if configured.
  *

@@ -4,11 +4,11 @@ import type { LegacyConfigLocation } from "@harness-doctor/core";
 import { readObjectFile } from "./read-object-file.js";
 import { serializeTsObjectLiteral } from "./serialize-ts-object-literal.js";
 
-const MIGRATED_CONFIG_FILENAME = "doctor.config.ts";
+const MIGRATED_CONFIG_FILENAME = "harness.config.ts";
 
 /**
- * Renames a pre-migration `harness-doctor.config.json` to a typed
- * `doctor.config.ts`, preserving the user's settings as the default export.
+ * Renames a pre-migration `doctor.config.json` to a typed
+ * `harness.config.ts`, preserving the user's settings as the default export.
  * `$schema` is dropped — the `HarnessDoctorConfig` type supersedes it for
  * editor autocomplete. Returns the new file's absolute path, or `null` when
  * the legacy file can't be parsed as an object (left untouched so the user

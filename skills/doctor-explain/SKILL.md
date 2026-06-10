@@ -1,12 +1,12 @@
 ---
 name: doctor-explain
-description: Explain Harness Doctor rules and configure which ones run via doctor.config.* (or package.json#harnessDoctor). Use when the user types `/doctor-explain` or `/doctor-config`, asks why a rule fired, disagrees with a rule, wants to disable/enable a rule, silence a category or tag, tune CI/PR noise, or asks "what does this rule mean". Covers the `harness-doctor rules` CLI (list, explain, set, enable, disable, category, ignore-tag) and how config layers combine: ignore.tags drops every diagnostic from rules carrying the tag, rules over categories sets severity, surfaces controls visibility only.
+description: Explain Harness Doctor rules and configure which ones run via harness.config.* (or package.json#harnessDoctor). Use when the user types `/doctor-explain` or `/doctor-config`, asks why a rule fired, disagrees with a rule, wants to disable/enable a rule, silence a category or tag, tune CI/PR noise, or asks "what does this rule mean". Covers the `harness-doctor rules` CLI (list, explain, set, enable, disable, category, ignore-tag) and how config layers combine: ignore.tags drops every diagnostic from rules carrying the tag, rules over categories sets severity, surfaces controls visibility only.
 version: "1.0.0"
 ---
 
 # Doctor Explain
 
-Explains Harness Doctor rules and edits `doctor.config.*` safely. Use this when a user wants to understand a rule or change which rules run — not for fixing diagnostics (that is the `harness-doctor` skill / `/doctor`).
+Explains Harness Doctor rules and edits `harness.config.*` safely. Use this when a user wants to understand a rule or change which rules run — not for fixing diagnostics (that is the `harness-doctor` skill / `/doctor`).
 
 Triggers: `/doctor-explain`, `/doctor-config`, "why did this rule fire", "I disagree with this rule", "turn this rule off", "stop flagging X", "too noisy", "disable design rules".
 
@@ -20,7 +20,7 @@ npx @andypai/harness-doctor@latest rules explain docs-structure/spec-contract-ex
 ```
 
 3. Pick the narrowest control that matches the user's intent (see decision guide).
-4. Apply it with a `rules` subcommand (edits your `doctor.config.*` or `package.json#harnessDoctor` in place, preserving other fields and formatting).
+4. Apply it with a `rules` subcommand (edits your `harness.config.*` or `package.json#harnessDoctor` in place, preserving other fields and formatting).
 5. Validate the change did what they wanted:
 
 ```bash
@@ -59,10 +59,10 @@ How the layers combine: `ignore.tags` drops every diagnostic from rules carrying
 
 ## Config shape
 
-Config lives in `doctor.config.ts` (or `.js`/`.mjs`/`.cjs`/`.json`/`.jsonc`), or the `harnessDoctor` key in `package.json`. The `rules` commands edit whichever exists — TS/JS edits preserve formatting (via magicast) — and create `doctor.config.json` when none does, stamping `$schema`:
+Config lives in `harness.config.ts` (or `.js`/`.mjs`/`.cjs`/`.json`/`.jsonc`), or the `harnessDoctor` key in `package.json`. The `rules` commands edit whichever exists — TS/JS edits preserve formatting (via magicast) — and create `harness.config.json` when none does, stamping `$schema`:
 
 ```ts
-// doctor.config.ts
+// harness.config.ts
 export default {
   rules: { "harness-doctor/docs-structure/spec-contract-exists": "off" },
   categories: { Maintainability: "warn" },

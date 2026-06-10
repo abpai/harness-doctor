@@ -21,9 +21,9 @@ afterEach(() => {
 });
 
 describe("migrateLegacyConfig", () => {
-  it("renames harness-doctor.config.json to a typed doctor.config.ts that loads identically", async () => {
+  it("renames doctor.config.json to a typed harness.config.ts that loads identically", async () => {
     const directory = createTempDirectory();
-    const legacyFilePath = path.join(directory, "harness-doctor.config.json");
+    const legacyFilePath = path.join(directory, "doctor.config.json");
     fs.writeFileSync(
       legacyFilePath,
       JSON.stringify({
@@ -36,7 +36,7 @@ describe("migrateLegacyConfig", () => {
     const legacy = findLegacyConfig(directory);
     if (!legacy) throw new Error("Expected to detect the legacy config");
     const migratedPath = migrateLegacyConfig(legacy);
-    expect(migratedPath).toBe(path.join(directory, "doctor.config.ts"));
+    expect(migratedPath).toBe(path.join(directory, "harness.config.ts"));
     if (!migratedPath) throw new Error("Expected a migrated path");
 
     // Legacy file is gone; the new file is a typed default export, no $schema.
@@ -59,43 +59,34 @@ describe("migrateLegacyConfig", () => {
 
   it("leaves an unparseable legacy file untouched", () => {
     const directory = createTempDirectory();
-    const legacyFilePath = path.join(directory, "harness-doctor.config.json");
+    const legacyFilePath = path.join(directory, "doctor.config.json");
     fs.writeFileSync(legacyFilePath, "{ not valid json");
 
     const migratedPath = migrateLegacyConfig({ legacyFilePath, directory });
 
     expect(migratedPath).toBeNull();
     expect(fs.existsSync(legacyFilePath)).toBe(true);
-    expect(fs.existsSync(path.join(directory, "doctor.config.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(directory, "harness.config.ts"))).toBe(false);
   });
 });
 
 describe("findLegacyConfig", () => {
-  it("detects a lone harness-doctor.config.json", () => {
+  it("detects a lone doctor.config.json", () => {
     const directory = createTempDirectory();
-    fs.writeFileSync(
-      path.join(directory, "harness-doctor.config.json"),
-      JSON.stringify({ lint: true }),
-    );
+    fs.writeFileSync(path.join(directory, "doctor.config.json"), JSON.stringify({ lint: true }));
     expect(findLegacyConfig(directory)?.directory).toBe(directory);
   });
 
-  it("returns null when a doctor.config.* already supersedes the legacy file", () => {
+  it("returns null when a harness.config.* already supersedes the legacy file", () => {
     const directory = createTempDirectory();
-    fs.writeFileSync(
-      path.join(directory, "harness-doctor.config.json"),
-      JSON.stringify({ lint: true }),
-    );
     fs.writeFileSync(path.join(directory, "doctor.config.json"), JSON.stringify({ lint: true }));
+    fs.writeFileSync(path.join(directory, "harness.config.json"), JSON.stringify({ lint: true }));
     expect(findLegacyConfig(directory)).toBeNull();
   });
 
   it("returns null when package.json#harnessDoctor supersedes the legacy file", () => {
     const directory = createTempDirectory();
-    fs.writeFileSync(
-      path.join(directory, "harness-doctor.config.json"),
-      JSON.stringify({ lint: true }),
-    );
+    fs.writeFileSync(path.join(directory, "doctor.config.json"), JSON.stringify({ lint: true }));
     fs.writeFileSync(
       path.join(directory, "package.json"),
       JSON.stringify({ harnessDoctor: { lint: true } }),
@@ -105,7 +96,7 @@ describe("findLegacyConfig", () => {
 
   it("finds a legacy file in an ancestor, stopping at the project boundary", () => {
     const root = createTempDirectory();
-    fs.writeFileSync(path.join(root, "harness-doctor.config.json"), JSON.stringify({ lint: true }));
+    fs.writeFileSync(path.join(root, "doctor.config.json"), JSON.stringify({ lint: true }));
     fs.mkdirSync(path.join(root, ".git"));
     const child = path.join(root, "packages", "ui");
     fs.mkdirSync(child, { recursive: true });

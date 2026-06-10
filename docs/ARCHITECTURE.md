@@ -14,7 +14,7 @@ scores. It does not call a model and does not reach the network during a scan.
 
 ## Scan Flow
 
-1. Resolve `doctor.config.*` and any `rootDir`.
+1. Resolve `harness.config.*` and any `rootDir`.
 2. Discover the project and monorepo shape.
 3. Run structural checks such as docs structure and pnpm hardening.
 4. Run dead-code analysis when enabled and applicable.

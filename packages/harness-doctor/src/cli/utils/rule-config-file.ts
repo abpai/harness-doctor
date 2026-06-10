@@ -11,7 +11,7 @@ import {
 import type { HarnessDoctorConfig, HarnessDoctorConfigFormat } from "@harness-doctor/core";
 import { readObjectFile } from "./read-object-file.js";
 
-const NEW_CONFIG_FILENAME = "doctor.config.json";
+const NEW_CONFIG_FILENAME = "harness.config.json";
 const PACKAGE_JSON_CONFIG_KEY = "harnessDoctor";
 const JSON_INDENT_SPACES = 2;
 // The only config sections the `rules` commands manage. When editing a
@@ -40,9 +40,9 @@ export interface WriteRuleConfigResult {
 /**
  * Decides where a rule-config mutation should be written. Discovery
  * reuses `loadConfigWithSource` (the loader the scan uses) so edits land
- * in the file the scan reads — `doctor.config.{ts,js,…}` is preferred,
+ * in the file the scan reads — `harness.config.{ts,js,…}` is preferred,
  * then `package.json#harnessDoctor`. When nothing exists, a fresh
- * `doctor.config.json` is targeted at `projectRoot`. Data configs are
+ * `harness.config.json` is targeted at `projectRoot`. Data configs are
  * re-read raw so unrelated fields round-trip untouched.
  */
 export const resolveRuleConfigTarget = async (projectRoot: string): Promise<RuleConfigTarget> => {

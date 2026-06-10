@@ -1,6 +1,5 @@
 import { Command } from "commander";
 import { CANONICAL_GITHUB_URL, highlighter } from "@harness-doctor/core";
-import { flushSentry, initializeSentry } from "../instrument.js";
 import { inspectAction } from "./commands/inspect.js";
 import { installAction } from "./commands/install.js";
 import {
@@ -21,12 +20,9 @@ import { handleError, handleUserError } from "./utils/handle-error.js";
 import { isExpectedUserError } from "./utils/is-expected-user-error.js";
 import { isJsonModeActive, writeJsonErrorReport } from "./utils/json-mode.js";
 import { normalizeHelpInvocation } from "./utils/normalize-help-command.js";
-import { reportErrorToSentry } from "./utils/report-error.js";
 import { stripUnknownCliFlags } from "./utils/strip-unknown-cli-flags.js";
 import { unrefStdin } from "./utils/unref-stdin.js";
 import { VERSION } from "./utils/version.js";
-
-initializeSentry();
 
 process.on("SIGINT", exitGracefully);
 process.on("SIGTERM", exitGracefully);
@@ -66,7 +62,7 @@ ${formatExampleLines([
 ])}
 
 ${highlighter.dim("Configuration:")}
-  Add a ${highlighter.info("doctor.config.ts")} (or .js/.mjs/.json — or a ${highlighter.info('"harnessDoctor"')} key in your package.json) in the project root.
+  Add a ${highlighter.info("harness.config.ts")} (or .js/.mjs/.json — or a ${highlighter.info('"harnessDoctor"')} key in your package.json) in the project root.
   Use ${highlighter.info("harness-doctor rules")} to list, explain, and configure rules. CLI flags always override config values.
 
 ${highlighter.dim("Feedback & bug reports:")}
@@ -116,11 +112,8 @@ const program = new Command()
     "--changed-files-from <file>",
     "internal: scan source files listed in a newline-delimited changed-files file",
   )
-  .option("--no-score", "skip the score API, the share URL, and crash reporting")
-  .option(
-    "--no-telemetry",
-    "alias for --no-score (skip the score API, share URL, and crash reporting)",
-  )
+  .option("--no-score", "skip the score API and the share URL")
+  .option("--no-telemetry", "alias for --no-score (skip the score API and the share URL)")
   .option("--staged", "scan only staged (git index) files for pre-commit hooks")
   .option(
     "--fail-on <level>",
@@ -267,24 +260,17 @@ applyColorPreference(strippedArgv);
 // 12-factor (#1): map `help` / `help <command>` to Commander's `--help`.
 const argv = normalizeHelpInvocation(strippedArgv, knownCommands);
 
-program
-  .parseAsync(argv)
-  // Deliver any queued performance transaction before the process exits on the
-  // success path; error funnels flush via `reportErrorToSentry`.
-  .then(() => flushSentry())
-  .catch(async (error: unknown) => {
-    // Mirror the per-command policy at the top-level funnel: expected,
-    // user-actionable failures skip Sentry and render as a plain message
-    // (no "open a prefilled issue" block), so they don't become triage noise.
-    const isUserError = isExpectedUserError(error);
-    const sentryEventId = isUserError ? undefined : await reportErrorToSentry(error);
-    if (isJsonModeActive()) {
-      writeJsonErrorReport(error);
-      process.exit(1);
-    }
-    if (isUserError) {
-      handleUserError(error);
-      return;
-    }
-    handleError(error, { sentryEventId });
-  });
+program.parseAsync(argv).catch((error: unknown) => {
+  // Expected, user-actionable failures render as a plain message (no "open a
+  // prefilled issue" block), so they don't become triage noise.
+  const isUserError = isExpectedUserError(error);
+  if (isJsonModeActive()) {
+    writeJsonErrorReport(error);
+    process.exit(1);
+  }
+  if (isUserError) {
+    handleUserError(error);
+    return;
+  }
+  handleError(error);
+});
