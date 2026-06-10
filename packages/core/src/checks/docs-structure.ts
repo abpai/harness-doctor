@@ -582,25 +582,33 @@ const checkCombinedAgentsByteBudget = (
 
 // ── docs-structure/claude-shim-imports-agents ───────────────────────────
 // Claude Code reads only CLAUDE.md while other agents read AGENTS.md, so
-// when both exist the CLAUDE.md must be a shim importing AGENTS.md —
-// otherwise the two entry points drift into competing instructions.
+// wherever the two sit side by side — at the repo root or in a nested
+// subtree (nearest-file precedence) — the CLAUDE.md must be a shim
+// importing AGENTS.md, otherwise the pair drifts into competing
+// instructions.
 const CLAUDE_SHIM_IMPORT_PATTERN = /(^|\s)@AGENTS\.md(\s|$)/;
 
-const checkClaudeShimImportsAgents = (rootDirectory: string): Diagnostic[] => {
-  if (!isFile(path.join(rootDirectory, AGENT_ENTRY_POINT_FILENAMES[0]))) return [];
-  const claudeAbsolutePath = path.join(rootDirectory, "CLAUDE.md");
-  if (!isFile(claudeAbsolutePath)) return [];
-  const content = readFileOrNull(claudeAbsolutePath);
-  if (content === null || CLAUDE_SHIM_IMPORT_PATTERN.test(content)) return [];
-  return [
-    buildDocsStructureDiagnostic({
-      filePath: "CLAUDE.md",
-      rule: CLAUDE_SHIM_RULE_KEY,
-      message:
-        "CLAUDE.md exists alongside AGENTS.md but never imports it — Claude Code reads only CLAUDE.md and other agents read AGENTS.md, so two free-standing entry points drift into competing instructions",
-      help: "Make CLAUDE.md a shim whose content is the import line `@AGENTS.md` (Claude Code's import syntax), keeping AGENTS.md the single source of truth",
-    }),
-  ];
+const checkClaudeShimImportsAgents = (markdownFiles: ReadonlyArray<MarkdownFile>): Diagnostic[] => {
+  const agentsDirectories = new Set(
+    markdownFiles
+      .filter((file) => path.posix.basename(file.relativePath) === AGENT_ENTRY_POINT_FILENAMES[0])
+      .map((file) => path.posix.dirname(file.relativePath)),
+  );
+  return markdownFiles
+    .filter(
+      (file) =>
+        path.posix.basename(file.relativePath) === "CLAUDE.md" &&
+        agentsDirectories.has(path.posix.dirname(file.relativePath)) &&
+        !CLAUDE_SHIM_IMPORT_PATTERN.test(file.content),
+    )
+    .map((file) =>
+      buildDocsStructureDiagnostic({
+        filePath: file.relativePath,
+        rule: CLAUDE_SHIM_RULE_KEY,
+        message: `${file.relativePath} exists alongside AGENTS.md but never imports it — Claude Code reads only CLAUDE.md and other agents read AGENTS.md, so two free-standing entry points drift into competing instructions`,
+        help: "Make CLAUDE.md a shim whose content is the import line `@AGENTS.md` (Claude Code's import syntax), keeping AGENTS.md the single source of truth",
+      }),
+    );
 };
 
 // ── docs-structure/no-banned-long-lived-path ────────────────────────────
@@ -712,7 +720,7 @@ export const checkDocsStructure = (
     ...checkEngineeringDocsExist(rootDirectory, options),
     ...checkNoStructureMd(rootDirectory),
     ...checkCombinedAgentsByteBudget(markdownFiles),
-    ...checkClaudeShimImportsAgents(rootDirectory),
+    ...checkClaudeShimImportsAgents(markdownFiles),
     ...checkTodosIndexExists(rootDirectory, options),
     ...checkDomainDocsComplete(rootDirectory),
     ...checkBannedLongLivedPaths(rootDirectory),
