@@ -1,6 +1,7 @@
 name: Release
 
-# Automated npm releases via Changesets. The flow:
+# Automated npm releases via Changesets, authenticated with OIDC trusted
+# publishing — no npm token to store, leak, or rotate. The flow:
 #   1. Every change PR includes a changeset (`pnpm changeset`) describing the
 #      bump (patch/minor/major) and changelog entry.
 #   2. On merge to main, this workflow opens/updates a "Version Packages" PR
@@ -8,11 +9,10 @@ name: Release
 #   3. Merging that PR runs `changeset publish` here — publishing to npm and
 #      pushing the git tags. No manual `pnpm publish`, no OTP prompt.
 #
-# Auth: set an npm token (Automation or Granular Access with publish rights)
-# as the `NPM_TOKEN` repo secret. To go tokenless later, configure a Trusted
-# Publisher for this workflow on npmjs.com and drop the NPM_TOKEN env below —
-# the `id-token: write` permission is already granted. (Provenance is not
-# generated for private repos, but OIDC auth still works.)
+# Auth: configure a Trusted Publisher for THIS workflow file (release.yml) on
+# npmjs.com for @andypai/harness-doctor — no NPM_TOKEN secret is needed. npm
+# mints a short-lived OIDC token per run and auto-generates provenance
+# attestations (the repo is public, so provenance is published).
 
 on:
   push:
@@ -24,7 +24,7 @@ concurrency: release-${{ github.ref }}
 permissions:
   contents: write # push the "Version Packages" PR branch and git tags
   pull-requests: write # open / update the "Version Packages" PR
-  id-token: write # enables tokenless OIDC trusted publishing if configured
+  id-token: write # mint the OIDC token for trusted publishing + provenance
 
 jobs:
   release:
@@ -38,9 +38,13 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: "22.18.0"
+          node-version: "24"
           cache: pnpm
           registry-url: "https://registry.npmjs.org"
+
+      # OIDC trusted publishing requires npm >= 11.5.1; the version bundled with
+      # Node can lag, so pin the latest before publishing.
+      - run: npm install -g npm@latest
 
       - run: pnpm install --frozen-lockfile
 
@@ -56,5 +60,3 @@ jobs:
           title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
