@@ -27,9 +27,6 @@
     "url": "https://github.com/abpai/harness-doctor.git",
     "directory": "packages/harness-doctor"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "bin": {
     "harness-doctor": "./bin/harness-doctor.js"
   },
@@ -50,6 +47,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "vp pack --watch",

@@ -567,7 +567,9 @@ const checkCombinedAgentsByteBudget = (
   if (worstBytes <= COMBINED_AGENTS_MD_MAX_BYTES) return [];
   const heaviest = worstChain.reduce((max, entry) => (entry.bytes > max.bytes ? entry : max));
   const chainLabel =
-    worstLeafDirectory === "." ? "at the repo root" : `on the root → \`${worstLeafDirectory}\` chain`;
+    worstLeafDirectory === "."
+      ? "at the repo root"
+      : `on the root → \`${worstLeafDirectory}\` chain`;
   return [
     buildDocsStructureDiagnostic({
       filePath: heaviest.file.relativePath,

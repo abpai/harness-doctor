@@ -359,7 +359,9 @@ describe("printAgentInstallHint", () => {
   it("AGENT_INSTALL_HINT_LINES contains the install command", () => {
     expect(AGENT_INSTALL_HINT_LINES.length).toBeGreaterThan(0);
     expect(
-      AGENT_INSTALL_HINT_LINES.some((line) => line.includes("npx @andypai/harness-doctor install --yes")),
+      AGENT_INSTALL_HINT_LINES.some((line) =>
+        line.includes("npx @andypai/harness-doctor install --yes"),
+      ),
     ).toBe(true);
   });
 });
