@@ -100,8 +100,8 @@ def write_package_json(directory, contents):
 
 
 def create_workspace_fixture(root_directory):
-    """A minimal monorepo with two React packages so the CLI shows the
-    multiselect "Select projects" prompt (>= 2 workspace packages with a React
+    """A minimal monorepo with two workspace packages so the CLI shows the
+    multiselect "Select projects" prompt (>= 2 workspace packages with a
     dependency)."""
     write_package_json(
         root_directory,
@@ -129,7 +129,7 @@ def run_prompt_in_pty(fixture_directory):
 
     master_fd, slave_fd = pty.openpty()
     process = subprocess.Popen(
-        [NODE_BINARY_PATH, CLI_BINARY_PATH, fixture_directory, "--no-lint", "--no-dead-code", "--no-score"],
+        [NODE_BINARY_PATH, CLI_BINARY_PATH, fixture_directory, "--no-dead-code", "--no-score"],
         stdin=slave_fd,
         stdout=slave_fd,
         stderr=slave_fd,

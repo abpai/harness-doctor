@@ -21,20 +21,17 @@ const FRAMEWORK_DISPLAY_NAMES: Record<Framework, string> = {
   expo: "Expo",
   "react-native": "React Native",
   preact: "Preact",
-  unknown: "React",
+  unknown: "JavaScript/TypeScript",
 };
 
 export const formatFrameworkName = (framework: Framework): string =>
   FRAMEWORK_DISPLAY_NAMES[framework];
 
-// Preact is treated as a framework only when no React-based framework
-// (`next` / `vite` / `react-scripts` / …) AND no `react` itself is
-// present — i.e. a pure-Preact codebase with no bundler manifest react-
-// doctor recognises. Component libraries that list both `react` and
-// `preact` as peer deps stay `unknown`, which is what they were before
-// this branch existed; they still pick up a non-null `preactVersion`
-// (see `discover-project.ts`) so Preact-bucket rules activate without
-// overwriting the framework classification.
+/**
+ * Best-effort framework label from a dependency map. Purely score /
+ * display metadata — none of Harness Doctor's checks gate on it, and an
+ * unrecognized stack simply reports `"unknown"`.
+ */
 export const detectFramework = (dependencies: Record<string, string>): Framework => {
   for (const [packageName, frameworkName] of Object.entries(FRAMEWORK_PACKAGES)) {
     if (dependencies[packageName]) {

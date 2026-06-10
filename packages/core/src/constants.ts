@@ -13,8 +13,6 @@ export {
   SOURCE_FILE_PATTERN,
 } from "./project-info/constants.js";
 
-export const JSX_FILE_PATTERN = /\.(tsx|jsx)$/;
-
 // Whether `"warning"`-severity diagnostics surface when neither the
 // caller (`--warnings` / `warnings:`) nor `config.warnings` decide.
 // Warnings show by default — only `"error"` is too generous a bar for a
@@ -22,28 +20,6 @@ export const JSX_FILE_PATTERN = /\.(tsx|jsx)$/;
 export const DEFAULT_SHOW_WARNINGS = true;
 
 export const MILLISECONDS_PER_SECOND = 1000;
-
-// Upper bound for the `react:<major>` capability loop in
-// `buildCapabilities`, clamping an unvalidated package.json spec like
-// `"react": "20240101"` that would otherwise drive the loop to tens of
-// millions of iterations (hang / OOM). Set generously — React ships
-// ~one major a year and is probably only gonna be around for another
-// 10 yrs, so 30 is plenty of headroom; any unused `react:<n>` capability
-// strings above the latest real major are harmless.
-export const LATEST_KNOWN_REACT_MAJOR = 30;
-
-// Lowest React major harness-doctor emits a `react:<major>` capability
-// for (rules gate on `react:17`+ at the floor).
-export const EARLIEST_GATED_REACT_MAJOR = 17;
-
-// Preact mirror of `LATEST_KNOWN_REACT_MAJOR`. Preact ships majors slowly
-// (X/10 since 2019, 11 next), so 20 is ample headroom; surplus
-// `preact:<n>` capability strings above the latest real major are harmless.
-export const LATEST_KNOWN_PREACT_MAJOR = 20;
-
-// Lowest Preact major harness-doctor emits a `preact:<major>` capability
-// for. Preact X (10) is the modern baseline.
-export const EARLIEST_GATED_PREACT_MAJOR = 10;
 
 export const ERROR_PREVIEW_LENGTH_CHARS = 200;
 
@@ -108,51 +84,14 @@ export const FETCH_TIMEOUT_MS = 10_000;
 
 export const GITHUB_VIEWER_PERMISSION_TIMEOUT_MS = 2_000;
 
-// HACK: Windows CreateProcessW limits total command-line length to 32,767 chars.
-// Use a conservative threshold to leave room for the executable path and quoting overhead.
-export const SPAWN_ARGS_MAX_LENGTH_CHARS = 24_000;
-
-// HACK: bound per-batch work so that JS-evaluated plugins with bad
-// scaling (originally the upstream `effect` plugin — verified to hit
-// the 5-min spawn timeout on supabase/studio's ~3500 source files at
-// batch=500, productive at batch=100; same characteristics apply to
-// the ported `harness-doctor/no-derived-state` family because both rely
-// on whole-component scope walking) stay tractable AND so that oxlint
-// doesn't SIGABRT from memory pressure on very large file sets.
-// Smaller batches add ~50ms spawn overhead per extra batch — negligible
-// vs the hard-cap perf cliffs they prevent.
-export const OXLINT_MAX_FILES_PER_BATCH = 100;
-
-// Bounds for the lint worker count (the `OxlintConcurrency` Reference, seeded
-// by the `HARNESS_DOCTOR_PARALLEL` env var; the CLI's `--no-parallel` flag forces
-// the MIN end). Harness Doctor's rules are oxlint JS plugins — single-threaded
-// per process — so
-// running the file batches across N concurrent oxlint subprocesses scales the
-// scan nearly linearly with N. MAX bounds peak memory (each worker holds its
-// batch's ASTs); the resolved count is clamped to [MIN, MAX].
-export const MIN_SCAN_CONCURRENCY = 1;
-
-export const MAX_SCAN_CONCURRENCY = 16;
-
 export const DEFAULT_BRANCH_CANDIDATES = ["main", "master"];
-
-// JSON-format oxlint / eslint configs harness-doctor can fold into the
-// scan via oxlint's `extends` field. JS / TS configs need a runtime
-// to evaluate and aren't supported by oxlint's `extends`. Listed in
-// detection priority order — oxlint native first, eslint legacy as a
-// compatibility fallback. Also used by tests as the source of truth.
-export const ADOPTABLE_LINT_CONFIG_FILENAMES = [".oxlintrc.json", ".eslintrc.json"];
-
-export const OXLINT_NODE_REQUIREMENT = "^20.19.0 || >=22.12.0";
-
-export const OXLINT_RECOMMENDED_NODE_MAJOR = 24;
 
 export const GIT_SHOW_MAX_BUFFER_BYTES = 10 * 1024 * 1024;
 
 /**
  * Project-config files that `StagedFiles.materialize` copies into
- * the temp directory alongside staged sources so oxlint resolves
- * `tsconfig` / `package.json` / lint configs the same way it would
+ * the temp directory alongside staged sources so the scan resolves
+ * `tsconfig` / `package.json` / doctor configs the same way it would
  * in the working tree. Hoisted out of the staged-files helper so
  * the constant lives next to the rest of the IO budget knobs.
  */
@@ -168,8 +107,6 @@ export const STAGED_FILES_PROJECT_CONFIG_FILENAMES = [
   "doctor.config.cjs",
   "doctor.config.json",
   "doctor.config.jsonc",
-  "oxlint.json",
-  ".oxlintrc.json",
 ] as const;
 
 export const CANONICAL_GITHUB_URL = "https://github.com/abpai/harness-doctor";
@@ -177,27 +114,6 @@ export const CANONICAL_GITHUB_URL = "https://github.com/abpai/harness-doctor";
 export const CANONICAL_DISCORD_URL = "https://harness.doctor/discord";
 
 export const SKILL_NAME = "harness-doctor";
-
-// HACK: cap on combined stdout+stderr bytes per oxlint batch. Above
-// this we kill the process (SIGKILL) and ask the user to narrow the
-// scan with --diff. Pinned to 50 MiB because oxlint emits ~1 KB of
-// JSON per diagnostic and the largest real-world batches in the eval
-// corpus (supabase/studio at 3,567 source files) produce ~3 MiB
-// total — 50 MiB leaves an order of magnitude of headroom for
-// pathological JS-plugin rules that emit one diagnostic per AST node.
-export const OXLINT_OUTPUT_MAX_BYTES = 50 * 1024 * 1024;
-
-// HACK: per-batch wall-clock budget for an oxlint spawn. Each batch
-// is at most OXLINT_MAX_FILES_PER_BATCH (= 100) files and a healthy
-// batch finishes in well under a second; 60 s leaves a large safety
-// margin while still firing fast enough that the binary-split
-// recovery in spawnLintBatches narrows a pathological batch to the
-// single offending file rather than killing the whole scan as the
-// previous 5-min budget did on supabase/studio. The eval harness
-// overrides this via the OxlintSpawnTimeoutMs Context.Reference when
-// running under Vercel Sandbox microVMs where the oxlint native
-// binding is markedly slower than on a developer laptop.
-export const OXLINT_SPAWN_TIMEOUT_MS = 60_000;
 
 export const DEAD_CODE_WORKER_TIMEOUT_MS = 120_000;
 
@@ -347,13 +263,10 @@ export const BANNED_LONG_LIVED_HARNESS_PATHS = [
   "feature-registry.json",
 ] as const;
 
-// The closed set of user-facing diagnostic categories. Every rule
-// (collapsed at codegen via `CATEGORY_BUCKET` in
-// `generate-rule-registry.mjs`) and every directly-constructed
-// diagnostic (dead-code, reduced-motion, pnpm-hardening) must report one
-// of these — the renderer, JSON output, and `categories` severity
-// overrides all assume this set is exhaustive. `rule-metadata.test.ts`
-// asserts the registry never drifts outside it.
+// The closed set of user-facing diagnostic categories. Every
+// directly-constructed diagnostic (docs-structure, dead-code,
+// pnpm-hardening) must report one of these — the renderer, JSON output,
+// and `categories` severity overrides all assume this set is exhaustive.
 export const DIAGNOSTIC_CATEGORY_BUCKETS = [
   "Security",
   "Bugs",
@@ -361,32 +274,6 @@ export const DIAGNOSTIC_CATEGORY_BUCKETS = [
   "Accessibility",
   "Maintainability",
 ] as const;
-
-// Rules whose heuristic only makes sense in application code. A published
-// library deliberately exposes flexible primitives (components built in
-// render to capture closures, many `render*` slots for composition), so these
-// fire on `app` / `unknown` files but stay silent on confidently-classified
-// `library` files (see `classify-package-role.ts`). Users can still force one
-// on for a library by setting its severity explicitly in config.
-export const APP_ONLY_RULE_KEYS: ReadonlySet<string> = new Set([
-  "react-hooks-js/static-components",
-  "harness-doctor/no-render-prop-children",
-]);
-
-// The `compiler-cleanup` severity bucket: redundant-memoization rules that
-// only fire once React Compiler is detected and ship as warnings by default
-// (hidden in the default report). Setting `buckets: { "compiler-cleanup":
-// "error" }` re-enables full strictness.
-//
-// Only the local `react-compiler-no-manual-memoization` rule belongs here —
-// it flags `useMemo` / `useCallback` / `memo` the compiler makes redundant
-// (correctness-neutral cleanup). The external `react-hooks-js/*` compiler
-// rules deliberately stay `error`: each marks code the compiler could NOT
-// optimize, which is a real perf regression, not cleanup.
-export const COMPILER_CLEANUP_BUCKET = "compiler-cleanup";
-export const COMPILER_CLEANUP_RULE_KEYS: ReadonlySet<string> = new Set([
-  "harness-doctor/react-compiler-no-manual-memoization",
-]);
 
 // How many of the highest-priority error rules to surface in the
 // "Top N errors you should fix" header above the category breakdown.
@@ -443,15 +330,3 @@ export const MAX_GLOB_PATTERN_WILDCARD_COUNT = 24;
 export const CONFIG_CACHE_CAPACITY = 16;
 
 export const CONFIG_CACHE_TTL_MS = 5 * 60 * 1_000;
-
-/**
- * Max sample size shown in partial-failure preview text (e.g.
- * "and N more files: a.ts, b.ts, c.ts") emitted by the oxlint
- * binary-split-retry loop.
- */
-export const OXLINT_PARTIAL_FAILURE_PREVIEW_COUNT = 3;
-
-// HACK: interval for simulated per-file progress ticks while an oxlint
-// batch subprocess runs. The timer increments a counter so the spinner
-// updates smoothly instead of jumping by the batch size on completion.
-export const PROGRESS_TICK_INTERVAL_MS = 50;

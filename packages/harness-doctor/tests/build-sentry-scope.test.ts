@@ -25,20 +25,8 @@ const baseRunContext: RunContext = {
 const projectInfo: ProjectInfo = {
   rootDirectory: "/workspace/project",
   projectName: "my-app",
-  reactVersion: "18.3.1",
-  reactMajorVersion: 18,
-  tailwindVersion: "3.4.0",
-  zodVersion: null,
-  zodMajorVersion: null,
   framework: "nextjs",
   hasTypeScript: true,
-  hasReactCompiler: false,
-  hasTanStackQuery: true,
-  preactVersion: null,
-  preactMajorVersion: null,
-  hasReactNativeWorkspace: false,
-  expoVersion: null,
-  hasReanimated: false,
   sourceFileCount: 142,
 };
 
@@ -89,7 +77,6 @@ describe("buildSentryScope", () => {
     setSentryProjectInfo(projectInfo);
     const { tags, contexts } = buildSentryScope(baseRunContext);
     expect(tags["project.framework"]).toBe("nextjs");
-    expect(tags["project.reactMajor"]).toBe(18);
     expect(tags["project.typescript"]).toBe(true);
     expect(contexts.project).toMatchObject({
       framework: "nextjs",

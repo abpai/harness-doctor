@@ -20,18 +20,8 @@ const setupTempDirectory = (): string => {
 const buildProject = (overrides: Partial<ProjectInfo> = {}): ProjectInfo => ({
   rootDirectory: "/repo",
   projectName: "web",
-  reactVersion: "^19.0.0",
-  reactMajorVersion: 19,
-  tailwindVersion: null,
   framework: "unknown",
   hasTypeScript: true,
-  hasReactCompiler: false,
-  hasTanStackQuery: false,
-  preactVersion: null,
-  preactMajorVersion: null,
-  hasReactNativeWorkspace: false,
-  expoVersion: null,
-  hasReanimated: false,
   sourceFileCount: 2,
   ...overrides,
 });
@@ -208,9 +198,9 @@ describe("render-github-action-comment", () => {
           buildProjectEntry([], {
             diagnostics: [],
             score: null,
-            skippedChecks: ["lint"],
+            skippedChecks: ["dead-code"],
             skippedCheckReasons: {
-              lint: "oxlint did not return within 300s.",
+              "dead-code": "dead-code analysis did not return within 300s.",
             },
           }),
         ],
@@ -229,7 +219,7 @@ describe("render-github-action-comment", () => {
       "No Harness Doctor issues were found, but some checks were incomplete.",
     );
     expect(comment).toContain("### Incomplete Checks");
-    expect(comment).toContain("`lint`: oxlint did not return within 300s.");
+    expect(comment).toContain("`dead-code`: dead-code analysis did not return within 300s.");
   });
 
   it("renders partial-check reasons even without a skipped check entry", () => {
@@ -238,7 +228,7 @@ describe("render-github-action-comment", () => {
         projects: [
           buildProjectEntry(buildDiagnostics(), {
             skippedCheckReasons: {
-              "lint:partial": "1 file exceeded the oxlint budget.",
+              "dead-code:partial": "1 file exceeded the analysis budget.",
             },
           }),
         ],
@@ -246,7 +236,7 @@ describe("render-github-action-comment", () => {
     );
 
     expect(comment).toContain("### Incomplete Checks");
-    expect(comment).toContain("`lint:partial`: 1 file exceeded the oxlint budget.");
+    expect(comment).toContain("`dead-code:partial`: 1 file exceeded the analysis budget.");
   });
 
   it("renders scan errors instead of pretending the run succeeded", () => {

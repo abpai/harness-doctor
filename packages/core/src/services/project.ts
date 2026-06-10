@@ -4,24 +4,13 @@ import * as Layer from "effect/Layer";
 import {
   AmbiguousProjectError,
   discoverProject as discoverProjectSync,
-  NoReactDependencyError,
   PackageJsonNotFoundError,
   ProjectNotFoundError,
 } from "../project-info/index.js";
 import type { ProjectInfo } from "../types/index.js";
-import {
-  AmbiguousProject,
-  NoReactDependency,
-  ProjectNotFound,
-  HarnessDoctorError,
-} from "../errors.js";
+import { AmbiguousProject, ProjectNotFound, HarnessDoctorError } from "../errors.js";
 
 const translateProjectInfoError = (cause: unknown, directory: string): HarnessDoctorError => {
-  if (cause instanceof NoReactDependencyError) {
-    return new HarnessDoctorError({
-      reason: new NoReactDependency({ directory: cause.directory }),
-    });
-  }
   if (cause instanceof ProjectNotFoundError) {
     return new HarnessDoctorError({ reason: new ProjectNotFound({ directory: cause.directory }) });
   }

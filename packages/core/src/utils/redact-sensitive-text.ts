@@ -181,7 +181,7 @@ const redactHighEntropyTokens = (text: string): string =>
  * short for the generic sweep, so re-running leaves the text unchanged.
  *
  * Accepts `unknown` on purpose: callers feed it diagnostic `message` /
- * `help` that originate from oxlint JSON, which is only shape-checked at
+ * `help` that originate from external JSON, which is only shape-checked at
  * the top level (the per-field `string` types are assumed, not validated).
  * A malformed non-string value returns `""` instead of throwing on
  * `.replace`, so one bad diagnostic can't abort parsing the whole batch.

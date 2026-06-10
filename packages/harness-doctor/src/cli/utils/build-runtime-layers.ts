@@ -5,9 +5,6 @@ import {
   DeadCode,
   Files,
   Git,
-  Linter,
-  LintPartialFailures,
-  OxlintConcurrency,
   Progress,
   Project,
   Reporter,
@@ -21,13 +18,6 @@ export interface BuildRuntimeLayersInput {
   readonly hasConfigOverride: boolean;
   readonly userConfig: HarnessDoctorConfig | null;
   readonly configSourceDirectory: string | null;
-  /**
-   * Whether lint is disabled (either by user flag or because the
-   * oxlint native binding can't load on this Node version). Switches
-   * the Linter to `layerOf([])` so the rest of the pipeline still
-   * runs.
-   */
-  readonly shouldSkipLint: boolean;
   readonly shouldRunDeadCode: boolean;
   /**
    * Whether the run should compute a score. `false` swaps
@@ -36,21 +26,12 @@ export interface BuildRuntimeLayersInput {
    */
   readonly shouldComputeScore: boolean;
   /**
-   * Whether the lint + dead-code spinners should render on stderr.
-   * Set `false` for `--score-only`, `--silent`, or runs that skip
-   * lint entirely — the orchestrator's `Progress` lifecycle becomes
-   * a noop instead of emitting frames into a quiet stream.
+   * Whether the scan spinners should render on stderr. Set `false` for
+   * `--score-only` / `--silent` runs — the orchestrator's `Progress`
+   * lifecycle becomes a noop instead of emitting frames into a quiet
+   * stream.
    */
   readonly shouldShowProgressSpinners: boolean;
-  /**
-   * Resolved oxlint worker count from the CLI's `--no-parallel` flag
-   * (today the only value it produces is `1` — serial). When provided, it
-   * overrides the `OxlintConcurrency` Reference for this run via
-   * `Layer.succeed`; `undefined` leaves the env-seeded ambient default
-   * (parallel: auto-detect cores unless `HARNESS_DOCTOR_PARALLEL` pins a
-   * count) in place.
-   */
-  readonly oxlintConcurrency?: number;
 }
 
 /**
@@ -81,9 +62,7 @@ const buildSpinnerProgressHandle = (text: string): ProgressHandle => {
  *
  * - **Config**: when the caller passes `configOverride`, the
  *   already-loaded config is provided via `Config.layerOf` instead
- *   of re-loading from disk; `configSourceDirectory` is threaded
- *   through so `userConfig.plugins` resolution still anchors at
- *   the original config file location.
+ *   of re-loading from disk.
  * - **Score**: `layerLocal` (deterministic, offline) for normal runs;
  *   `layerOf(null)` only when the caller passed `--no-score`. The
  *   orchestrator applies the `"score"` surface filter to the diagnostic
@@ -91,10 +70,9 @@ const buildSpinnerProgressHandle = (text: string): ProgressHandle => {
  *   the public-API contract documents.
  * - **Progress**: `layerOra` wired to the CLI's existing ora-backed
  *   spinner helper for terminal feedback; `layerNoop` for silent /
- *   score-only / lint-skipped runs.
+ *   score-only runs.
  */
 export const buildRuntimeLayers = (input: BuildRuntimeLayersInput) => {
-  const linterLayer = input.shouldSkipLint ? Linter.layerOf([]) : Linter.layerOxlint;
   const deadCodeLayer = input.shouldRunDeadCode ? DeadCode.layerNode : DeadCode.layerOf([]);
   const scoreLayer = input.shouldComputeScore ? Score.layerLocal : Score.layerOf(null);
   const progressLayer = input.shouldShowProgressSpinners
@@ -107,30 +85,19 @@ export const buildRuntimeLayers = (input: BuildRuntimeLayersInput) => {
         // `configSourceDirectory` is non-null when `inspect()` loaded
         // the config from disk itself (the CLI path) and `null` only
         // when the caller passed `configOverride` programmatically
-        // without a corresponding file. The runner falls back to
-        // the scan root in the null case.
+        // without a corresponding file.
         configSourceDirectory: input.configSourceDirectory,
       })
     : Config.layerNode;
 
-  const baseLayers = Layer.mergeAll(
+  return Layer.mergeAll(
     Project.layerNode,
     configLayer,
     Files.layerNode,
     Git.layerNode,
-    linterLayer,
-    LintPartialFailures.layerLive,
     deadCodeLayer,
     progressLayer,
     Reporter.layerNoop,
     scoreLayer,
   );
-
-  // Only override the ambient `OxlintConcurrency` Reference when the CLI
-  // resolved a concrete worker count (today: `--no-parallel` → serial);
-  // otherwise leave the env-seeded default (parallel) so
-  // `HARNESS_DOCTOR_PARALLEL` still applies to flag-less runs.
-  return input.oxlintConcurrency === undefined
-    ? baseLayers
-    : Layer.mergeAll(baseLayers, Layer.succeed(OxlintConcurrency, input.oxlintConcurrency));
 };

@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Take the current branch from done-coding to merge-ready in one pass — review the diff against AGENTS.md, deslop, commit and push, open a PR using rule-validate's PR copy, then babysit until mergeable. Use when the user types `/ship` or asks to ship, finalize, or land the current branch.
+description: Take the current branch from done-coding to merge-ready in one pass — review the diff against AGENTS.md, deslop, commit and push, open a PR, then babysit until mergeable. Use when the user types `/ship` or asks to ship, finalize, or land the current branch.
 disable-model-invocation: true
 ---
 
@@ -32,7 +32,7 @@ Run `/deslop` ([`../deslop/SKILL.md`](../deslop/SKILL.md)) to simplify the recen
 ## 3. Commit and push
 
 - Stage only the intended changes; never commit secrets.
-- Add a changeset first when a published package's behavior changed (follow the **Changeset** section of `/rule-validate`); skip only for private/docs/test/tooling-only changes and note why.
+- Add a changeset first when a published package's behavior changed (`pnpm changeset`, one user-facing sentence in the repo's changelog voice); skip only for private/docs/test/tooling-only changes and note why.
 - Run the repo checks that fit the change before committing: `nr test`, `nr lint`, `nr typecheck`, `nr format:check`.
 - Write a concise commit message in the repo's style, focused on the why.
 - Push the branch, setting upstream with `-u` on the first push.
@@ -40,7 +40,7 @@ Run `/deslop` ([`../deslop/SKILL.md`](../deslop/SKILL.md)) to simplify the recen
 
 ## 4. Open the PR
 
-Create the PR with `gh pr create`, writing the body with the **PR Description** structure from `/rule-validate` ([`../rule-validate/SKILL.md`](../rule-validate/SKILL.md)): Why (with before/after), What changed, Eval results (omit the table if RDE was not run), Test plan. Pass the body via a heredoc. Return the PR URL.
+Create the PR with `gh pr create`, structuring the body as: Why (with before/after), What changed, Test plan. Pass the body via a heredoc. Return the PR URL.
 
 ## 5. Babysit
 

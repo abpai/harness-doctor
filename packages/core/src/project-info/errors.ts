@@ -24,8 +24,8 @@
  * Distinguishes the two situations that both surface as "no project here", so
  * the rendered message matches reality:
  *
- * - `no-project` (default): the path exists but has no React project — no
- *   `package.json` at the root and no discoverable nested React subproject.
+ * - `no-project` (default): the path exists but has no project — no
+ *   `package.json` at the root and no discoverable nested subproject.
  * - `missing-path`: the resolved scan target does not exist on disk at all
  *   (a typo, a stale temp path, a monorepo subdir that isn't present). The
  *   generic "expected a package.json" guidance is misleading here, so point
@@ -45,24 +45,11 @@ export class ProjectNotFoundError extends Error {
     super(
       kind === "missing-path"
         ? `Scan target "${directory}" does not exist. Check the path and try again.`
-        : `No React project found in ${directory}. Expected a package.json at the directory root or a nested package.json with a React dependency.`,
+        : `No project found in ${directory}. Expected a package.json at the directory root or in a nested subproject.`,
       options,
     );
     this.directory = directory;
     this.kind = kind;
-  }
-}
-
-export class NoReactDependencyError extends Error {
-  override readonly name = "NoReactDependencyError";
-  readonly directory: string;
-
-  constructor(directory: string, options?: ErrorOptions) {
-    super(
-      `No React dependency found in ${directory}/package.json. Add "react" to dependencies (or peerDependencies) and re-run.`,
-      options,
-    );
-    this.directory = directory;
   }
 }
 
@@ -96,7 +83,7 @@ export class AmbiguousProjectError extends Error {
 
   constructor(directory: string, candidates: readonly string[], options?: ErrorOptions) {
     super(
-      `Multiple React projects found under ${directory} (${candidates.length} candidates): ${candidates.join(", ")}. Re-run diagnose() with one of those subdirectories, or iterate them yourself.`,
+      `Multiple projects found under ${directory} (${candidates.length} candidates): ${candidates.join(", ")}. Re-run diagnose() with one of those subdirectories, or iterate them yourself.`,
       options,
     );
     this.directory = directory;
@@ -108,12 +95,10 @@ export const isProjectDiscoveryError = (
   value: unknown,
 ): value is
   | ProjectNotFoundError
-  | NoReactDependencyError
   | PackageJsonNotFoundError
   | NotADirectoryError
   | AmbiguousProjectError =>
   value instanceof ProjectNotFoundError ||
-  value instanceof NoReactDependencyError ||
   value instanceof PackageJsonNotFoundError ||
   value instanceof NotADirectoryError ||
   value instanceof AmbiguousProjectError;

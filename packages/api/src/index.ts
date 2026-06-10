@@ -17,7 +17,6 @@ export type {
 export {
   HarnessDoctorError,
   ProjectNotFoundError,
-  NoReactDependencyError,
   PackageJsonNotFoundError,
   NotADirectoryError,
   AmbiguousProjectError,

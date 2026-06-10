@@ -1,12 +1,8 @@
-import {
-  COMPILER_CLEANUP_BUCKET,
-  COMPILER_CLEANUP_RULE_KEYS,
-  getEquivalentRuleKeys,
-} from "@harness-doctor/core";
+import { getEquivalentRuleKeys } from "@harness-doctor/core";
 import type { HarnessDoctorConfig, RuleSeverityOverride } from "@harness-doctor/core";
 import type { RuleCatalogEntry } from "./rule-catalog.js";
 
-type EffectiveSeveritySource = "rule" | "category" | "bucket" | "tag" | "default";
+type EffectiveSeveritySource = "rule" | "category" | "tag" | "default";
 
 export interface EffectiveRuleSeverity {
   /** Severity the rule effectively runs at, in config vocabulary. */
@@ -17,11 +13,10 @@ export interface EffectiveRuleSeverity {
 
 /**
  * Resolves what a rule will actually do under the current config without
- * running a scan. `ignore.tags` is a pre-lint gate: a rule carrying an
- * ignored tag is dropped (via `shouldEnableRule`) before any severity is
- * read, so it wins over every override. Among rules that survive the gate,
- * the scanner's order is `rules` > `categories` > `buckets` > the registry
- * default.
+ * running a scan. `ignore.tags` drops a rule carrying an ignored tag
+ * before any severity is read, so it wins over every override. Among
+ * rules that survive the gate, the scanner's order is `rules` >
+ * `categories` > the catalog default.
  */
 export const resolveEffectiveRuleSeverity = (
   config: HarnessDoctorConfig | null,
@@ -40,13 +35,6 @@ export const resolveEffectiveRuleSeverity = (
 
   const categoryOverride = config?.categories?.[entry.category];
   if (categoryOverride !== undefined) return { value: categoryOverride, source: "category" };
-
-  // A severity bucket (currently only `compiler-cleanup`) applies between
-  // categories and the registry default, mirroring `createOxlintConfig`.
-  if (COMPILER_CLEANUP_RULE_KEYS.has(entry.key)) {
-    const bucketOverride = config?.buckets?.[COMPILER_CLEANUP_BUCKET];
-    if (bucketOverride !== undefined) return { value: bucketOverride, source: "bucket" };
-  }
 
   return {
     value: entry.defaultEnabled ? entry.defaultSeverity : "off",

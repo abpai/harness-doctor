@@ -1,4 +1,3 @@
-import harnessDoctorPlugin from "oxlint-plugin-harness-doctor";
 import type { Diagnostic, HarnessDoctorConfig, RuleSeverityOverride } from "./types/index.js";
 import {
   compileIgnoreOverrides,
@@ -12,8 +11,7 @@ import { compileIgnoredFilePatterns, isFileIgnoredByPatterns } from "./is-ignore
 import { isTestFilePath } from "./is-test-file.js";
 import { resolveRuleSeverityOverride } from "./resolve-rule-severity-override.js";
 import { isSameRuleKey } from "./rule-key-aliases.js";
-import { APP_ONLY_RULE_KEYS } from "./constants.js";
-import { classifyPackageRole } from "./utils/classify-package-role.js";
+import { getRuleTags } from "./rule-catalog.js";
 import { resolveCandidateReadPath } from "./utils/resolve-candidate-read-path.js";
 
 interface BuildDiagnosticPipelineInput {
@@ -47,10 +45,8 @@ export interface DiagnosticPipeline {
  * 3. warning suppression (only when `showWarnings` is false: drops every
  *    `"warning"`-severity diagnostic unless a severity override opts a
  *    specific rule / category back in)
- * 4. ignore filters (rules / file patterns / per-file overrides)
- * 5. `rn-no-raw-text` suppression via configured `textComponents` and
- *    `rawTextWrapperComponents` (config-driven JSX enclosure checks)
- * 6. inline suppressions (`// harness-doctor-disable-next-line ...`)
+ * 4. ignore filters (rules / tags / file patterns / per-file overrides)
+ * 5. inline suppressions (`// harness-doctor-disable-next-line ...`)
  *
  * Returns `null` when the diagnostic is dropped, the (possibly
  * severity-restamped) diagnostic otherwise.
@@ -73,23 +69,13 @@ export const buildDiagnosticPipeline = (
   );
   const ignoredFilePatterns = compileIgnoredFilePatterns(userConfig);
   const compiledOverrides = compileIgnoreOverrides(userConfig);
+  const ignoredTags = new Set(
+    Array.isArray(userConfig?.ignore?.tags)
+      ? userConfig.ignore.tags.filter((tag): tag is string => typeof tag === "string")
+      : [],
+  );
   const fileLinesCache = new Map<string, string[] | null>();
   const testFileCache = new Map<string, boolean>();
-  const libraryFileCache = new Map<string, boolean>();
-
-  // App-only rules (`static-components`, `no-render-prop-children`) describe
-  // patterns that are noise in published libraries — silence them on files
-  // confidently classified as `library`. Cached per diagnostic path; the
-  // classifier itself memoizes by package directory.
-  const isLibraryFile = (filePath: string): boolean => {
-    let cached = libraryFileCache.get(filePath);
-    if (cached === undefined) {
-      const absolutePath = resolveCandidateReadPath(rootDirectory, filePath);
-      cached = classifyPackageRole(absolutePath) === "library";
-      libraryFileCache.set(filePath, cached);
-    }
-    return cached;
-  };
 
   const getFileLines = (filePath: string): string[] | null => {
     const cached = fileLinesCache.get(filePath);
@@ -110,10 +96,9 @@ export const buildDiagnosticPipeline = (
   };
 
   const shouldAutoSuppress = (diagnostic: Diagnostic): boolean => {
-    if (diagnostic.plugin !== "harness-doctor") return false;
-    const rule = harnessDoctorPlugin.rules[diagnostic.rule];
-    if (!rule?.tags?.includes("test-noise")) return false;
-    if (rule.tags.includes("migration-hint")) return false;
+    const tags = getRuleTags(diagnostic.plugin, diagnostic.rule);
+    if (!tags.includes("test-noise")) return false;
+    if (tags.includes("migration-hint")) return false;
     return isTest(diagnostic.filePath);
   };
 
@@ -124,30 +109,14 @@ export const buildDiagnosticPipeline = (
     return false;
   };
 
-  // Alias-aware membership for the app-only set (mirrors `isRuleIgnored`): a
-  // future alias of `static-components` / `no-render-prop-children` is still
-  // caught by the library gate, where a raw `Set.has` would miss it.
-  const isAppOnlyRule = (ruleIdentifier: string): boolean => {
-    for (const appOnlyRuleKey of APP_ONLY_RULE_KEYS) {
-      if (isSameRuleKey(appOnlyRuleKey, ruleIdentifier)) return true;
-    }
-    return false;
-  };
-
   return {
     apply: (diagnostic) => {
       if (shouldAutoSuppress(diagnostic)) return null;
 
       let current = diagnostic;
       let explicitSeverityOverride: RuleSeverityOverride | undefined;
-      // A *per-rule* override (vs. a broad `categories` bump) — the only signal
-      // that should re-enable an app-only rule on a library file.
-      let explicitRuleOverride: RuleSeverityOverride | undefined;
       if (severityControls) {
         const { ruleKey, category } = getDiagnosticRuleIdentity(current);
-        // No `category` → resolves against `rules` (+ aliases) only, ignoring
-        // any matching `categories` entry.
-        explicitRuleOverride = resolveRuleSeverityOverride({ ruleKey }, severityControls);
         explicitSeverityOverride = resolveRuleSeverityOverride(
           { ruleKey, category },
           severityControls,
@@ -158,14 +127,13 @@ export const buildDiagnosticPipeline = (
         }
       }
 
-      // App-only rules stay silent on library files unless the user opted the
-      // rule in explicitly. Only a per-rule override counts: a broad category
-      // bump (e.g. `categories: { Maintainability: "error" }`) is not a
-      // deliberate "I want static-components in my library" and must not leak
-      // these rules back into published packages.
-      if (explicitRuleOverride === undefined) {
-        const ruleKey = `${current.plugin}/${current.rule}`;
-        if (isAppOnlyRule(ruleKey) && isLibraryFile(current.filePath)) return null;
+      // Ignored tags silence whole rule families at once (e.g.
+      // `ignore.tags: ["docs"]`). Applied after severity overrides so an
+      // explicit per-rule override doesn't resurrect a tag-ignored rule —
+      // tags are the broader, deliberate opt-out.
+      if (ignoredTags.size > 0) {
+        const tags = getRuleTags(current.plugin, current.rule);
+        if (tags.some((tag) => ignoredTags.has(tag))) return null;
       }
 
       // When the user opts out of warnings (`showWarnings` false), an

@@ -1,72 +1,7 @@
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
-import {
-  AmbiguousProjectError,
-  NoReactDependencyError,
-  ProjectNotFoundError,
-} from "./project-info/errors.js";
-
-const OxlintUnavailableKind = Schema.Literals(["binary-not-found", "native-binding-missing"]);
-
-export class OxlintUnavailable extends Schema.TaggedErrorClass<OxlintUnavailable>()(
-  "OxlintUnavailable",
-  {
-    kind: OxlintUnavailableKind,
-    detail: Schema.String,
-  },
-) {
-  get message() {
-    return this.kind === "binary-not-found"
-      ? `oxlint binary not found: ${this.detail}`
-      : `oxlint native binding missing: ${this.detail}`;
-  }
-}
-
-const OxlintBatchExceededKind = Schema.Literals(["timeout", "output-too-large", "oom", "killed"]);
-
-export class OxlintBatchExceeded extends Schema.TaggedErrorClass<OxlintBatchExceeded>()(
-  "OxlintBatchExceeded",
-  {
-    kind: OxlintBatchExceededKind,
-    detail: Schema.String,
-  },
-) {
-  get message() {
-    switch (this.kind) {
-      case "timeout":
-        return `oxlint batch timed out: ${this.detail}`;
-      case "output-too-large":
-        return `oxlint batch output exceeded limit: ${this.detail}`;
-      case "oom":
-        return `oxlint batch ran out of memory: ${this.detail}`;
-      case "killed":
-        return `oxlint batch was killed: ${this.detail}`;
-    }
-  }
-}
-
-export class OxlintSpawnFailed extends Schema.TaggedErrorClass<OxlintSpawnFailed>()(
-  "OxlintSpawnFailed",
-  {
-    cause: Schema.Unknown,
-  },
-) {
-  get message() {
-    return `Failed to run oxlint: ${Cause.pretty(Cause.fail(this.cause))}`;
-  }
-}
-
-export class OxlintOutputUnparseable extends Schema.TaggedErrorClass<OxlintOutputUnparseable>()(
-  "OxlintOutputUnparseable",
-  {
-    preview: Schema.String,
-  },
-) {
-  get message() {
-    return `Failed to parse oxlint output: ${this.preview}`;
-  }
-}
+import { AmbiguousProjectError, ProjectNotFoundError } from "./project-info/errors.js";
 
 export class ConfigParseFailed extends Schema.TaggedErrorClass<ConfigParseFailed>()(
   "ConfigParseFailed",
@@ -84,18 +19,7 @@ export class ProjectNotFound extends Schema.TaggedErrorClass<ProjectNotFound>()(
   directory: Schema.String,
 }) {
   get message() {
-    return `Could not find a React project at ${this.directory}`;
-  }
-}
-
-export class NoReactDependency extends Schema.TaggedErrorClass<NoReactDependency>()(
-  "NoReactDependency",
-  {
-    directory: Schema.String,
-  },
-) {
-  get message() {
-    return `No React dependency found in ${this.directory}`;
+    return `Could not find a project at ${this.directory}`;
   }
 }
 
@@ -158,13 +82,8 @@ export class GitBaseBranchInvalid extends Schema.TaggedErrorClass<GitBaseBranchI
 }
 
 export const HarnessDoctorErrorReason = Schema.Union([
-  OxlintUnavailable,
-  OxlintBatchExceeded,
-  OxlintSpawnFailed,
-  OxlintOutputUnparseable,
   ConfigParseFailed,
   ProjectNotFound,
-  NoReactDependency,
   AmbiguousProject,
   DeadCodeAnalysisFailed,
   GitInvocationFailed,
@@ -186,9 +105,6 @@ export class HarnessDoctorError extends Schema.TaggedErrorClass<HarnessDoctorErr
 }
 
 export const formatHarnessDoctorError = (error: HarnessDoctorError): string => error.reason.message;
-
-export const isSplittableHarnessDoctorError = (error: unknown): error is HarnessDoctorError =>
-  error instanceof HarnessDoctorError && error.reason._tag === "OxlintBatchExceeded";
 
 export const isHarnessDoctorError = (error: unknown): error is HarnessDoctorError =>
   error instanceof HarnessDoctorError;
@@ -216,7 +132,6 @@ export const restoreLegacyThrow = <Value, Requirements>(
     Effect.catchReasons(
       "HarnessDoctorError",
       {
-        NoReactDependency: (reason) => Effect.die(new NoReactDependencyError(reason.directory)),
         ProjectNotFound: (reason) => Effect.die(new ProjectNotFoundError(reason.directory)),
         AmbiguousProject: (reason) =>
           Effect.die(new AmbiguousProjectError(reason.directory, [...reason.candidates])),

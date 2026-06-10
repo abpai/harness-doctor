@@ -6,7 +6,7 @@ describe("redactSensitiveText", () => {
     expect(redactSensitiveText("")).toBe("");
   });
 
-  it("returns empty string for non-string input (malformed oxlint JSON guard)", () => {
+  it("returns empty string for non-string input (malformed JSON guard)", () => {
     expect(redactSensitiveText(12345)).toBe("");
     expect(redactSensitiveText(null)).toBe("");
     expect(redactSensitiveText(undefined)).toBe("");

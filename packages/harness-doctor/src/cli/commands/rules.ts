@@ -36,7 +36,6 @@ interface RulesCwdOptions {
 interface RulesListOptions extends RulesCwdOptions {
   readonly category?: string;
   readonly tag?: string;
-  readonly framework?: string;
   readonly configured?: boolean;
   readonly json?: boolean;
 }
@@ -114,7 +113,7 @@ export const rulesListAction = async (options: RulesListOptions): Promise<void> 
   recordRulesInvocation();
   recordCount(METRIC.rulesQueried, 1, {
     subcommand: "list",
-    hadFilter: Boolean(options.category || options.tag || options.framework || options.configured),
+    hadFilter: Boolean(options.category || options.tag || options.configured),
   });
   const catalog = buildRuleCatalog();
   const target = await resolveRuleConfigTarget(resolveProjectRoot(options));
@@ -124,12 +123,10 @@ export const rulesListAction = async (options: RulesListOptions): Promise<void> 
   const config = validateConfigTypes(target.config);
 
   const categoryFilter = options.category?.toLowerCase();
-  const frameworkFilter = options.framework?.toLowerCase();
 
   const rows = catalog
     .filter((entry) => {
       if (categoryFilter && entry.category.toLowerCase() !== categoryFilter) return false;
-      if (frameworkFilter && entry.framework.toLowerCase() !== frameworkFilter) return false;
       if (options.tag && !entry.tags.includes(options.tag)) return false;
       return true;
     })
@@ -141,7 +138,6 @@ export const rulesListAction = async (options: RulesListOptions): Promise<void> 
       key: row.entry.key,
       id: row.entry.id,
       category: row.entry.category,
-      framework: row.entry.framework,
       tags: row.entry.tags,
       defaultSeverity: row.entry.defaultSeverity,
       defaultEnabled: row.entry.defaultEnabled,
@@ -180,7 +176,6 @@ export const rulesExplainAction = async (
           key: entry.key,
           id: entry.id,
           category: entry.category,
-          framework: entry.framework,
           tags: entry.tags,
           defaultSeverity: entry.defaultSeverity,
           defaultEnabled: entry.defaultEnabled,
@@ -328,7 +323,7 @@ export const rulesIgnoreTagAction = async (
     reportManualEdit(target, nextConfig);
     return;
   }
-  logger.success(`Ignoring tag "${tag}" (rules with this tag are skipped before linting)`);
+  logger.success(`Ignoring tag "${tag}" (rules with this tag are skipped)`);
   logger.dim(`  Updated ${describeTargetPath(target)}`);
   recordCount(METRIC.rulesChanged, 1, { action: "ignoreTag", target: tag });
 };

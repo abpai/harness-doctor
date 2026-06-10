@@ -2,10 +2,9 @@ import path from "node:path";
 import { parseGitattributesLinguistPaths } from "./parse-gitattributes-linguist.js";
 import { readIgnoreFile } from "./read-ignore-file.js";
 
-// HACK: when harness-doctor passes `--ignore-path COMBINED_FILE` to
-// oxlint, oxlint stops reading `.eslintignore` automatically. So
-// `.eslintignore` MUST be included in the combined file or its
-// patterns silently vanish. Order matches user precedence intuition:
+// Every lint-adjacent ignore file the ecosystem ships is honored —
+// they typically point at vendored or generated code that genuinely
+// shouldn't be scanned. Order matches user precedence intuition:
 // project-wide eslint rules first, then narrower opinions.
 const IGNORE_FILENAMES = [".eslintignore", ".oxlintignore", ".prettierignore"];
 

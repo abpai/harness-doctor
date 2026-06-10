@@ -1,6 +1,6 @@
 /**
  * Resolves the absolute path to read for a diagnostic's `filePath`,
- * accounting for the various shapes oxlint emits:
+ * accounting for the various shapes diagnostics carry:
  *
  * - Absolute POSIX (`/abs/path/file.tsx`) — pass through.
  * - Absolute Windows (`C:/...` or `C:\...`) — pass through.

@@ -71,7 +71,6 @@ export const renderRuleExplanation = (row: RenderedRuleRow): string => {
       `${colorizeSeverity(effective.value, effective.value)} ${formatSourceNote(effective)}`,
     ),
   );
-  lines.push(formatDetailRow("Framework", entry.framework));
   lines.push(formatDetailRow("Tags", entry.tags.length > 0 ? entry.tags.join(", ") : "none"));
   lines.push(formatDetailRow("Default enabled", entry.defaultEnabled ? "yes" : "no (opt-in)"));
 

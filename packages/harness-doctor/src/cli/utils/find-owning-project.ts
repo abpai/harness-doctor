@@ -1,12 +1,12 @@
 import path from "node:path";
-import { discoverReactSubprojects, listWorkspacePackages } from "@harness-doctor/core";
+import { discoverSubprojects, listWorkspacePackages } from "@harness-doctor/core";
 
 export const findOwningProjectDirectory = (rootDirectory: string, filePath: string): string => {
   const absoluteFile = path.isAbsolute(filePath) ? filePath : path.resolve(rootDirectory, filePath);
 
   const workspacePackages = listWorkspacePackages(rootDirectory);
   const candidates =
-    workspacePackages.length > 0 ? workspacePackages : discoverReactSubprojects(rootDirectory);
+    workspacePackages.length > 0 ? workspacePackages : discoverSubprojects(rootDirectory);
   if (candidates.length === 0) return rootDirectory;
 
   let bestMatch: { directory: string; depth: number } | null = null;

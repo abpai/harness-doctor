@@ -7,10 +7,8 @@ import { isMonorepoRoot } from "../project-info/find-monorepo-root.js";
  * past — either the working tree's git root (a `.git` entry sits
  * here) or an npm/pnpm/yarn/bun monorepo root.
  *
- * Used as the stop-condition for the ancestor walks performed by
- * `detectUserLintConfigPaths`, `loadConfigWithSource`, and
- * `detectReactCompiler`. All three previously inlined their own
- * byte-equivalent copy.
+ * Used as the stop-condition for the ancestor walk performed by
+ * `loadConfigWithSource`.
  */
 export const isProjectBoundary = (directory: string): boolean =>
   fs.existsSync(path.join(directory, ".git")) || isMonorepoRoot(directory);

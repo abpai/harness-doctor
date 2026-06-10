@@ -1,6 +1,6 @@
 import type { Diagnostic } from "../types/index.js";
 
-// HACK: oxlint plugin rules occasionally emit the same diagnostic
+// HACK: checks can occasionally emit the same diagnostic
 // twice (e.g. when a rule's listener visits the same AST node through
 // two overlapping selectors). The duplicates have identical filePath,
 // line, column, plugin, rule, message, and severity. This safety net

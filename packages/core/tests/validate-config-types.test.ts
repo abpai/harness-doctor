@@ -18,7 +18,7 @@ afterEach(() => {
 describe("validateConfigTypes", () => {
   it("passes through proper boolean values untouched", () => {
     const input: HarnessDoctorConfig = {
-      lint: true,
+      deadCode: true,
       docsContract: true,
       verbose: true,
       noScore: true,
@@ -34,17 +34,6 @@ describe("validateConfigTypes", () => {
     });
     expect(result.respectInlineDisables).toBe(true);
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("respectInlineDisables"));
-  });
-
-  it("passes through adoptExistingLintConfig and coerces stringy variants", () => {
-    expect(validateConfigTypes({ adoptExistingLintConfig: false }).adoptExistingLintConfig).toBe(
-      false,
-    );
-    expect(
-      validateConfigTypes({ adoptExistingLintConfig: "false" as unknown as boolean })
-        .adoptExistingLintConfig,
-    ).toBe(false);
-    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("adoptExistingLintConfig"));
   });
 
   it("passes through docsContract and coerces stringy variants", () => {
@@ -65,18 +54,17 @@ describe("validateConfigTypes", () => {
 
   it("strips invalid types (numbers, objects) with a warning so the field falls back to the default", () => {
     const result = validateConfigTypes({
-      lint: 42 as unknown as boolean,
+      deadCode: 42 as unknown as boolean,
       verbose: {} as unknown as boolean,
     });
-    expect(result.lint).toBeUndefined();
+    expect(result.deadCode).toBeUndefined();
     expect(result.verbose).toBeUndefined();
     expect(stderrSpy).toHaveBeenCalledTimes(2);
   });
 
   it("does not touch non-boolean fields like ignore.rules", () => {
     const input: HarnessDoctorConfig = {
-      ignore: { rules: ["react/no-danger"] },
-      textComponents: ["MyText"],
+      ignore: { rules: ["harness-doctor/docs-structure/no-structure-md"] },
     };
     expect(validateConfigTypes(input)).toEqual(input);
     expect(stderrSpy).not.toHaveBeenCalled();

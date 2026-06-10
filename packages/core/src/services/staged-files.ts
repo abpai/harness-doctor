@@ -4,7 +4,7 @@ import * as Layer from "effect/Layer";
 import fs from "node:fs";
 import path from "node:path";
 import { GIT_SHOW_MAX_BUFFER_BYTES, STAGED_FILES_PROJECT_CONFIG_FILENAMES } from "../constants.js";
-import { isLintableSourceFile } from "../utils/is-lintable-source-file.js";
+import { isScannableFile } from "../utils/is-scannable-file.js";
 import { HarnessDoctorError } from "../errors.js";
 import { Git } from "./git.js";
 
@@ -31,7 +31,7 @@ const isPathInsideDirectory = (childAbsolutePath: string, parentAbsolutePath: st
 /**
  * `StagedFiles` materializes the git-staged source files of a
  * directory into a temp tree (mirroring the project layout and
- * carrying over a fixed set of project config files) so oxlint can
+ * carrying over a fixed set of project config files) so the scan can
  * lint the staged content without disturbing the working tree.
  *
  * Discovery and content extraction are delegated to the `Git`
@@ -44,8 +44,9 @@ export class StagedFiles extends Context.Service<
   StagedFiles,
   {
     /**
-     * Discovers source files staged for commit (lintable staged paths
-     * from `git diff --cached` — JS/TS minus generated bundles).
+     * Discovers scannable files staged for commit (staged paths from
+     * `git diff --cached` — JS/TS sources, markdown, and harness
+     * manifests, minus generated bundles).
      */
     readonly discoverSourceFiles: (
       directory: string,
@@ -72,7 +73,7 @@ export class StagedFiles extends Context.Service<
         discoverSourceFiles: (directory) =>
           git
             .stagedFilePaths(directory)
-            .pipe(Effect.map((entries) => entries.filter(isLintableSourceFile))),
+            .pipe(Effect.map((entries) => entries.filter(isScannableFile))),
         materialize: ({ directory, stagedFiles, tempDirectory }) =>
           Effect.gen(function* () {
             const materializedFiles: string[] = [];

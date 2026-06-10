@@ -5,15 +5,7 @@ export default defineConfig({
     {
       entry: { index: "./src/index.ts" },
       deps: {
-        neverBundle: [
-          "deslop-js",
-          "effect",
-          "oxc-parser",
-          "oxc-resolver",
-          "oxlint",
-          "oxlint-plugin-harness-doctor",
-          "typescript",
-        ],
+        neverBundle: ["deslop-js", "effect", "oxc-parser", "oxc-resolver", "typescript"],
       },
       dts: true,
       target: "node20",

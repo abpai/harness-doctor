@@ -4,7 +4,6 @@ import type { ProjectInfo } from "./project-info.js";
 import type { ScoreResult } from "./score.js";
 
 export interface DiagnoseOptions {
-  lint?: boolean;
   /** See `HarnessDoctorConfig.deadCode`. Ignored in diff mode. */
   deadCode?: boolean;
   verbose?: boolean;
@@ -39,7 +38,7 @@ export interface DiagnoseResult {
 
 /**
  * A single project to scan as part of a `diagnoseProjects()` batch.
- * Scan options (`deadCode`, `lint`, etc.) are flat on the entry and
+ * Scan options (`deadCode`, etc.) are flat on the entry and
  * layer on top of the global defaults — omitted fields fall through.
  * `config` is a full `HarnessDoctorConfig` override that replaces the
  * on-disk `doctor.config.*` for this project's scan.

@@ -9,11 +9,10 @@ export interface InspectResult {
   skippedChecks: string[];
   /**
    * Human-readable explanation for each entry in `skippedChecks`. Keyed
-   * by check name (e.g. `"lint"`). Optional so existing consumers that
-   * only read `skippedChecks` keep working unchanged — but JSON output
-   * and CI integrations should prefer this for diagnostic clarity
-   * (e.g. distinguishing "oxlint native binding missing" from "oxlint
-   * spawn timed out on a large project").
+   * by check name (e.g. `"dead-code"`). Optional so existing consumers
+   * that only read `skippedChecks` keep working unchanged — but JSON
+   * output and CI integrations should prefer this for diagnostic
+   * clarity.
    */
   skippedCheckReasons?: Record<string, string>;
   project: ProjectInfo;
@@ -46,39 +45,21 @@ export interface InspectResult {
  * Options accepted by `inspect()`. Mixes two concern groups; ordered
  * here in the source to make the split visible to future readers:
  *
- *   - **Engine inputs** (`lint`, `deadCode`, `includePaths`,
- *     `configOverride`, `respectInlineDisables`) — flow into
- *     `runInspect`'s `InspectInput` and shape what the engine
- *     actually does.
+ *   - **Engine inputs** (`deadCode`, `includePaths`, `configOverride`,
+ *     `respectInlineDisables`) — flow into `runInspect`'s
+ *     `InspectInput` and shape what the engine actually does.
  *   - **Rendering / orchestration knobs** (`scoreOnly`, `noScore`,
  *     `silent`, `verbose`, `outputSurface`, `isCi`) — consumed by
  *     the public-API shell to decide what to print, which surface
  *     to filter for, and whether to mark the run as CI-originated.
- *
- * A full type split was investigated as the plan's T4 follow-up but
- * deferred — every call site builds the union anyway, so the gain
- * was purely documentary. Grouping the fields here captures the
- * same intent without churning a published-API type.
  */
 export interface InspectOptions {
   // ── Engine inputs ────────────────────────────────────────────────
-  lint?: boolean;
   /** See `HarnessDoctorConfig.deadCode`. Ignored in diff / staged mode. */
   deadCode?: boolean;
   includePaths?: string[];
   configOverride?: HarnessDoctorConfig | null;
   respectInlineDisables?: boolean;
-  /**
-   * Number of oxlint subprocesses to run in parallel during the lint
-   * pass. Overrides the `OxlintConcurrency` Reference (env-seeded) for
-   * this run. `undefined` leaves the ambient default in place (parallel:
-   * auto-detect cores unless `HARNESS_DOCTOR_PARALLEL` pins a count); the
-   * CLI's `--no-parallel` flag resolves to `1` (serial) here. A parallel
-   * run automatically falls back to serial if it exhausts system
-   * resources. Out-of-range values are clamped to the supported worker
-   * range at the spawn boundary.
-   */
-  concurrency?: number;
   /**
    * Per-call override for `HarnessDoctorConfig.warnings`. When omitted,
    * `config.warnings` wins (defaulting to `true`), so `"warning"`-
@@ -104,7 +85,7 @@ export interface InspectOptions {
    * diagnostic. Set to `"prComment"` when capturing output destined
    * for a PR comment — weak-signal rule families (default: `design`
    * tag) are dropped from the printed list and replaced with a
-   * one-line "N more demoted" hint so they don't bury real React
+   * one-line "N more demoted" hint so they don't bury real
    * findings. The returned `InspectResult.diagnostics` always
    * contains the full, unfiltered list so JSON consumers can see
    * everything.

@@ -12,20 +12,8 @@ import { Project } from "../../src/services/project.js";
 const sampleProject: ProjectInfo = {
   rootDirectory: "/repo",
   projectName: "sample-app",
-  reactVersion: "19.0.0",
-  reactMajorVersion: 19,
-  tailwindVersion: null,
-  zodVersion: null,
-  zodMajorVersion: null,
   framework: "vite",
   hasTypeScript: true,
-  hasReactCompiler: false,
-  hasTanStackQuery: false,
-  hasReactNativeWorkspace: false,
-  expoVersion: null,
-  hasReanimated: false,
-  preactVersion: null,
-  preactMajorVersion: null,
   sourceFileCount: 1,
 };
 
@@ -38,7 +26,7 @@ describe("Project.layerOf", () => {
       }).pipe(Effect.provide(Project.layerOf(sampleProject))),
     );
     expect(result.projectName).toBe("sample-app");
-    expect(result.reactMajorVersion).toBe(19);
+    expect(result.framework).toBe("vite");
   });
 
   it("never fails with a HarnessDoctorError", async () => {
@@ -67,7 +55,6 @@ describe("Project.layerNode", () => {
         rootDirectory: directory,
         projectName: path.basename(directory),
         framework: "unknown",
-        reactVersion: null,
         sourceFileCount: 0,
       });
     } finally {

@@ -23,21 +23,28 @@ const findRequiredRule = (ruleQuery: string) => {
 
 describe("buildRuleCatalog", () => {
   it("exposes fully-qualified keys, ids, categories, and default severity", () => {
-    const entry = findRequiredRule("harness-doctor/no-eval");
-    expect(entry.id).toBe("no-eval");
-    expect(entry.key).toBe("harness-doctor/no-eval");
+    const entry = findRequiredRule("harness-doctor/docs-structure/spec-contract-exists");
+    expect(entry.id).toBe("docs-structure/spec-contract-exists");
+    expect(entry.key).toBe("harness-doctor/docs-structure/spec-contract-exists");
     expect(entry.category.length).toBeGreaterThan(0);
     expect(["error", "warn"]).toContain(entry.defaultSeverity);
   });
 
   it("lists the categories carried by registered rules", () => {
     expect(listRuleCategories(catalog)).toContain("Security");
+    expect(listRuleCategories(catalog)).toContain("Maintainability");
+  });
+
+  it("covers the dead-code family", () => {
+    expect(findRuleInCatalog(catalog, "deslop/unused-file")).toBeDefined();
   });
 });
 
 describe("findRuleInCatalog", () => {
   it("matches the bare rule id", () => {
-    expect(findRuleInCatalog(catalog, "no-eval")?.key).toBe("harness-doctor/no-eval");
+    expect(findRuleInCatalog(catalog, "docs-structure/spec-contract-exists")?.key).toBe(
+      "harness-doctor/docs-structure/spec-contract-exists",
+    );
   });
 
   it("returns undefined for an unknown rule", () => {
@@ -48,9 +55,13 @@ describe("findRuleInCatalog", () => {
 
 describe("setRuleSeverity", () => {
   it("adds a rule severity, preserving unrelated fields", () => {
-    const next = setRuleSeverity({ lint: true }, "harness-doctor/no-eval", "off");
-    expect(next.lint).toBe(true);
-    expect(next.rules).toEqual({ "harness-doctor/no-eval": "off" });
+    const next = setRuleSeverity(
+      { deadCode: true },
+      "harness-doctor/docs-structure/no-structure-md",
+      "off",
+    );
+    expect(next.deadCode).toBe(true);
+    expect(next.rules).toEqual({ "harness-doctor/docs-structure/no-structure-md": "off" });
   });
 });
 
@@ -63,28 +74,28 @@ describe("setCategorySeverity", () => {
 
 describe("addIgnoredTag / removeIgnoredTag", () => {
   it("adds a tag, deduped and sorted", () => {
-    const next = addIgnoredTag({ ignore: { tags: ["test-noise"] } }, "design");
-    expect(next.ignore?.tags).toEqual(["design", "test-noise"]);
+    const next = addIgnoredTag({ ignore: { tags: ["docs"] } }, "dead-code");
+    expect(next.ignore?.tags).toEqual(["dead-code", "docs"]);
   });
 
   it("is a no-op when the tag is already ignored", () => {
-    const config: HarnessDoctorConfig = { ignore: { tags: ["design"] } };
-    expect(addIgnoredTag(config, "design")).toBe(config);
+    const config: HarnessDoctorConfig = { ignore: { tags: ["docs"] } };
+    expect(addIgnoredTag(config, "docs")).toBe(config);
   });
 
   it("removes a tag and drops the empty ignore block", () => {
-    const next = removeIgnoredTag({ ignore: { tags: ["design"] } }, "design");
+    const next = removeIgnoredTag({ ignore: { tags: ["docs"] } }, "docs");
     expect(next.ignore).toBeUndefined();
   });
 
   it("keeps other ignore fields when removing the last tag", () => {
-    const next = removeIgnoredTag({ ignore: { tags: ["design"], files: ["dist/**"] } }, "design");
+    const next = removeIgnoredTag({ ignore: { tags: ["docs"], files: ["dist/**"] } }, "docs");
     expect(next.ignore).toEqual({ files: ["dist/**"] });
   });
 });
 
 describe("resolveEffectiveRuleSeverity", () => {
-  const entry = findRequiredRule("harness-doctor/no-eval");
+  const entry = findRequiredRule("harness-doctor/docs-structure/spec-contract-exists");
 
   it("falls back to the registry default when nothing overrides it", () => {
     const result = resolveEffectiveRuleSeverity(null, entry);
@@ -100,5 +111,13 @@ describe("resolveEffectiveRuleSeverity", () => {
   it("uses a category override when no rule override exists", () => {
     const result = resolveEffectiveRuleSeverity({ categories: { [entry.category]: "off" } }, entry);
     expect(result).toEqual({ value: "off", source: "category" });
+  });
+});
+
+describe("resolveEffectiveRuleSeverity — tag gate", () => {
+  it("an ignored tag turns the whole family off", () => {
+    const entry = findRequiredRule("deslop/unused-file");
+    const result = resolveEffectiveRuleSeverity({ ignore: { tags: ["dead-code"] } }, entry);
+    expect(result).toEqual({ value: "off", source: "tag" });
   });
 });

@@ -14,17 +14,15 @@ nothing to flake.
 
 ## What it checks
 
-Two kinds of thing, because problems live in two places:
-
-- **AST rules** read your source code. Each rule catches one clearly named
-  pattern — the bundled template, `security/no-eval`, flags `eval()` and its
-  string-executing cousins. Rules run through an [oxlint](https://oxc.rs)
-  plugin, so they're fast.
 - **Structural checks** read your repository off disk — its files, layout, and
   docs. Does an agent entry-point exist? Is it a short map or a sprawling
   manual? Is there a `docs/` directory, and does the entry-point actually point
-  into it? These checks are how Harness Doctor reasons about the harness itself,
-  not just the code inside it.
+  into it? Is your pnpm setup hardened against supply-chain attacks? These
+  checks are how Harness Doctor reasons about the harness itself, not the code
+  inside it.
+- **Dead-code analysis** finds unused files, unused exports, unused
+  dependencies, and circular imports — the cruft that misleads an agent reading
+  your codebase.
 
 Every finding comes with a one-line explanation of what's wrong and a concrete
 fix — written to be read by a human or handed straight to a coding agent.
@@ -88,10 +86,10 @@ project root. Turn rules up, down, or off:
 import type { HarnessDoctorConfig } from "harness-doctor/api";
 
 export default {
-  lint: true,
+  deadCode: true,
   docsContract: true,
   rules: {
-    "harness-doctor/no-eval": "error",
+    "harness-doctor/docs-structure/spec-contract-exists": "error",
   },
 } satisfies HarnessDoctorConfig;
 ```
@@ -112,7 +110,6 @@ diagnostic with `filePath`, `plugin`, `rule`, `severity`, `message`, `help`,
 The guides in [`docs/`](../../docs/) are the system of record:
 
 - [**docs/README.md**](../../docs/README.md) — start here.
-- [**How to write a rule**](../../docs/HOW_TO_WRITE_A_RULE.md) — author an AST rule.
 - [**How to write a check**](../../docs/HOW_TO_WRITE_A_CHECK.md) — author a structural
   check.
 - [**Check fix recipes**](../../docs/CHECK_FIX_RECIPES.md) — how an agent remediates

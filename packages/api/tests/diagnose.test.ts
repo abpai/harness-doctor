@@ -32,33 +32,31 @@ describe("diagnose", () => {
   it("returns a DiagnoseResult with the expected shape on basic-react", async () => {
     const result = await diagnose(path.join(FIXTURES_DIRECTORY, "basic-react"), {
       deadCode: false,
-      lint: false,
     });
     expect(result).toHaveProperty("diagnostics");
     expect(result).toHaveProperty("score");
     expect(result).toHaveProperty("project");
     expect(result).toHaveProperty("skippedChecks");
     expect(result).toHaveProperty("elapsedMilliseconds");
-    expect(result.project.reactMajorVersion).toBe(19);
+    expect(result.project.projectName).toBe("test-basic-react");
     expect(Array.isArray(result.diagnostics)).toBe(true);
   });
 
   it("diagnoses a project that has a package.json without any framework dependency", async () => {
-    const result = await diagnose(noReactTempDirectory, { lint: false, deadCode: false });
+    const result = await diagnose(noReactTempDirectory, { deadCode: false });
     expect(result).toHaveProperty("diagnostics");
     expect(result).toHaveProperty("score");
-    expect(result.project.reactMajorVersion).toBeNull();
+    expect(result.project.framework).toBe("unknown");
     expect(Array.isArray(result.diagnostics)).toBe(true);
   });
 
   it("diagnoses a docs-only directory without a package.json", async () => {
     const emptyDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "rdc-empty-"));
     try {
-      const result = await diagnose(emptyDirectory, { lint: false, deadCode: false });
+      const result = await diagnose(emptyDirectory, { deadCode: false });
       expect(result.project).toMatchObject({
         rootDirectory: emptyDirectory,
         framework: "unknown",
-        reactVersion: null,
       });
       expect(result.diagnostics.map((diagnostic) => diagnostic.rule)).toContain(
         "docs-structure/entry-point-exists",
@@ -73,7 +71,7 @@ describe("diagnose", () => {
     const filePath = path.join(tempDirectory, "not-a-directory.txt");
     fs.writeFileSync(filePath, "");
     try {
-      await expect(diagnose(filePath, { lint: false })).rejects.toThrow(NotADirectoryError);
+      await expect(diagnose(filePath, {})).rejects.toThrow(NotADirectoryError);
     } finally {
       fs.rmSync(tempDirectory, { recursive: true, force: true });
     }
@@ -82,7 +80,6 @@ describe("diagnose", () => {
   it("elapsedMilliseconds is non-negative", async () => {
     const result = await diagnose(path.join(FIXTURES_DIRECTORY, "basic-react"), {
       deadCode: false,
-      lint: false,
     });
     expect(result.elapsedMilliseconds).toBeGreaterThanOrEqual(0);
   });
@@ -96,7 +93,6 @@ describe("diagnoseProjects", () => {
         { directory: path.join(FIXTURES_DIRECTORY, "nextjs-app") },
       ],
       deadCode: false,
-      lint: false,
     });
 
     expect(result.projects).toHaveLength(2);
@@ -124,7 +120,6 @@ describe("diagnoseProjects", () => {
         { directory: path.join(FIXTURES_DIRECTORY, "nextjs-app") },
       ],
       deadCode: false,
-      lint: false,
     });
 
     const expectedTotal = result.projects.reduce(
@@ -140,7 +135,6 @@ describe("diagnoseProjects", () => {
         { directory: path.join(FIXTURES_DIRECTORY, "basic-react"), deadCode: false },
         { directory: path.join(FIXTURES_DIRECTORY, "nextjs-app"), deadCode: false },
       ],
-      lint: false,
     });
 
     expect(result.projects).toHaveLength(2);
@@ -158,7 +152,6 @@ describe("diagnoseProjects", () => {
         { directory: path.join(FIXTURES_DIRECTORY, "nextjs-app") },
       ],
       deadCode: false,
-      lint: false,
       concurrency: 1,
     });
 
@@ -170,18 +163,16 @@ describe("diagnoseProjects", () => {
     const multiResult = await diagnoseProjects({
       projects: [{ directory: path.join(FIXTURES_DIRECTORY, "basic-react") }],
       deadCode: false,
-      lint: false,
     });
     const directResult = await diagnose(path.join(FIXTURES_DIRECTORY, "basic-react"), {
       deadCode: false,
-      lint: false,
     });
 
     expect(multiResult.projects).toHaveLength(1);
     const firstProject = multiResult.projects[0];
     expect(firstProject.ok).toBe(true);
     if (!firstProject.ok) return;
-    expect(firstProject.project.reactMajorVersion).toBe(directResult.project.reactMajorVersion);
+    expect(firstProject.project.framework).toBe(directResult.project.framework);
     expect(firstProject.project.projectName).toBe(directResult.project.projectName);
   });
 
@@ -195,7 +186,6 @@ describe("diagnoseProjects", () => {
           { directory: missingProjectDirectory },
         ],
         deadCode: false,
-        lint: false,
       });
 
       const succeeded = result.projects.filter((projectResult) => projectResult.ok);
@@ -212,7 +202,7 @@ describe("diagnoseProjects", () => {
   });
 
   it("returns empty results for an empty projects array", async () => {
-    const result = await diagnoseProjects({ projects: [], deadCode: false, lint: false });
+    const result = await diagnoseProjects({ projects: [], deadCode: false });
 
     expect(result.projects).toHaveLength(0);
     expect(result.diagnostics).toHaveLength(0);
@@ -224,7 +214,6 @@ describe("diagnoseProjects", () => {
     const result = await diagnoseProjects({
       projects: [{ directory: path.join(FIXTURES_DIRECTORY, "basic-react") }],
       deadCode: false,
-      lint: false,
       concurrency: 0,
     });
 
@@ -240,7 +229,6 @@ describe("diagnoseProjects", () => {
           config: { ignore: { tags: ["design"] } },
         },
       ],
-      lint: false,
     });
 
     expect(result.projects).toHaveLength(1);

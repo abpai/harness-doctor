@@ -1,19 +1,16 @@
-import { HARNESS_DOCTOR_RULES } from "oxlint-plugin-harness-doctor";
-import { isSameRuleKey } from "@harness-doctor/core";
-import type { RuleSeverity } from "oxlint-plugin-harness-doctor";
+import { HARNESS_DOCTOR_RULE_CATALOG, isSameRuleKey } from "@harness-doctor/core";
+import type { RuleDefaultSeverity } from "@harness-doctor/core";
 
 export interface RuleCatalogEntry {
-  /** Fully-qualified rule key, e.g. `harness-doctor/no-array-index-as-key`. */
+  /** Fully-qualified rule key, e.g. `harness-doctor/docs-structure/spec-contract-exists`. */
   readonly key: string;
-  /** Bare rule id without the plugin prefix, e.g. `no-array-index-as-key`. */
+  /** Bare rule id without the plugin prefix, e.g. `docs-structure/spec-contract-exists`. */
   readonly id: string;
-  /** Display category, e.g. `Correctness`. */
+  /** Display category, e.g. `Maintainability`. */
   readonly category: string;
-  /** Severity the rule registers with when no config override applies. */
-  readonly defaultSeverity: RuleSeverity;
-  /** Framework gate (`global` rules apply everywhere). */
-  readonly framework: string;
-  /** Behavioral tags (`design`, `test-noise`, …) consumed by `ignore.tags`. */
+  /** Severity the rule reports with when no config override applies. */
+  readonly defaultSeverity: RuleDefaultSeverity;
+  /** Behavioral tags (`docs`, `dead-code`, `supply-chain`, …) consumed by `ignore.tags`. */
   readonly tags: ReadonlyArray<string>;
   /** Short fix guidance shown to users; mirrors the diagnostic `help`. */
   readonly recommendation: string | undefined;
@@ -22,21 +19,21 @@ export interface RuleCatalogEntry {
 }
 
 export const buildRuleCatalog = (): RuleCatalogEntry[] =>
-  HARNESS_DOCTOR_RULES.map((entry) => ({
+  HARNESS_DOCTOR_RULE_CATALOG.map((entry) => ({
     key: entry.key,
-    id: entry.id,
-    category: entry.rule.category ?? "Other",
-    defaultSeverity: entry.rule.severity,
-    framework: entry.rule.framework ?? "global",
-    tags: entry.rule.tags ?? [],
-    recommendation: entry.rule.recommendation,
-    defaultEnabled: entry.rule.defaultEnabled !== false,
+    id: entry.rule,
+    category: entry.category,
+    defaultSeverity: entry.defaultSeverity,
+    tags: entry.tags,
+    recommendation: entry.recommendation,
+    defaultEnabled: entry.defaultEnabled,
   }));
 
 /**
  * Resolves a user-supplied rule reference to a catalog entry. Accepts the
- * fully-qualified key (`harness-doctor/no-danger`), the bare id (`no-danger`),
- * and legacy plugin keys (`react/no-danger`) via the shared alias map.
+ * fully-qualified key (`harness-doctor/docs-structure/spec-contract-exists`),
+ * the bare id (`docs-structure/spec-contract-exists`), and legacy keys via
+ * the shared alias map.
  */
 export const findRuleInCatalog = (
   catalog: ReadonlyArray<RuleCatalogEntry>,

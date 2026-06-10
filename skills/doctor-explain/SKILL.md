@@ -1,6 +1,6 @@
 ---
 name: doctor-explain
-description: Explain Harness Doctor rules and configure which ones run via doctor.config.* (or package.json#harnessDoctor). Use when the user types `/doctor-explain` or `/doctor-config`, asks why a rule fired, disagrees with a rule, wants to disable/enable a rule, silence a category or tag, tune CI/PR noise, or asks "what does this rule mean". Covers the `harness-doctor rules` CLI (list, explain, set, enable, disable, category, ignore-tag) and how config layers combine: ignore.tags disables matching rules before linting, rules over categories sets severity, surfaces controls visibility only.
+description: Explain Harness Doctor rules and configure which ones run via doctor.config.* (or package.json#harnessDoctor). Use when the user types `/doctor-explain` or `/doctor-config`, asks why a rule fired, disagrees with a rule, wants to disable/enable a rule, silence a category or tag, tune CI/PR noise, or asks "what does this rule mean". Covers the `harness-doctor rules` CLI (list, explain, set, enable, disable, category, ignore-tag) and how config layers combine: ignore.tags drops every diagnostic from rules carrying the tag, rules over categories sets severity, surfaces controls visibility only.
 version: "1.0.0"
 ---
 
@@ -12,11 +12,11 @@ Triggers: `/doctor-explain`, `/doctor-config`, "why did this rule fire", "I disa
 
 ## Workflow
 
-1. Identify the rule key from the diagnostic (e.g. `harness-doctor/no-eval`).
+1. Identify the rule key from the diagnostic (e.g. `harness-doctor/docs-structure/spec-contract-exists`).
 2. Explain it before changing anything:
 
 ```bash
-npx @andypai/harness-doctor@latest rules explain harness-doctor/no-eval
+npx @andypai/harness-doctor@latest rules explain docs-structure/spec-contract-exists
 ```
 
 3. Pick the narrowest control that matches the user's intent (see decision guide).
@@ -32,17 +32,17 @@ npx @andypai/harness-doctor@latest --verbose --diff
 ```bash
 npx @andypai/harness-doctor@latest rules list                         # every rule + its effective severity
 npx @andypai/harness-doctor@latest rules list --configured            # only what your config changed
-npx @andypai/harness-doctor@latest rules list --category Performance   # filter by category
+npx @andypai/harness-doctor@latest rules list --category Security      # filter by category
 npx @andypai/harness-doctor@latest rules explain <rule>               # why it matters + how to configure
 npx @andypai/harness-doctor@latest rules disable <rule>               # rule never runs
 npx @andypai/harness-doctor@latest rules enable <rule>                # turn back on at its recommended severity
 npx @andypai/harness-doctor@latest rules set <rule> warn              # off | warn | error
 npx @andypai/harness-doctor@latest rules category "Maintainability" off   # whole category
-npx @andypai/harness-doctor@latest rules ignore-tag docs-structure    # skip a rule family
-npx @andypai/harness-doctor@latest rules unignore-tag docs-structure
+npx @andypai/harness-doctor@latest rules ignore-tag dead-code         # skip a rule family
+npx @andypai/harness-doctor@latest rules unignore-tag dead-code
 ```
 
-Rule references accept the full key (`harness-doctor/no-eval`) or the bare id (`no-eval`).
+Rule references accept the full key (`harness-doctor/docs-structure/spec-contract-exists`) or the bare id (`docs-structure/spec-contract-exists`).
 
 ## Decision guide
 
@@ -52,10 +52,10 @@ Match the control to the intent — prefer the narrowest one:
 - **Rule is fine but wrong severity** → `rules set <rule> warn` or `rules set <rule> error`.
 - **A disabled-by-default rule they want on** → `rules enable <rule>`.
 - **A whole area is unwanted** (e.g. all Maintainability rules) → `rules category "<Category>" off`.
-- **A behavioral family is noisy** (e.g. `docs-structure`, `test-noise`) → `rules ignore-tag <tag>`.
+- **A behavioral family is noisy** (e.g. `docs`, `dead-code`, `supply-chain`) → `rules ignore-tag <tag>`.
 - **Keep it locally but hide from PR comment / score / CI gate only** → do NOT disable. Edit `surfaces` in your config (`surfaces.prComment.excludeRules`, `surfaces.score.excludeTags`, `surfaces.ciFailure.excludeCategories`). The rule still shows in local `cli` output.
 
-How the layers combine: `ignore.tags` disables every rule carrying that tag **before** linting, so a tagged rule stays off even if `rules`/`categories` set it to `warn`/`error` (a rule-level override cannot re-enable a tag-ignored rule). For rules that aren't tag-disabled, `rules` overrides `categories` overrides the rule's default. `surfaces` is visibility-only and never changes whether a rule runs.
+How the layers combine: `ignore.tags` drops every diagnostic from rules carrying that tag, so a tagged rule stays silent even if `rules`/`categories` set it to `warn`/`error` (a rule-level override cannot re-enable a tag-ignored rule). For rules that aren't tag-disabled, `rules` overrides `categories` overrides the rule's default. `surfaces` is visibility-only and never changes whether a rule runs.
 
 ## Config shape
 
@@ -64,9 +64,9 @@ Config lives in `doctor.config.ts` (or `.js`/`.mjs`/`.cjs`/`.json`/`.jsonc`), or
 ```ts
 // doctor.config.ts
 export default {
-  rules: { "harness-doctor/no-eval": "off" },
+  rules: { "harness-doctor/docs-structure/spec-contract-exists": "off" },
   categories: { Maintainability: "warn" },
-  ignore: { tags: ["docs-structure"] },
+  ignore: { tags: ["dead-code"] },
 };
 ```
 

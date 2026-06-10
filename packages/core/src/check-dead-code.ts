@@ -157,7 +157,7 @@ const resolveTsConfigPath = (rootDirectory: string): string | undefined => {
 };
 
 // HACK: `collectIgnorePatterns` intentionally omits `.gitignore` because
-// oxlint reads it automatically — deslop does not, so we pull it in.
+// deslop does not read it automatically, so we pull it in.
 const collectDeadCodeIgnorePatterns = (
   rootDirectory: string,
   userConfig: HarnessDoctorConfig | null | undefined,
@@ -334,7 +334,7 @@ const createDeadCodeWorker: DeadCodeWorkerFactory = (input) => {
   // vitest fork this surfaced as a silent "Worker exited unexpectedly"
   // and failed CI (see issue: #537 moved deslop inline -> worker_thread).
   // A child process can be killed cleanly on every platform (the same
-  // reason the oxlint runner uses child_process + SIGKILL), so teardown
+  // reason a worker would otherwise need child_process + SIGKILL), so teardown
   // on success or timeout never takes the parent down with it. Input
   // goes in as JSON on stdin; the normalized result comes back as JSON
   // on stdout.

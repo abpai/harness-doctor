@@ -5,7 +5,6 @@ import {
   clearConfigCache,
   clearIgnorePatternsCache,
   clearPackageJsonCache,
-  clearPackageRoleCache,
   clearProjectCache,
 } from "@harness-doctor/core";
 import type {
@@ -44,7 +43,7 @@ export { buildJsonReport, buildJsonReportError };
 // `HarnessDoctorError` is the tagged Schema class from
 // `@harness-doctor/core`, used by the new Effect pipeline.
 // `isHarnessDoctorError` narrows to that tagged class.
-// The four narrow errors below are still plain JS Error subclasses —
+// The narrow errors below are still plain JS Error subclasses —
 // they're thrown synchronously by `discoverProject` /
 // `resolveDiagnoseTarget` / `readPackageJson` BEFORE the Effect
 // runtime takes over, so callers can `try/catch` them without
@@ -52,7 +51,6 @@ export { buildJsonReport, buildJsonReportError };
 export {
   HarnessDoctorError,
   ProjectNotFoundError,
-  NoReactDependencyError,
   PackageJsonNotFoundError,
   NotADirectoryError,
   AmbiguousProjectError,
@@ -70,7 +68,6 @@ export const clearCaches = (): void => {
   clearConfigCache();
   clearPackageJsonCache();
   clearIgnorePatternsCache();
-  clearPackageRoleCache();
   clearAutoSuppressionCaches();
 };
 

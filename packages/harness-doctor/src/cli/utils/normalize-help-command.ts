@@ -5,7 +5,7 @@ import { NODE_ARGUMENT_COUNT } from "./constants.js";
  * `mycli help <command>` must display help. Commander doesn't wire this
  * up once the root command has its own default action plus a positional
  * argument — it treats a leading `help` as the `[directory]` to scan,
- * which then errors with "No React project found in ./help".
+ * which then errors with "Could not find a project at ./help".
  *
  * We rewrite the argv up front so the existing `--help` paths handle it:
  *   `harness-doctor help`         -> `harness-doctor --help`

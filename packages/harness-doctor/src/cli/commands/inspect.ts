@@ -437,9 +437,9 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
       }
     }
   } catch (error) {
-    // Expected, user-actionable failures — a directory without React, a missing
-    // package.json, or a bad `--diff` base branch — are the user's project or
-    // input, not a harness-doctor bug: skip Sentry and the "open a prefilled
+    // Expected, user-actionable failures — a directory without a project, a
+    // missing package.json, or a bad `--diff` base branch — are the user's
+    // project or input, not a harness-doctor bug: skip Sentry and the "open a prefilled
     // issue" block so they don't become triage noise.
     const isUserError = isExpectedUserError(error);
     const sentryEventId = isUserError ? undefined : await reportErrorToSentry(error);

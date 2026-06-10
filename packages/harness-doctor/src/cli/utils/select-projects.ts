@@ -1,7 +1,7 @@
 import path from "node:path";
 import type { WorkspacePackage } from "@harness-doctor/core";
 import {
-  discoverReactSubprojects,
+  discoverSubprojects,
   highlighter,
   isFile,
   isMonorepoRoot,
@@ -19,7 +19,7 @@ export const selectProjects = async (
   const hasRootPackageJson = isFile(path.join(rootDirectory, "package.json"));
   let packages = listWorkspacePackages(rootDirectory);
   if (packages.length === 0 && (!hasRootPackageJson || isMonorepoRoot(rootDirectory))) {
-    packages = discoverReactSubprojects(rootDirectory);
+    packages = discoverSubprojects(rootDirectory);
   }
 
   if (packages.length === 0) return [rootDirectory];

@@ -3,9 +3,9 @@ import type { HarnessDoctorConfig, RuleSeverityOverride } from "@harness-doctor/
 
 /**
  * Sets a per-rule severity, replacing any existing entry for the same
- * rule (including legacy-aliased keys, so a config still targeting
- * `react/no-danger` is rewritten to the canonical key instead of
- * leaving a dead duplicate).
+ * rule (including legacy-aliased keys, so a config targeting an alias
+ * is rewritten to the canonical key instead of leaving a dead
+ * duplicate).
  */
 export const setRuleSeverity = (
   config: HarnessDoctorConfig,

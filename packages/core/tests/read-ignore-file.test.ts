@@ -39,7 +39,7 @@ describe("readIgnoreFile", () => {
     expect(readIgnoreFile(filePath)).toEqual(["src/skipped.tsx", "dist/"]);
   });
 
-  it("does not strip negation prefix `!` (caller passes that through to oxlint)", () => {
+  it("does not strip negation prefix `!` (callers receive it verbatim)", () => {
     const filePath = writeFixture(
       "negation.ignore",
       "node_modules/\n!node_modules/keep-this.tsx\n",

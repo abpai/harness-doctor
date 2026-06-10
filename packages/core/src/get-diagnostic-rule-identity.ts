@@ -1,4 +1,4 @@
-import harnessDoctorPlugin from "oxlint-plugin-harness-doctor";
+import { getRuleTags } from "./rule-catalog.js";
 import type { Diagnostic } from "./types/index.js";
 
 export interface DiagnosticRuleIdentity {
@@ -17,15 +17,12 @@ export interface DiagnosticRuleIdentity {
  * - `category` — the diagnostic's category label (consumed by
  *   top-level `categories` severity and
  *   `surfaces.*.{include,exclude}Categories`).
- * - `tags` — behavioral tags from the rule registry (consumed by
+ * - `tags` — behavioral tags from the rule catalog (consumed by
  *   `ignore.tags` and `surfaces.*.{include,exclude}Tags`). Empty
- *   for non-`harness-doctor` plugins.
+ *   for rules outside the catalog.
  */
 export const getDiagnosticRuleIdentity = (diagnostic: Diagnostic): DiagnosticRuleIdentity => ({
   ruleKey: `${diagnostic.plugin}/${diagnostic.rule}`,
   category: diagnostic.category,
-  tags:
-    diagnostic.plugin === "harness-doctor"
-      ? (harnessDoctorPlugin.rules[diagnostic.rule]?.tags ?? [])
-      : [],
+  tags: getRuleTags(diagnostic.plugin, diagnostic.rule),
 });

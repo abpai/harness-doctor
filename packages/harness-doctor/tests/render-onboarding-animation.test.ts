@@ -63,7 +63,7 @@ describe("playWelcomeScene", () => {
     expect(stripAnsi(output)).toContain("Welcome to Harness Doctor");
     // The middle sentence explains what Harness Doctor does, then is replaced in
     // place by the closing line.
-    expect(stripAnsi(output)).toContain("I diagnose your React code");
+    expect(stripAnsi(output)).toContain("I diagnose your repo's agent-harness readiness");
     expect(stripAnsi(output)).toContain("Let's scan your codebase");
     expect(output).toContain("◠ ◠");
     // Typewriter: many incremental frames, and an early partial reveal.

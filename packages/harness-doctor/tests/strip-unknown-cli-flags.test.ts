@@ -10,6 +10,12 @@ describe("stripUnknownCliFlags", () => {
     expect(stripUserArguments([".", "--offline"])).toEqual(["."]);
   });
 
+  it("drops flags removed with the react-lint stack so old invocations degrade instead of crashing", () => {
+    expect(stripUserArguments([".", "--no-lint", "--no-score"])).toEqual([".", "--no-score"]);
+    expect(stripUserArguments([".", "--lint"])).toEqual(["."]);
+    expect(stripUserArguments([".", "--no-parallel"])).toEqual(["."]);
+  });
+
   it("keeps known root flags and their values", () => {
     expect(
       stripUserArguments([

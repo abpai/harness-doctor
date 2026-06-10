@@ -8,8 +8,6 @@ import {
   Files,
   Git,
   layerOtlp,
-  Linter,
-  LintPartialFailures,
   Progress,
   Project,
   Reporter,
@@ -43,8 +41,6 @@ const buildDiagnoseLayer = (configLayer: typeof Config.layerNode = Config.layerN
     DeadCode.layerNode,
     Files.layerNode,
     Git.layerNode,
-    Linter.layerOxlint,
-    LintPartialFailures.layerLive,
     Progress.layerNoop,
     Reporter.layerNoop,
     Score.layerLocal,
@@ -61,12 +57,9 @@ const buildInspectProgram = (
   return runInspect({
     directory: scanTarget.resolvedDirectory,
     includePaths,
-    customRulesOnly: effectiveConfig?.customRulesOnly ?? false,
     respectInlineDisables:
       options.respectInlineDisables ?? effectiveConfig?.respectInlineDisables ?? true,
     warnings: options.warnings ?? effectiveConfig?.warnings ?? DEFAULT_SHOW_WARNINGS,
-    adoptExistingLintConfig: effectiveConfig?.adoptExistingLintConfig ?? true,
-    ignoredTags: new Set(effectiveConfig?.ignore?.tags ?? []),
     runDeadCode: options.deadCode ?? effectiveConfig?.deadCode ?? true,
     isCi: false,
     resolveLocalGithubViewerPermission: true,
@@ -77,14 +70,6 @@ const outputToDiagnoseResult = (
   output: InspectOutput,
   elapsedMilliseconds: number,
 ): DiagnoseResult => {
-  // HACK: preserve the legacy behavior of writing lint failures to
-  // stderr. The orchestrator already folds them into didLintFail /
-  // lintFailureReason; this mirror keeps long-running scripts that
-  // grep stderr for "Lint failed" working unchanged.
-  if (output.didLintFail && output.lintFailureReason !== null) {
-    console.error("Lint failed:", output.lintFailureReason);
-  }
-
   const { skippedChecks, skippedCheckReasons } = buildSkippedChecks(output);
 
   return {
@@ -178,7 +163,7 @@ const diagnoseProject = async (
  * dead-code analysis, and scoring all work identically to a single
  * `diagnose()` call.
  *
- * Projects that fail (e.g. missing `package.json`, no React dependency)
+ * Projects that fail (e.g. a directory that doesn't exist)
  * are included in the result with `ok: false` rather than aborting the
  * entire batch, so callers always receive partial results.
  *

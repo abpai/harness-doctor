@@ -1,5 +1,5 @@
 import * as Effect from "effect/Effect";
-import { isLintableSourceFile } from "./utils/is-lintable-source-file.js";
+import { isScannableFile } from "./utils/is-scannable-file.js";
 import { Git } from "./services/git.js";
 import type { DiffInfo } from "./types/index.js";
 
@@ -35,4 +35,4 @@ export const getDiffInfo = (
   );
 
 export const filterSourceFiles = (filePaths: string[]): string[] =>
-  filePaths.filter(isLintableSourceFile);
+  filePaths.filter(isScannableFile);

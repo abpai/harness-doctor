@@ -91,7 +91,7 @@ const hasScannedProjects = (report) => (report.projects ?? []).length > 0;
 
 const buildNoScanMessage = (report) => {
   if (report.mode === "staged") {
-    return "No staged React or TypeScript source files were found, so Harness Doctor skipped the scan.";
+    return "No staged scannable files were found, so Harness Doctor skipped the scan.";
   }
   if (report.mode === "diff") {
     const changedFileCount = report.diff?.changedFileCount ?? 0;
