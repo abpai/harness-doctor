@@ -263,7 +263,7 @@ const formatDependencyInstallMessage = (result: InstallHarnessDoctorDependencyRe
   if (result.dependencyReason === "trust-policy-blocked") {
     const installCommand =
       result.installCommand ?? `npm install --save-dev ${DOCTOR_PACKAGE_NAME}@latest`;
-    return `Skipped local install: your package manager's supply-chain trust policy blocked a dependency (not a compromise — beta packages trip this). Harness Doctor still works via \`npx harness-doctor\`. To add it locally: ${installCommand}`;
+    return `Skipped local install: your package manager's supply-chain trust policy blocked a dependency (not a compromise — beta packages trip this). Harness Doctor still works via \`npx @andypai/harness-doctor\`. To add it locally: ${installCommand}`;
   }
   if (result.dependencyReason === "install-command-failed") {
     const installCommand =

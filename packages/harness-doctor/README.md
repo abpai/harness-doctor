@@ -34,7 +34,7 @@ fix — written to be read by a human or handed straight to a coding agent.
 From the root of any project:
 
 ```bash
-npx harness-doctor@latest
+npx @andypai/harness-doctor@latest
 ```
 
 You'll get an audit and a score. Add `--verbose` to see every finding with file
@@ -46,7 +46,7 @@ Wire Harness Doctor into your agent's workflow so it reads the findings, fixes
 them, and keeps the score from sliding on the next change:
 
 ```bash
-npx harness-doctor@latest install
+npx @andypai/harness-doctor@latest install
 ```
 
 Works with Claude Code, Cursor, Codex, OpenCode, and others.

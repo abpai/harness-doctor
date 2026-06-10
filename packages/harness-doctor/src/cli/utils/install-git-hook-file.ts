@@ -31,8 +31,8 @@ const HARNESS_DOCTOR_BLOCK_PATTERN = new RegExp(
 const SHEBANG = "#!/bin/sh";
 const SHEBANG_PREFIX = "#!";
 const LOCAL_HARNESS_DOCTOR_BIN = "./node_modules/.bin/harness-doctor";
-const PNPM_HARNESS_DOCTOR_COMMAND = "pnpm dlx harness-doctor@latest --staged --fail-on warning";
-const NPX_HARNESS_DOCTOR_COMMAND = "npx --yes harness-doctor@latest --staged --fail-on warning";
+const PNPM_HARNESS_DOCTOR_COMMAND = "pnpm dlx @andypai/harness-doctor@latest --staged --fail-on warning";
+const NPX_HARNESS_DOCTOR_COMMAND = "npx --yes @andypai/harness-doctor@latest --staged --fail-on warning";
 
 const buildHarnessDoctorHookBlock = (): string =>
   [

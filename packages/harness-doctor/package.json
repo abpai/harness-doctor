@@ -1,5 +1,5 @@
 {
-  "name": "harness-doctor",
+  "name": "@andypai/harness-doctor",
   "version": "0.2.18",
   "description": "Diagnose and fix React codebases for security, performance, correctness, accessibility, bundle-size, and architecture issues",
   "keywords": [
@@ -26,6 +26,9 @@
     "type": "git",
     "url": "https://github.com/abpai/harness-doctor.git",
     "directory": "packages/harness-doctor"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "bin": {
     "harness-doctor": "./bin/harness-doctor.js"

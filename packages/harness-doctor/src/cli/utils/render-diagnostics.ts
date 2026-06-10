@@ -428,7 +428,7 @@ const buildOverflowSummaryLine = (
     parts.push(highlighter.bold(highlighter.warn(`+${warningCount} optional ${warningNoun}`)));
   }
 
-  const command = highlighter.bold(highlighter.info("npx harness-doctor@latest --verbose"));
+  const command = highlighter.bold(highlighter.info("npx @andypai/harness-doctor@latest --verbose"));
   const lead =
     parts.length > 0
       ? `${parts.join(highlighter.dim(" and "))} ${highlighter.dim("- run")}`

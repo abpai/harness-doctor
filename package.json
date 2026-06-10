@@ -11,9 +11,9 @@
   },
   "type": "module",
   "scripts": {
-    "dev": "turbo run dev --filter=harness-doctor",
+    "dev": "turbo run dev --filter=@andypai/harness-doctor",
     "build": "turbo run build",
-    "test": "turbo run test --filter=harness-doctor --filter=@harness-doctor/core --filter=@harness-doctor/api",
+    "test": "turbo run test --filter=@andypai/harness-doctor --filter=@harness-doctor/core --filter=@harness-doctor/api",
     "typecheck": "turbo run typecheck",
     "lint": "vp lint",
     "lint:fix": "vp lint --fix",

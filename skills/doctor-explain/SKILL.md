@@ -16,7 +16,7 @@ Triggers: `/doctor-explain`, `/doctor-config`, "why did this rule fire", "I disa
 2. Explain it before changing anything:
 
 ```bash
-npx harness-doctor@latest rules explain harness-doctor/no-eval
+npx @andypai/harness-doctor@latest rules explain harness-doctor/no-eval
 ```
 
 3. Pick the narrowest control that matches the user's intent (see decision guide).
@@ -24,22 +24,22 @@ npx harness-doctor@latest rules explain harness-doctor/no-eval
 5. Validate the change did what they wanted:
 
 ```bash
-npx harness-doctor@latest --verbose --diff
+npx @andypai/harness-doctor@latest --verbose --diff
 ```
 
 ## Commands
 
 ```bash
-npx harness-doctor@latest rules list                         # every rule + its effective severity
-npx harness-doctor@latest rules list --configured            # only what your config changed
-npx harness-doctor@latest rules list --category Performance   # filter by category
-npx harness-doctor@latest rules explain <rule>               # why it matters + how to configure
-npx harness-doctor@latest rules disable <rule>               # rule never runs
-npx harness-doctor@latest rules enable <rule>                # turn back on at its recommended severity
-npx harness-doctor@latest rules set <rule> warn              # off | warn | error
-npx harness-doctor@latest rules category "Maintainability" off   # whole category
-npx harness-doctor@latest rules ignore-tag docs-structure    # skip a rule family
-npx harness-doctor@latest rules unignore-tag docs-structure
+npx @andypai/harness-doctor@latest rules list                         # every rule + its effective severity
+npx @andypai/harness-doctor@latest rules list --configured            # only what your config changed
+npx @andypai/harness-doctor@latest rules list --category Performance   # filter by category
+npx @andypai/harness-doctor@latest rules explain <rule>               # why it matters + how to configure
+npx @andypai/harness-doctor@latest rules disable <rule>               # rule never runs
+npx @andypai/harness-doctor@latest rules enable <rule>                # turn back on at its recommended severity
+npx @andypai/harness-doctor@latest rules set <rule> warn              # off | warn | error
+npx @andypai/harness-doctor@latest rules category "Maintainability" off   # whole category
+npx @andypai/harness-doctor@latest rules ignore-tag docs-structure    # skip a rule family
+npx @andypai/harness-doctor@latest rules unignore-tag docs-structure
 ```
 
 Rule references accept the full key (`harness-doctor/no-eval`) or the bare id (`no-eval`).

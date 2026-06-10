@@ -89,7 +89,7 @@ If you previously enabled them as `effect/*` via the optional peer dep, drop the
 This package only ships the oxlint plugin. To run Harness Doctor's full scan (with scoring, JSON reports, agent integration, etc.), use the main CLI:
 
 ```bash
-npx harness-doctor@latest
+npx @andypai/harness-doctor@latest
 ```
 
 See the [Harness Doctor README](https://github.com/abpai/harness-doctor#readme) for the full feature set.

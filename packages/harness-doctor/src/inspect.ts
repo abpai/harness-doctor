@@ -317,7 +317,7 @@ const runInspectWithRuntime = async (
       runConsole(
         Console.log(
           highlighter.gray(
-            `  Upgrade to Node ${OXLINT_NODE_REQUIREMENT} or run: npx -p oxlint@latest harness-doctor@latest`,
+            `  Upgrade to Node ${OXLINT_NODE_REQUIREMENT} or run: npx -p oxlint@latest @andypai/harness-doctor@latest`,
           ),
         ),
       );
@@ -542,7 +542,7 @@ const finalizeAndRender = (input: FinalizeInput): Effect.Effect<InspectResult> =
     if (demotedDiagnosticCount > 0) {
       yield* Console.log(
         highlighter.gray(
-          `  ${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface (e.g. design cleanup) — run \`npx harness-doctor@latest .\` locally for the full list.`,
+          `  ${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface (e.g. design cleanup) — run \`npx @andypai/harness-doctor@latest .\` locally for the full list.`,
         ),
       );
       yield* Console.log("");

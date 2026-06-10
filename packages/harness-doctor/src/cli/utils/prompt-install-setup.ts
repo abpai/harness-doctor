@@ -134,7 +134,7 @@ export const AGENT_INSTALL_HINT_LINES = [
   "Harness Doctor is not installed in this project.",
   "Ask the user if they would like to set it up, then run:",
   "",
-  "  npx harness-doctor install --yes",
+  "  npx @andypai/harness-doctor install --yes",
   "",
   "This adds agent skill files, a `doctor` package script, and harness-doctor as a dev dependency.",
 ] as const;

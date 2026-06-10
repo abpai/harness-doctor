@@ -112,7 +112,7 @@ runs:
         if [[ "$INPUT_VERSION" = ./* || "$INPUT_VERSION" = ../* || "$INPUT_VERSION" = /* ]]; then
           PACKAGE_SPEC="$INPUT_VERSION"
         else
-          PACKAGE_SPEC="harness-doctor@$INPUT_VERSION"
+          PACKAGE_SPEC="@andypai/harness-doctor@$INPUT_VERSION"
         fi
 
         set +e

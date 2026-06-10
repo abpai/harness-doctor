@@ -68,7 +68,7 @@ describe("installDoctorScript", () => {
       scriptStatus: "created",
     });
     expect(readPackageJson(fixture.projectRoot)).toMatchObject({
-      scripts: { doctor: "npx harness-doctor@latest" },
+      scripts: { doctor: "npx @andypai/harness-doctor@latest" },
     });
     expect(readPackageJson(fixture.projectRoot)).not.toHaveProperty("devDependencies");
   });
@@ -82,7 +82,7 @@ describe("installDoctorScript", () => {
 
     expect(result.packageJsonPath).toBe(path.join(fixture.projectRoot, "package.json"));
     expect(readPackageJson(fixture.projectRoot)).toMatchObject({
-      scripts: { doctor: "npx harness-doctor@latest" },
+      scripts: { doctor: "npx @andypai/harness-doctor@latest" },
     });
     expect(readPackageJson(fixture.projectRoot)).not.toHaveProperty("devDependencies");
   });
@@ -109,7 +109,7 @@ describe("installDoctorScript", () => {
     });
     expect(readPackageJson(fixture.projectRoot).scripts).toEqual({
       doctor: "vitest --run",
-      "harness-doctor": "npx harness-doctor@latest",
+      "harness-doctor": "npx @andypai/harness-doctor@latest",
     });
   });
 
@@ -182,7 +182,7 @@ describe("installDoctorScript", () => {
       scriptStatus: "created",
     });
     expect(readPackageJson(fixture.projectRoot)).toMatchObject({
-      scripts: { doctor: "npx harness-doctor@latest" },
+      scripts: { doctor: "npx @andypai/harness-doctor@latest" },
       devDependencies: "harness-doctor",
     });
   });
@@ -199,7 +199,7 @@ describe("installDoctorScript", () => {
 
     expect(result.scriptStatus).toBe("created");
     expect(readPackageJson(fixture.projectRoot)).toMatchObject({
-      scripts: { doctor: "npx harness-doctor@latest" },
+      scripts: { doctor: "npx @andypai/harness-doctor@latest" },
       dependencies: { "harness-doctor": "^1.2.3" },
     });
     expect(readPackageJson(fixture.projectRoot)).not.toHaveProperty("devDependencies");
