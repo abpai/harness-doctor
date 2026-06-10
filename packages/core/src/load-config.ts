@@ -20,7 +20,22 @@ const CONFIG_EXTENSIONS = ["ts", "mts", "cts", "js", "mjs", "cjs", "json", "json
 const DATA_CONFIG_EXTENSIONS: ReadonlySet<string> = new Set(["json", "jsonc"]);
 const PACKAGE_JSON_FILENAME = "package.json";
 const PACKAGE_JSON_CONFIG_KEY = "harnessDoctor";
-const LEGACY_CONFIG_FILENAME = "doctor.config.json";
+// Pre-rename basename. Any `doctor.config.*` is no longer loaded under the
+// `harness.config.*` basename, so we detect the full extension set to warn /
+// migrate rather than letting a `.ts`/`.js`/`.jsonc` config silently stop
+// applying. Only the data variants auto-migrate; module configs are renamed.
+const LEGACY_CONFIG_BASENAME = "doctor.config";
+
+// First existing `doctor.config.<ext>` in a directory (CONFIG_EXTENSIONS
+// precedence — TS first), or null. Side-effect-free so detection walks never
+// emit warnings.
+const findLegacyConfigFile = (directory: string): string | null => {
+  for (const extension of CONFIG_EXTENSIONS) {
+    const filePath = path.join(directory, `${LEGACY_CONFIG_BASENAME}.${extension}`);
+    if (isFile(filePath)) return filePath;
+  }
+  return null;
+};
 
 /**
  * Coarse format of the resolved config, used by the rule-config writer
@@ -126,11 +141,14 @@ const loadConfigFromDirectory = async (directory: string): Promise<DirectoryConf
   const packageJsonConfig = loadPackageJsonConfig(directory);
   if (packageJsonConfig) return { status: "found", loaded: packageJsonConfig };
 
-  // Nudge users who still have the pre-migration filename — it's no longer
+  // Nudge users who still have a pre-rename `doctor.config.*` — it's no longer
   // read, so without this warning the config would silently stop applying.
-  if (isFile(path.join(directory, LEGACY_CONFIG_FILENAME))) {
+  const legacyFilePath = findLegacyConfigFile(directory);
+  if (legacyFilePath !== null) {
+    const legacyBasename = path.basename(legacyFilePath);
+    const legacyExtension = legacyBasename.slice(`${LEGACY_CONFIG_BASENAME}.`.length);
     warn(
-      `${LEGACY_CONFIG_FILENAME} is no longer read — rename it to ${CONFIG_BASENAME}.json (or author a ${CONFIG_BASENAME}.ts).`,
+      `${legacyBasename} is no longer read — rename it to ${CONFIG_BASENAME}.${legacyExtension}.`,
     );
   }
   return { status: sawBrokenConfigFile ? "invalid" : "absent", loaded: null };
@@ -179,7 +197,7 @@ export const loadConfigWithSource = (
 };
 
 export interface LegacyConfigLocation {
-  /** Absolute path of the pre-migration `doctor.config.json`. */
+  /** Absolute path of the pre-rename `doctor.config.*` file. */
   readonly legacyFilePath: string;
   /** Directory that contains it (where the migrated file should land). */
   readonly directory: string;
@@ -199,8 +217,8 @@ const directoryHasCurrentConfig = (directory: string): boolean => {
 
 /**
  * Walks up from `rootDirectory` (same boundary semantics as
- * `loadConfigWithSource`) looking for a pre-migration
- * `doctor.config.json` that is no longer read. Returns the first one
+ * `loadConfigWithSource`) looking for a pre-rename `doctor.config.*` (any
+ * supported extension) that is no longer read. Returns the first one
  * found, or `null` when a current-format config supersedes it or none exists
  * before a project boundary. Detection only — the CLI performs the rename.
  */
@@ -208,8 +226,8 @@ export const findLegacyConfig = (rootDirectory: string): LegacyConfigLocation | 
   let directory = rootDirectory;
   while (true) {
     if (directoryHasCurrentConfig(directory)) return null;
-    const legacyFilePath = path.join(directory, LEGACY_CONFIG_FILENAME);
-    if (isFile(legacyFilePath)) return { legacyFilePath, directory };
+    const legacyFilePath = findLegacyConfigFile(directory);
+    if (legacyFilePath !== null) return { legacyFilePath, directory };
     if (isProjectBoundary(directory)) return null;
     const parentDirectory = path.dirname(directory);
     if (parentDirectory === directory) return null;

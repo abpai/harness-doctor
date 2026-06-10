@@ -1,5 +1,25 @@
 # @andypai/harness-doctor
 
+## 0.2.0
+
+- **Config renamed to `harness.config.*`.** The config file is now
+  `harness.config.{ts,mts,cts,js,mjs,cjs,json,jsonc}` (or the
+  `package.json#harnessDoctor` key), so it no longer collides with
+  react-doctor's `doctor.config.*`. A pre-rename `doctor.config.*` is no longer
+  read; on an interactive human run it is migrated to the new basename — a
+  `doctor.config.json` becomes a typed `harness.config.ts` (settings preserved,
+  `$schema` dropped) and a module config is renamed in place — and you're told
+  once. CI, coding-agent, `--staged`, JSON/score, and non-TTY runs are left
+  untouched, but a warning nudges every supported extension so a config never
+  silently stops applying. `harness-doctor rules …` mutations migrate a legacy
+  config before editing instead of dropping its settings into a blank file.
+- **Sentry removed.** All crash-reporting, metrics, and tracing through Sentry
+  is gone. OTLP export (`HARNESS_DOCTOR_OTLP_*`) is unaffected, and the tool
+  still runs entirely offline by default.
+- **Nested `CLAUDE.md` shim check.** `docs-structure/claude-shim-imports-agents`
+  now flags a `CLAUDE.md` that sits beside an `AGENTS.md` in any nested subtree
+  (not just the repo root) but never imports it.
+
 ## 0.1.0
 
 Initial public release of `@andypai/harness-doctor` — a framework-agnostic

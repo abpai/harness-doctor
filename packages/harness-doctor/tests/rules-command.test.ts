@@ -83,6 +83,28 @@ describe("rules disable / set / enable", () => {
     expect(process.exitCode).toBe(0);
   });
 
+  it("migrates a legacy doctor.config.json instead of dropping its settings", async () => {
+    fixture = setupFixture();
+    writeFileSync(
+      path.join(fixture.projectRoot, "doctor.config.json"),
+      JSON.stringify({ deadCode: true, rules: { "harness-doctor/no-danger": "off" } }, null, 2),
+    );
+
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
+
+    // The legacy file is migrated to a typed config, not left behind beside a
+    // blank harness.config.json that discards the original settings.
+    expect(existsSync(path.join(fixture.projectRoot, "doctor.config.json"))).toBe(false);
+    expect(existsSync(fixture.configPath)).toBe(false);
+    const migrated = readFileSync(path.join(fixture.projectRoot, "harness.config.ts"), "utf8");
+    expect(migrated).toContain("deadCode: true");
+    expect(migrated).toContain('"harness-doctor/no-danger": "off"');
+    expect(migrated).toContain('"harness-doctor/docs-structure/no-structure-md": "off"');
+    expect(process.exitCode).toBe(0);
+  });
+
   it("accepts the bare rule id (resolves to the canonical key)", async () => {
     fixture = setupFixture();
     await rulesSetAction("docs-structure/no-structure-md", "error", { cwd: fixture.projectRoot });
