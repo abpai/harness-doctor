@@ -38,9 +38,9 @@ guides into it; that just trades this finding for `entry-point-is-a-map`.
 lines. It has crossed the line from map to manual.
 
 **The fix:** move the detail out into focused files under `docs/`, and leave a
-one-line pointer behind. A long "how to write a rule" section becomes
-`docs/HOW_TO_WRITE_A_RULE.md`, and the entry-point keeps just
-`See docs/HOW_TO_WRITE_A_RULE.md`. Re-run the scan; the line count should fall
+one-line pointer behind. A long "how to write a check" section becomes
+`docs/HOW_TO_WRITE_A_CHECK.md`, and the entry-point keeps just
+`See docs/HOW_TO_WRITE_A_CHECK.md`. Re-run the scan; the line count should fall
 back under the threshold. (This fix and the next two tend to travel together —
 shortening the entry-point usually means you're filling out `docs/`.)
 

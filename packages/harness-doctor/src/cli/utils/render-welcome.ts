@@ -44,10 +44,8 @@ export const playWelcomeScene = (): Effect.Effect<void> =>
     // Down to the mouth row; type the tagline.
     yield* Effect.sleep(WELCOME_INTER_LINE_DELAY_MS);
     yield* writeStdout("\x1b[1B");
-    yield* typeLine(
-      mouthPrefix,
-      "I diagnose your React code for bugs, security & performance.",
-      (fragment) => highlighter.dim(fragment),
+    yield* typeLine(mouthPrefix, "I diagnose your repo's agent-harness readiness.", (fragment) =>
+      highlighter.dim(fragment),
     );
 
     // Hold, then overwrite the mouth line in place with the closing line.

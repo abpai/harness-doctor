@@ -5,11 +5,10 @@
 - [Architecture](ARCHITECTURE.md) - current package map and scan flow.
 - [Spec contract](SPEC_CONTRACT.md) - what a ready spec for this repo includes.
 - [Glossary](GLOSSARY.md) - canonical Harness Doctor terms.
-- [Docs README](README.md) - guide map for rule and check authors.
+- [Docs README](README.md) - guide map for check authors.
 
 ## Authoring
 
-- [How to write a rule](HOW_TO_WRITE_A_RULE.md) - AST rule authoring.
 - [How to write a check](HOW_TO_WRITE_A_CHECK.md) - structural check authoring.
 - [Check fix recipes](CHECK_FIX_RECIPES.md) - agent-facing remediation recipes.
 

@@ -6,7 +6,7 @@ export interface PrintProjectDetectionInput {
   readonly userConfig: HarnessDoctorConfig | null;
   readonly isDiffMode: boolean;
   readonly includePaths: ReadonlyArray<string>;
-  readonly lintSourceFileCount: number | undefined;
+  readonly scanSourceFileCount: number | undefined;
 }
 
 export const printProjectDetection = (_input: PrintProjectDetectionInput): Effect.Effect<void> =>

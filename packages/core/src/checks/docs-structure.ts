@@ -317,7 +317,7 @@ const checkEntryPointLinksIntoDocs = (
       filePath: entryPointFilename,
       rule: ENTRY_POINT_LINKS_INTO_DOCS_RULE_KEY,
       message: `${entryPointFilename} never references \`${DOCS_DIRECTORY_NAME}/\` — a map that doesn't point into the system of record is just a stub, not progressive disclosure`,
-      help: `Link \`${entryPointFilename}\` into the system of record by referencing at least ${ENTRY_POINT_MIN_DOCS_LINKS} file under \`${DOCS_DIRECTORY_NAME}/\` (e.g. \`See [the rule guide](${DOCS_DIRECTORY_NAME}/HOW_TO_WRITE_A_RULE.md)\`)`,
+      help: `Link \`${entryPointFilename}\` into the system of record by referencing at least ${ENTRY_POINT_MIN_DOCS_LINKS} file under \`${DOCS_DIRECTORY_NAME}/\` (e.g. \`See [the architecture map](${DOCS_DIRECTORY_NAME}/ARCHITECTURE.md)\`)`,
     }),
   ];
 };

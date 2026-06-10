@@ -1,24 +1,18 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import * as Effect from "effect/Effect";
-import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
-import { describe, expect, it } from "vite-plus/test";
+import { afterAll, describe, expect, it } from "vite-plus/test";
 import type { Diagnostic, ProjectInfo } from "@harness-doctor/core";
-import {
-  DeadCodeAnalysisFailed,
-  GitInvocationFailed,
-  NoReactDependency,
-  OxlintSpawnFailed,
-  HarnessDoctorError,
-} from "../src/errors.js";
+import { DeadCodeAnalysisFailed, GitInvocationFailed, HarnessDoctorError } from "../src/errors.js";
 import { runInspect, type InspectInput } from "../src/run-inspect.js";
 import { Config } from "../src/services/config.js";
 import { DeadCode } from "../src/services/dead-code.js";
 import { Files } from "../src/services/files.js";
 import { Git } from "../src/services/git.js";
-import { LintPartialFailures, Linter } from "../src/services/linter.js";
 import { Progress, ProgressCapture } from "../src/services/progress.js";
 import { Project } from "../src/services/project.js";
 import { Reporter, ReporterCapture } from "../src/services/reporter.js";
@@ -26,43 +20,18 @@ import { Score } from "../src/services/score.js";
 
 // The orchestrator runs the disk-reading environment checks
 // (`checkPnpmHardening` + `checkDocsStructure`) against the resolved scan
-// directory. These tests exercise lint/dead-code orchestration, not the
-// structural checks, so they point the scan directory at a fixture that
-// passes every structural check — keeping the environment-diagnostics
-// block empty so the asserted diagnostic sets reflect only the stubbed
-// Linter / DeadCode output.
+// directory. These tests exercise the orchestration, not the structural
+// checks, so they point the scan directory at a fixture that passes every
+// structural check — keeping the environment-diagnostics block empty so
+// the asserted diagnostic sets reflect only the stubbed DeadCode output.
 const CLEAN_DOCS_ROOT = path.resolve(import.meta.dirname, "fixtures", "docs-structure-clean");
 
 const sampleProject: ProjectInfo = {
   rootDirectory: "/repo",
   projectName: "sample-app",
-  reactVersion: "19.0.0",
-  reactMajorVersion: 19,
-  tailwindVersion: null,
-  zodVersion: null,
-  zodMajorVersion: null,
   framework: "vite",
   hasTypeScript: true,
-  hasReactCompiler: false,
-  hasTanStackQuery: false,
-  hasReactNativeWorkspace: false,
-  expoVersion: null,
-  hasReanimated: false,
-  preactVersion: null,
-  preactMajorVersion: null,
   sourceFileCount: 1,
-};
-
-const lintDiagnostic: Diagnostic = {
-  filePath: "/repo/src/App.tsx",
-  plugin: "harness-doctor",
-  rule: "no-derived-state",
-  severity: "error",
-  message: "Avoid useState(propX)",
-  help: "Use propX directly",
-  line: 1,
-  column: 1,
-  category: "Correctness",
 };
 
 const deadCodeDiagnostic: Diagnostic = {
@@ -80,30 +49,25 @@ const deadCodeDiagnostic: Diagnostic = {
 const baseInput: InspectInput = {
   directory: "/repo",
   includePaths: [],
-  customRulesOnly: false,
   respectInlineDisables: true,
-  adoptExistingLintConfig: true,
-  ignoredTags: new Set<string>(),
   runDeadCode: true,
   warnings: true,
   isCi: false,
 };
 
 const layersOf = (config: {
-  diagnostics?: ReadonlyArray<Diagnostic>;
   deadCode?: ReadonlyArray<Diagnostic>;
   githubViewerPermission?: string | null;
+  scanDirectory?: string;
 }) =>
   Layer.mergeAll(
     Project.layerOf(sampleProject),
     Config.layerOf({
       config: null,
-      resolvedDirectory: CLEAN_DOCS_ROOT,
+      resolvedDirectory: config.scanDirectory ?? CLEAN_DOCS_ROOT,
       configSourceDirectory: null,
     }),
     Files.layerInMemory(new Map()),
-    Linter.layerOf(config.diagnostics ?? []),
-    LintPartialFailures.layerLive,
     DeadCode.layerOf(config.deadCode ?? []),
     Git.layerOf({
       headSha: "abc123",
@@ -117,24 +81,18 @@ const layersOf = (config: {
   );
 
 describe("runInspect — happy path", () => {
-  it("collects diagnostics from Linter, DeadCode, and emits them through Reporter", async () => {
+  it("collects diagnostics from DeadCode and emits them through Reporter", async () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const output = yield* runInspect(baseInput);
         const ref = yield* ReporterCapture;
         const captured = yield* Ref.get(ref);
         return { output, captured };
-      }).pipe(
-        Effect.provide(layersOf({ diagnostics: [lintDiagnostic], deadCode: [deadCodeDiagnostic] })),
-      ),
+      }).pipe(Effect.provide(layersOf({ deadCode: [deadCodeDiagnostic] }))),
     );
 
-    expect(result.output.diagnostics).toHaveLength(2);
-    expect(result.output.diagnostics.map((d) => d.rule)).toEqual([
-      "no-derived-state",
-      "unused-file",
-    ]);
-    expect(result.output.didLintFail).toBe(false);
+    expect(result.output.diagnostics).toHaveLength(1);
+    expect(result.output.diagnostics.map((d) => d.rule)).toEqual(["unused-file"]);
     expect(result.output.didDeadCodeFail).toBe(false);
     expect(result.output.score).toEqual({ score: 85, label: "Good" });
     expect(result.output.project.projectName).toBe("sample-app");
@@ -147,9 +105,8 @@ describe("runInspect — happy path", () => {
     });
     expect(result.output.userConfig).toBeNull();
     expect(result.output.resolvedDirectory).toBe(CLEAN_DOCS_ROOT);
-    expect(result.output.lintPartialFailures).toEqual([]);
-    expect(result.captured).toHaveLength(2);
-    expect(result.captured.map((d) => d.rule)).toEqual(["no-derived-state", "unused-file"]);
+    expect(result.captured).toHaveLength(1);
+    expect(result.captured.map((d) => d.rule)).toEqual(["unused-file"]);
   });
 
   it("returns empty diagnostics when no service emits", async () => {
@@ -157,7 +114,6 @@ describe("runInspect — happy path", () => {
       runInspect(baseInput).pipe(Effect.provide(layersOf({}))),
     );
     expect(output.diagnostics).toEqual([]);
-    expect(output.didLintFail).toBe(false);
     expect(output.didDeadCodeFail).toBe(false);
   });
 
@@ -210,8 +166,6 @@ describe("runInspect — happy path", () => {
         configSourceDirectory: null,
       }),
       Files.layerInMemory(new Map()),
-      Linter.layerOf([]),
-      LintPartialFailures.layerLive,
       DeadCode.layerOf([]),
       failingGit,
       Score.layerOf({ score: 85, label: "Good" }),
@@ -234,101 +188,29 @@ describe("runInspect — happy path", () => {
   });
 });
 
-describe("runInspect — missing React dependency", () => {
-  it("fails with a tagged NoReactDependency reason", async () => {
-    const projectWithoutReact: ProjectInfo = { ...sampleProject, reactVersion: null };
-    const layers = Layer.mergeAll(
-      Project.layerOf(projectWithoutReact),
-      Config.layerOf({
-        config: null,
-        resolvedDirectory: CLEAN_DOCS_ROOT,
-        configSourceDirectory: null,
-      }),
-      Files.layerInMemory(new Map()),
-      Linter.layerOf([]),
-      LintPartialFailures.layerLive,
-      DeadCode.layerOf([]),
-      Git.layerOf({}),
-      Score.layerOf(null),
-      Progress.layerNoop,
-      Reporter.layerNoop,
-    );
-
-    // Note: runInspect doesn't currently check reactVersion (that check
-    // happens in the legacy inspect.ts before calling). For PR 5 the api
-    // package adds the boundary check. This test verifies the orchestrator
-    // *would* propagate a tagged error if one came from Project.
-    const explicitFailLayers = Layer.mergeAll(
-      Layer.mock(Project, {
-        discover: () =>
-          Effect.fail(
-            new HarnessDoctorError({ reason: new NoReactDependency({ directory: "/repo" }) }),
-          ),
-      }),
-      Config.layerOf({
-        config: null,
-        resolvedDirectory: CLEAN_DOCS_ROOT,
-        configSourceDirectory: null,
-      }),
-      Files.layerInMemory(new Map()),
-      Linter.layerOf([]),
-      LintPartialFailures.layerLive,
-      DeadCode.layerOf([]),
-      Git.layerOf({}),
-      Score.layerOf(null),
-      Progress.layerNoop,
-      Reporter.layerNoop,
-    );
-    void layers;
-    const exit = await Effect.runPromiseExit(
-      runInspect(baseInput).pipe(Effect.provide(explicitFailLayers)),
-    );
-    expect(Exit.isFailure(exit)).toBe(true);
-    if (Exit.isFailure(exit)) {
-      const failures = exit.cause.reasons;
-      const failedReason = failures.find((r) => r._tag === "Fail");
-      expect(failedReason).toBeDefined();
-      if (failedReason && failedReason._tag === "Fail") {
-        const error = failedReason.error as HarnessDoctorError;
-        expect(error._tag).toBe("HarnessDoctorError");
-        expect(error.reason._tag).toBe("NoReactDependency");
-      }
-    }
+describe("runInspect — environment checks", () => {
+  const emptyScanRoot = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-empty-"));
+  afterAll(() => {
+    fs.rmSync(emptyScanRoot, { recursive: true, force: true });
   });
-});
 
-describe("runInspect — mid-stream lint failure", () => {
-  it("folds a Stream.fail into didLintFail without sinking the scan", async () => {
-    const failingLinter = Layer.mock(Linter, {
-      run: () =>
-        Stream.fail(
-          new HarnessDoctorError({
-            reason: new OxlintSpawnFailed({ cause: "synthetic failure" }),
-          }),
-        ),
-    });
-    const layers = Layer.mergeAll(
-      Project.layerOf(sampleProject),
-      Config.layerOf({
-        config: null,
-        resolvedDirectory: CLEAN_DOCS_ROOT,
-        configSourceDirectory: null,
-      }),
-      Files.layerInMemory(new Map()),
-      failingLinter,
-      LintPartialFailures.layerLive,
-      DeadCode.layerOf([deadCodeDiagnostic]),
-      Git.layerOf({}),
-      Score.layerOf({ score: 50, label: "Needs Improvement" }),
-      Progress.layerNoop,
-      Reporter.layerNoop,
+  it("reports docs-structure findings on a full scan of a bare directory", async () => {
+    const output = await Effect.runPromise(
+      runInspect(baseInput).pipe(Effect.provide(layersOf({ scanDirectory: emptyScanRoot }))),
     );
-    const output = await Effect.runPromise(runInspect(baseInput).pipe(Effect.provide(layers)));
-    expect(output.didLintFail).toBe(true);
-    expect(output.lintFailureReasonTag).toBe("OxlintSpawnFailed");
-    expect(output.lintFailureReason).toContain("oxlint");
-    expect(output.score).toBeNull();
-    expect(output.diagnostics).toHaveLength(0);
+    expect(output.diagnostics.map((d) => d.rule)).toContain("docs-structure/entry-point-exists");
+  });
+
+  it("narrows environment findings to the changed files in diff mode", async () => {
+    // The bare directory raises (at least) entry-point-exists (AGENTS.md)
+    // and docs-directory-exists (docs/). A diff touching only AGENTS.md
+    // must surface only the AGENTS.md-anchored finding.
+    const output = await Effect.runPromise(
+      runInspect({ ...baseInput, includePaths: ["AGENTS.md"] }).pipe(
+        Effect.provide(layersOf({ scanDirectory: emptyScanRoot })),
+      ),
+    );
+    expect(output.diagnostics.map((d) => d.rule)).toEqual(["docs-structure/entry-point-exists"]);
   });
 });
 
@@ -350,8 +232,6 @@ describe("runInspect — dead-code failure", () => {
         configSourceDirectory: null,
       }),
       Files.layerInMemory(new Map()),
-      Linter.layerOf([lintDiagnostic]),
-      LintPartialFailures.layerLive,
       failingDeadCode,
       Git.layerOf({}),
       Score.layerOf(null),
@@ -361,44 +241,33 @@ describe("runInspect — dead-code failure", () => {
     const output = await Effect.runPromise(runInspect(baseInput).pipe(Effect.provide(layers)));
     expect(output.didDeadCodeFail).toBe(true);
     expect(output.deadCodeFailureReason).toContain("Dead-code analysis failed");
-    expect(output.didLintFail).toBe(false);
-    expect(output.diagnostics).toHaveLength(1);
-    expect(output.diagnostics[0].rule).toBe("no-derived-state");
+    expect(output.diagnostics).toHaveLength(0);
   });
 });
 
 describe("runInspect — hooks fire in order", () => {
-  it("calls beforeLint before any diagnostic emission and afterLint after", async () => {
+  it("calls beforeScan before any diagnostic emission and afterScan after", async () => {
     const events: string[] = [];
     const output = await Effect.runPromise(
       runInspect(baseInput, {
-        beforeLint: (project) =>
+        beforeScan: (project) =>
           Effect.sync(() => {
-            events.push(`beforeLint:${project.projectName}`);
+            events.push(`beforeScan:${project.projectName}`);
           }),
-        afterLint: (didFail) =>
+        afterScan: (didFail) =>
           Effect.sync(() => {
-            events.push(`afterLint:${didFail}`);
+            events.push(`afterScan:${didFail}`);
           }),
-      }).pipe(Effect.provide(layersOf({ diagnostics: [lintDiagnostic] }))),
+      }).pipe(Effect.provide(layersOf({ deadCode: [deadCodeDiagnostic] }))),
     );
     expect(output.diagnostics).toHaveLength(1);
-    expect(events).toEqual(["beforeLint:sample-app", "afterLint:false"]);
+    expect(events).toEqual(["beforeScan:sample-app", "afterScan:false"]);
   });
 });
 
 describe("runInspect — scan progress phases", () => {
-  it("runs dead-code after lint and labels it as a separate progress phase", async () => {
+  it("labels dead-code as a separate progress phase", async () => {
     const phaseEvents: string[] = [];
-    const trackingLinter = Layer.mock(Linter, {
-      run: () =>
-        Stream.unwrap(
-          Effect.sync(() => {
-            phaseEvents.push("lint");
-            return Stream.fromIterable([lintDiagnostic]);
-          }),
-        ),
-    });
     const trackingDeadCode = Layer.mock(DeadCode, {
       run: () =>
         Stream.unwrap(
@@ -416,8 +285,6 @@ describe("runInspect — scan progress phases", () => {
         configSourceDirectory: null,
       }),
       Files.layerInMemory(new Map()),
-      trackingLinter,
-      LintPartialFailures.layerLive,
       trackingDeadCode,
       Git.layerOf({}),
       Score.layerOf(null),
@@ -428,9 +295,9 @@ describe("runInspect — scan progress phases", () => {
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const output = yield* runInspect(baseInput, {
-          afterLint: () =>
+          afterScan: () =>
             Effect.sync(() => {
-              phaseEvents.push("afterLint");
+              phaseEvents.push("afterScan");
             }),
         });
         const progressRef = yield* ProgressCapture;
@@ -439,11 +306,8 @@ describe("runInspect — scan progress phases", () => {
       }).pipe(Effect.provide(layers)),
     );
 
-    expect(result.output.diagnostics.map((diagnostic) => diagnostic.rule)).toEqual([
-      "no-derived-state",
-      "unused-file",
-    ]);
-    expect(phaseEvents).toEqual(["lint", "afterLint", "dead-code"]);
+    expect(result.output.diagnostics.map((diagnostic) => diagnostic.rule)).toEqual(["unused-file"]);
+    expect(phaseEvents).toEqual(["dead-code", "afterScan"]);
     expect(result.progressEvents.map((event) => event.text)).toContain("Scanning...");
     expect(result.progressEvents.map((event) => event.text)).toContain("Analyzing dead code...");
   });
@@ -453,11 +317,11 @@ describe("runInspect — diff mode skips dead-code", () => {
   it("treats includePaths.length > 0 as diff mode and skips DeadCode.run", async () => {
     const output = await Effect.runPromise(
       runInspect({ ...baseInput, includePaths: ["src/App.tsx"] }).pipe(
-        Effect.provide(layersOf({ diagnostics: [lintDiagnostic], deadCode: [deadCodeDiagnostic] })),
+        Effect.provide(layersOf({ deadCode: [deadCodeDiagnostic] })),
       ),
     );
-    // Lint diagnostic flows through; dead-code stream is replaced with empty.
-    expect(output.diagnostics.map((d) => d.rule)).toEqual(["no-derived-state"]);
+    // Dead-code stream is replaced with empty in diff mode.
+    expect(output.diagnostics).toEqual([]);
     expect(output.didDeadCodeFail).toBe(false);
   });
 });
@@ -466,10 +330,10 @@ describe("runInspect — runDeadCode=false short-circuits dead-code", () => {
   it("skips DeadCode entirely when runDeadCode: false", async () => {
     const output = await Effect.runPromise(
       runInspect({ ...baseInput, runDeadCode: false }).pipe(
-        Effect.provide(layersOf({ diagnostics: [lintDiagnostic], deadCode: [deadCodeDiagnostic] })),
+        Effect.provide(layersOf({ deadCode: [deadCodeDiagnostic] })),
       ),
     );
-    expect(output.diagnostics.map((d) => d.rule)).toEqual(["no-derived-state"]);
+    expect(output.diagnostics).toEqual([]);
     expect(output.didDeadCodeFail).toBe(false);
   });
 });
@@ -477,9 +341,8 @@ describe("runInspect — runDeadCode=false short-circuits dead-code", () => {
 describe("runInspect — Reporter sees post-filter diagnostics", () => {
   it("filters out a diagnostic on a file ignored by config, then emits remaining", async () => {
     const ignoredDiagnostic: Diagnostic = {
-      ...lintDiagnostic,
+      ...deadCodeDiagnostic,
       filePath: "src/ignored.test.tsx",
-      rule: "no-derived-state",
     };
     const layers = Layer.mergeAll(
       Project.layerOf(sampleProject),
@@ -489,9 +352,7 @@ describe("runInspect — Reporter sees post-filter diagnostics", () => {
         configSourceDirectory: null,
       }),
       Files.layerInMemory(new Map()),
-      Linter.layerOf([ignoredDiagnostic, lintDiagnostic]),
-      LintPartialFailures.layerLive,
-      DeadCode.layerOf([]),
+      DeadCode.layerOf([ignoredDiagnostic, deadCodeDiagnostic]),
       Git.layerOf({}),
       Score.layerOf(null),
       Progress.layerNoop,
@@ -505,7 +366,28 @@ describe("runInspect — Reporter sees post-filter diagnostics", () => {
         return { output, captured };
       }).pipe(Effect.provide(layers)),
     );
-    expect(result.output.diagnostics.map((d) => d.filePath)).toEqual(["/repo/src/App.tsx"]);
-    expect(result.captured.map((d) => d.filePath)).toEqual(["/repo/src/App.tsx"]);
+    expect(result.output.diagnostics.map((d) => d.filePath)).toEqual(["src/Unused.tsx"]);
+    expect(result.captured.map((d) => d.filePath)).toEqual(["src/Unused.tsx"]);
+  });
+});
+
+describe("runInspect — ignored tags drop whole rule families", () => {
+  it("drops deslop diagnostics when ignore.tags includes dead-code", async () => {
+    const layers = Layer.mergeAll(
+      Project.layerOf(sampleProject),
+      Config.layerOf({
+        config: { ignore: { tags: ["dead-code"] } } as never,
+        resolvedDirectory: CLEAN_DOCS_ROOT,
+        configSourceDirectory: null,
+      }),
+      Files.layerInMemory(new Map()),
+      DeadCode.layerOf([deadCodeDiagnostic]),
+      Git.layerOf({}),
+      Score.layerOf(null),
+      Progress.layerNoop,
+      Reporter.layerNoop,
+    );
+    const output = await Effect.runPromise(runInspect(baseInput).pipe(Effect.provide(layers)));
+    expect(output.diagnostics).toEqual([]);
   });
 });

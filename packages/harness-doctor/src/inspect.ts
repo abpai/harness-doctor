@@ -6,7 +6,6 @@ import {
   DEFAULT_SHOW_WARNINGS,
   filterDiagnosticsForSurface,
   highlighter,
-  OXLINT_NODE_REQUIREMENT,
   resolveScanTarget,
   restoreLegacyThrow,
   runInspect as runInspectEffect,
@@ -55,7 +54,6 @@ import {
   printScoreHeader,
 } from "./cli/utils/render-score-header.js";
 import { printFooter, printSummary } from "./cli/utils/render-summary.js";
-import { resolveOxlintNode } from "./cli/utils/resolve-oxlint-node.js";
 import { isSpinnerSilent, setSpinnerSilent } from "./cli/utils/spinner.js";
 import { VERSION } from "./cli/utils/version.js";
 
@@ -66,7 +64,6 @@ const runConsole = (effect: Effect.Effect<void>): void => {
 };
 
 interface ResolvedInspectOptions {
-  lint: boolean;
   deadCode: boolean;
   verbose: boolean;
   scoreOnly: boolean;
@@ -76,31 +73,17 @@ interface ResolvedInspectOptions {
   isNonInteractiveEnvironment: boolean;
   silent: boolean;
   includePaths: string[];
-  customRulesOnly: boolean;
   share: boolean;
   respectInlineDisables: boolean;
   warnings: boolean;
-  adoptExistingLintConfig: boolean;
-  ignoredTags: ReadonlySet<string>;
   outputSurface: DiagnosticSurface;
   suppressRendering: boolean;
-  /** Resolved oxlint worker count, or `undefined` to keep the ambient default. */
-  concurrency: number | undefined;
 }
-
-const buildIgnoredTags = (userConfig: HarnessDoctorConfig | null): ReadonlySet<string> => {
-  const tags = new Set<string>();
-  if (userConfig?.ignore?.tags) {
-    for (const tag of userConfig.ignore.tags) tags.add(tag);
-  }
-  return tags;
-};
 
 const mergeInspectOptions = (
   inputOptions: InspectOptions,
   userConfig: HarnessDoctorConfig | null,
 ): ResolvedInspectOptions => ({
-  lint: inputOptions.lint ?? userConfig?.lint ?? true,
   deadCode: inputOptions.deadCode ?? userConfig?.deadCode ?? true,
   verbose: inputOptions.verbose ?? userConfig?.verbose ?? false,
   scoreOnly: inputOptions.scoreOnly ?? false,
@@ -110,16 +93,12 @@ const mergeInspectOptions = (
   isNonInteractiveEnvironment: isNonInteractiveEnvironment(),
   silent: inputOptions.silent ?? false,
   includePaths: inputOptions.includePaths ?? [],
-  customRulesOnly: userConfig?.customRulesOnly ?? false,
   share: userConfig?.share ?? true,
   respectInlineDisables:
     inputOptions.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true,
   warnings: inputOptions.warnings ?? userConfig?.warnings ?? DEFAULT_SHOW_WARNINGS,
-  adoptExistingLintConfig: userConfig?.adoptExistingLintConfig ?? true,
-  ignoredTags: buildIgnoredTags(userConfig),
   outputSurface: inputOptions.outputSurface ?? "cli",
   suppressRendering: inputOptions.suppressRendering ?? false,
-  concurrency: inputOptions.concurrency,
 });
 
 export const inspect = async (
@@ -206,51 +185,28 @@ const runInspectWithRuntime = async (
 ): Promise<InspectResult> => {
   const isDiffMode = options.includePaths.length > 0;
 
-  // Pre-check oxlint native binding the same way the legacy entry
-  // point did: `resolveOxlintNode` prints its own warnings / upgrade
-  // hints and returns `null` when the binding can't be loaded. In
-  // that mode the orchestrator runs with `Linter.layerOf([])` so the
-  // rest of the pipeline (project detection, score, rendering) still
-  // happens with `skippedChecks: ["lint"]` surfacing the missed
-  // coverage.
-  const resolvedNodeBinaryPath = await resolveOxlintNode(
-    options.lint,
-    options.scoreOnly || options.silent,
-  );
-  const lintBindingMissing = options.lint && !resolvedNodeBinaryPath;
-  // Suppress the orchestrator-owned lint + dead-code spinners when
-  // the CLI is in score-only / silent mode (or when lint is
-  // skipped entirely). `Progress.layerNoop` makes the lifecycle a
-  // no-op; the rest of the pipeline is unchanged.
+  // Suppress the orchestrator-owned scan spinners when the CLI is in
+  // score-only / silent mode. `Progress.layerNoop` makes the lifecycle
+  // a no-op; the rest of the pipeline is unchanged.
   const shouldShowProgressSpinners =
-    !options.isCiOrCodingAgentEnvironment &&
-    !options.silent &&
-    !options.scoreOnly &&
-    options.lint &&
-    Boolean(resolvedNodeBinaryPath);
+    !options.isCiOrCodingAgentEnvironment && !options.silent && !options.scoreOnly;
 
   const layers = buildRuntimeLayers({
     directory,
     hasConfigOverride,
     userConfig,
     configSourceDirectory,
-    shouldSkipLint: !options.lint || lintBindingMissing,
     shouldRunDeadCode: options.deadCode,
     shouldComputeScore: !options.noScore,
     shouldShowProgressSpinners,
-    oxlintConcurrency: options.concurrency,
   });
 
   const program = runInspectEffect(
     {
       directory,
       includePaths: options.includePaths,
-      customRulesOnly: options.customRulesOnly,
       respectInlineDisables: options.respectInlineDisables,
       warnings: options.warnings,
-      adoptExistingLintConfig: options.adoptExistingLintConfig,
-      ignoredTags: options.ignoredTags,
-      nodeBinaryPath: resolvedNodeBinaryPath ?? undefined,
       runDeadCode: options.deadCode,
       isCi: options.isCi,
       doctorVersion: VERSION,
@@ -258,7 +214,7 @@ const runInspectWithRuntime = async (
       suppressScanSummary: options.suppressRendering,
     },
     {
-      beforeLint: (projectInfo, lintIncludePaths) =>
+      beforeScan: (projectInfo, scanIncludePaths) =>
         Effect.gen(function* () {
           // Attach the discovered project shape to Sentry as early as possible
           // (this hook fires right after project discovery) so crashes, the run
@@ -267,13 +223,13 @@ const runInspectWithRuntime = async (
           recordSentryProjectContext(projectInfo, rootSentrySpan);
           recordCount(METRIC.projectDetected, 1);
           if (options.scoreOnly || options.suppressRendering) return;
-          const lintSourceFileCount = lintIncludePaths?.length ?? projectInfo.sourceFileCount;
+          const scanSourceFileCount = scanIncludePaths?.length ?? projectInfo.sourceFileCount;
           yield* printProjectDetection({
             projectInfo,
             userConfig,
             isDiffMode,
             includePaths: options.includePaths,
-            lintSourceFileCount,
+            scanSourceFileCount,
           });
         }),
     },
@@ -297,42 +253,13 @@ const runInspectWithRuntime = async (
   const programWithLayers = applyObservability(baseProgram, rootSentrySpan);
   const output = await Effect.runPromise(restoreLegacyThrow(programWithLayers));
 
-  const didLintFail = lintBindingMissing || output.didLintFail;
-  const lintFailureReason = lintBindingMissing
-    ? `oxlint native binding not found for Node ${process.version}; expected one matching ${OXLINT_NODE_REQUIREMENT}`
-    : output.lintFailureReason;
-  // The orchestrator already finalized the lint spinner via the
-  // Progress service. Print only the supplementary CLI-side hint
-  // (upgrade-Node guidance / failure reason) post-orchestrator. Dispatch
-  // on the structured failure kind the runtime carries — never the
-  // message text (see AGENTS.md: renderers dispatch on reason, not
-  // `message.includes(...)`).
-  if (
-    !options.scoreOnly &&
-    !lintBindingMissing &&
-    output.didLintFail &&
-    lintFailureReason !== null
-  ) {
-    if (output.lintFailureReasonKind === "native-binding-missing") {
-      runConsole(
-        Console.log(
-          highlighter.gray(
-            `  Upgrade to Node ${OXLINT_NODE_REQUIREMENT} or run: npx -p oxlint@latest @andypai/harness-doctor@latest`,
-          ),
-        ),
-      );
-    } else {
-      runConsole(Console.error(highlighter.error(lintFailureReason)));
-    }
-  }
-
   const inspectDiagnostics: ReadonlyArray<Diagnostic> = output.diagnostics;
   // The orchestrator already surface-filters scoring input through
   // `scoreSurface: "score"` and computes the real score in-band, so
   // we just consume `output.score`. `--no-score` opts out before the
   // orchestrator's Score service even runs (via `Score.layerOf(null)`
   // in `buildRuntimeLayers`).
-  const score = didLintFail ? null : output.score;
+  const score = output.score;
 
   const elapsedMilliseconds = performance.now() - startTime;
   // Stagger sections only on a user's first interactive run. Gating on
@@ -357,9 +284,6 @@ const runInspectWithRuntime = async (
     score,
     project: output.project,
     userConfig: output.userConfig,
-    didLintFail,
-    lintFailureReason,
-    lintPartialFailures: output.lintPartialFailures,
     didDeadCodeFail: output.didDeadCodeFail,
     deadCodeFailureReason: output.deadCodeFailureReason,
     directory: output.resolvedDirectory,
@@ -388,16 +312,9 @@ const runInspectWithRuntime = async (
   recordScanMetrics({
     result,
     mode: isDiffMode ? "diff" : "full",
-    parallel: options.concurrency !== undefined,
-    workerCount: options.concurrency,
-    lint: options.lint,
     deadCode: options.deadCode,
     scoreOnly: options.scoreOnly,
     noScore: options.noScore,
-    didLintFail,
-    lintFailureReasonKind: lintBindingMissing
-      ? "native-binding-missing"
-      : output.lintFailureReasonKind,
     didDeadCodeFail: output.didDeadCodeFail,
   });
   return result;
@@ -410,9 +327,6 @@ interface FinalizeInput {
   score: ScoreResult | null;
   project: InspectResult["project"];
   userConfig: HarnessDoctorConfig | null;
-  didLintFail: boolean;
-  lintFailureReason: string | null;
-  lintPartialFailures: ReadonlyArray<string>;
   didDeadCodeFail: boolean;
   deadCodeFailureReason: string | null;
   directory: string;
@@ -430,9 +344,6 @@ const finalizeAndRender = (input: FinalizeInput): Effect.Effect<InspectResult> =
       score,
       project,
       userConfig,
-      didLintFail,
-      lintFailureReason,
-      lintPartialFailures,
       didDeadCodeFail,
       deadCodeFailureReason,
       directory,
@@ -442,9 +353,6 @@ const finalizeAndRender = (input: FinalizeInput): Effect.Effect<InspectResult> =
     } = input;
 
     const { skippedChecks, skippedCheckReasons } = buildSkippedChecks({
-      didLintFail,
-      lintFailureReason,
-      lintPartialFailures,
       didDeadCodeFail,
       deadCodeFailureReason,
     });
@@ -492,7 +400,7 @@ const finalizeAndRender = (input: FinalizeInput): Effect.Effect<InspectResult> =
     );
     const demotedDiagnosticCount = diagnostics.length - surfaceDiagnostics.length;
     const isDiffMode = options.includePaths.length > 0;
-    const lintSourceFileCount = isDiffMode ? options.includePaths.length : project.sourceFileCount;
+    const scanSourceFileCount = isDiffMode ? options.includePaths.length : project.sourceFileCount;
 
     if (surfaceDiagnostics.length === 0) {
       yield* pause;
@@ -561,7 +469,7 @@ const finalizeAndRender = (input: FinalizeInput): Effect.Effect<InspectResult> =
       elapsedMilliseconds,
       scoreResult: score,
       potentialScore,
-      totalSourceFileCount: lintSourceFileCount,
+      totalSourceFileCount: scanSourceFileCount,
       noScoreMessage,
       verbose: options.verbose,
       animateProjection: animateRender,

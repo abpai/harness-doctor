@@ -7,23 +7,22 @@ entry-point link into it? None of those can be answered by parsing a source
 file — they're answered by looking at the files themselves: their names, their
 locations, their lengths.
 
-So where a [rule](./HOW_TO_WRITE_A_RULE.md) walks a parsed syntax tree, a check
-reads the filesystem directly — package manifests, lockfiles, the `docs/` tree,
-the entry-point file — and returns a list of diagnostics. The docs-structure
-checks are structural checks. So is the supply-chain check that inspects pnpm
-hardening.
+A check reads the filesystem directly — package manifests, lockfiles, the
+`docs/` tree, the entry-point file — and returns a list of diagnostics. The
+docs-structure checks are structural checks. So is the supply-chain check that
+inspects pnpm hardening.
 
 The template is
 [`packages/core/src/checks/pnpm-hardening.ts`](../packages/core/src/checks/pnpm-hardening.ts).
 Read it first; this guide walks through its shape.
 
-## Is it a check or a rule?
+## Is it a check?
 
-The line is sharp, so use it. If answering your question requires understanding
-JavaScript or TypeScript _syntax_, it's a [rule](./HOW_TO_WRITE_A_RULE.md). If
-you could answer it from a shell prompt with `ls`, `wc -l`, or by reading a
-config file as plain data, it's a check. "Is there an `AGENTS.md`?" and "is it
-under 150 lines?" are checks. "Does this function call `eval`?" is a rule.
+The line is sharp, so use it. If you could answer your question from a shell
+prompt with `ls`, `wc -l`, or by reading a config file as plain data, it's a
+check. "Is there an `AGENTS.md`?" and "is it under 150 lines?" are checks.
+Questions that require parsing JavaScript or TypeScript syntax are out of scope
+— Harness Doctor doesn't ship an AST engine.
 
 ## The contract
 
@@ -147,20 +146,27 @@ Three small steps:
    [`packages/core/src/index.ts`](../packages/core/src/index.ts) with an
    `export * from "./checks/<name>.js";` line, so consumers can import it.
 3. **Register** it in `run-inspect.ts`. The extension point is the
-   environment-diagnostics block — it's skipped in diff mode and otherwise
-   spreads each check's output into the pipeline:
+   environment-diagnostics block — it spreads each check's output into the
+   pipeline and, in diff mode, narrows the findings to the changed files:
 
 ```ts
-const environmentDiagnostics: ReadonlyArray<Diagnostic> = isDiffMode
-  ? []
-  : [...checkPnpmHardening(scanDirectory), ...checkDocsStructure(scanDirectory)];
+const environmentDiagnostics: ReadonlyArray<Diagnostic> = [
+  ...checkPnpmHardening(scanDirectory),
+  ...checkDocsStructure(scanDirectory, { ... }),
+].filter(
+  (diagnostic) =>
+    changedFileSet === null || changedFileSet.has(toPosixPath(diagnostic.filePath)),
+);
 ```
 
-Add your check to that array. Leave the `isDiffMode ? []` guard and the
+Add your check to that array. Leave the `changedFileSet` filter and the
 surrounding `applyPerElementPipeline(Stream.fromIterable(...))` wiring alone —
-only the array contents change. (Checks are skipped in diff mode on purpose:
-they describe the repository as a whole, so running them against a handful of
-changed files would be meaningless.)
+only the array contents change.
+
+4. **Catalog** the rule in
+   [`packages/core/src/rule-catalog.ts`](../packages/core/src/rule-catalog.ts)
+   so `harness-doctor rules list / explain / disable / ignore-tag` know its
+   category, tags, and recommendation.
 
 ## Test against a real temp directory
 
@@ -187,5 +193,7 @@ Cover four situations:
 - [ ] Thresholds live in `constants.ts`, named with units, and imported.
 - [ ] Re-exported from `core/src/index.ts` and added to the `run-inspect.ts`
       environment-diagnostics array.
+- [ ] Cataloged in `core/src/rule-catalog.ts` with category, tags, and a
+      recommendation.
 - [ ] Co-located test covers applies-clean, applies-violated, not-applicable,
       and malformed input — all against a real temp directory.

@@ -103,8 +103,7 @@ const discoverSubprojectsByFilesystem = (rootDirectory: string): WorkspacePackag
 
 // Framework-agnostic subproject discovery: returns every directory that
 // owns a `package.json`, preferring workspace-manifest entries and falling
-// back to a bounded filesystem crawl. Replaces the former React-gated
-// `discoverReactSubprojects` — the boilerplate analyzes any project.
+// back to a bounded filesystem crawl — Harness Doctor analyzes any project.
 export const discoverSubprojects = (rootDirectory: string): WorkspacePackage[] => {
   if (!isDirectory(rootDirectory)) return [];
 

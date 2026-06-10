@@ -64,12 +64,11 @@ export default defineConfig({
       deps: {
         // Inline pure-JS CLI deps so `npm i @andypai/harness-doctor` skips
         // ~15 transitive installs (commander, ora, and ora's spinner
-        // / cursor / log-symbols / string-width chain). Native
-        // (oxlint), the lint plugin, prompts (we monkey-patch it via
-        // require so the runtime copy must be on disk), agent-install
-        // (its jsonc-parser/yaml/toml transitives ship as UMD that
-        // doesn't bundle cleanly), and the typescript compiler all
-        // stay external.
+        // / cursor / log-symbols / string-width chain). Prompts (we
+        // monkey-patch it via require so the runtime copy must be on
+        // disk), agent-install (its jsonc-parser/yaml/toml transitives
+        // ship as UMD that doesn't bundle cleanly), and the typescript
+        // compiler all stay external.
         alwaysBundle: ["commander", "ora"],
         neverBundle: [
           "@effect/platform-node-shared",
@@ -104,8 +103,6 @@ export default defineConfig({
           "effect",
           "oxc-parser",
           "oxc-resolver",
-          "oxlint",
-          "oxlint-plugin-harness-doctor",
           "prompts",
           "typescript",
         ],
@@ -151,8 +148,6 @@ export default defineConfig({
           "effect",
           "oxc-parser",
           "oxc-resolver",
-          "oxlint",
-          "oxlint-plugin-harness-doctor",
           "prompts",
           "typescript",
         ],
@@ -167,8 +162,8 @@ export default defineConfig({
     testTimeout: TEST_TIMEOUT_MS,
     // NOTE: do NOT pin Windows onto a single serial fork
     // (`singleFork` / `maxWorkers: 1` / `fileParallelism: false`).
-    // This suite drives the real `oxlint` binary and per-test deslop
-    // `worker_threads` thousands of times; funneling all ~105 test
+    // This suite drives per-test deslop `worker_threads` thousands of
+    // times; funneling all ~105 test
     // files through one long-lived worker lets that process accumulate
     // memory/handles across the whole run and crash near the end, which
     // vitest reports as "Worker exited unexpectedly" (Worker forks

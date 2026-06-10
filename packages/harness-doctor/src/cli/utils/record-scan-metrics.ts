@@ -47,15 +47,9 @@ export interface ScanMetricsInput {
   readonly result: InspectResult;
   /** `"diff"` (changed/staged files) or `"full"` (whole project). */
   readonly mode: string;
-  readonly parallel: boolean;
-  /** Resolved oxlint worker count when `--experimental-parallel` is active. */
-  readonly workerCount: number | undefined;
-  readonly lint: boolean;
   readonly deadCode: boolean;
   readonly scoreOnly: boolean;
   readonly noScore: boolean;
-  readonly didLintFail: boolean;
-  readonly lintFailureReasonKind: string | null;
   readonly didDeadCodeFail: boolean;
 }
 
@@ -71,18 +65,15 @@ export const recordScanMetrics = (input: ScanMetricsInput): void => {
 
   recordCount(METRIC.scanCompleted, 1, {
     mode: input.mode,
-    lint: input.lint,
     deadCode: input.deadCode,
-    parallel: input.parallel,
     scoreOnly: input.scoreOnly,
-    didLintFail: input.didLintFail,
     didDeadCodeFail: input.didDeadCodeFail,
     hasSkippedChecks,
   });
 
   recordDistribution(METRIC.scanDuration, result.elapsedMilliseconds, {
     unit: "millisecond",
-    attributes: { mode: input.mode, parallel: input.parallel, scoreOnly: input.scoreOnly },
+    attributes: { mode: input.mode, scoreOnly: input.scoreOnly },
   });
   if (result.scanElapsedMilliseconds !== undefined) {
     recordDistribution(METRIC.scanPhaseDuration, result.scanElapsedMilliseconds, {
@@ -95,12 +86,6 @@ export const recordScanMetrics = (input: ScanMetricsInput): void => {
       attributes: { mode: input.mode },
     });
   }
-  if (input.workerCount !== undefined) {
-    recordDistribution(METRIC.oxlintWorkers, input.workerCount, {
-      attributes: { mode: input.mode },
-    });
-  }
-
   for (const firing of summarizeRuleFirings(result.diagnostics)) {
     recordCount(METRIC.ruleFired, firing.count, {
       rule: firing.rule,
@@ -110,9 +95,9 @@ export const recordScanMetrics = (input: ScanMetricsInput): void => {
     });
   }
   // "Clean" means the scan actually completed and found nothing — not that a
-  // failed/incomplete run (lint or dead-code failed, a check was skipped)
-  // happened to produce zero diagnostics. `skippedChecks` already includes
-  // lint/dead-code failures, so it's the single "fully completed" signal.
+  // failed/incomplete run (dead-code failed, a check was skipped) happened
+  // to produce zero diagnostics. `skippedChecks` already includes dead-code
+  // failures, so it's the single "fully completed" signal.
   if (result.diagnostics.length === 0 && !hasSkippedChecks) {
     recordCount(METRIC.scanClean, 1, { mode: input.mode });
   }
@@ -121,15 +106,12 @@ export const recordScanMetrics = (input: ScanMetricsInput): void => {
     recordDistribution(METRIC.scanScore, result.score.score, {
       attributes: { mode: input.mode },
     });
-  } else if (!input.noScore && !input.didLintFail) {
-    // Score is null despite scoring being on and lint succeeding: the hosted
-    // score API was unreachable from this client.
+  } else if (!input.noScore) {
+    // Score is null despite scoring being on: the hosted score API was
+    // unreachable from this client.
     recordCount(METRIC.scoreUnavailable, 1, { mode: input.mode });
   }
 
-  if (input.didLintFail) {
-    recordCount(METRIC.lintFailed, 1, { reasonKind: input.lintFailureReasonKind });
-  }
   if (input.didDeadCodeFail) {
     recordCount(METRIC.deadCodeFailed, 1);
   }

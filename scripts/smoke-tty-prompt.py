@@ -100,8 +100,8 @@ def write_package_json(directory, contents):
 
 
 def create_workspace_fixture(root_directory):
-    """A minimal monorepo with two React packages so the CLI shows the
-    multiselect "Select projects" prompt (>= 2 workspace packages with a React
+    """A minimal monorepo with two workspace packages so the CLI shows the
+    multiselect "Select projects" prompt (>= 2 workspace packages with a
     dependency)."""
     write_package_json(
         root_directory,

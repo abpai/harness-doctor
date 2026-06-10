@@ -1,68 +1,71 @@
-import { describe, expect, it } from "vite-plus/test";
-import { DIAGNOSTIC_CATEGORY_BUCKETS } from "@harness-doctor/core";
-import harnessDoctorPlugin from "oxlint-plugin-harness-doctor";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterAll, describe, expect, it } from "vite-plus/test";
+import {
+  checkDocsStructure,
+  checkPnpmHardening,
+  DIAGNOSTIC_CATEGORY_BUCKETS,
+  findRuleMetadata,
+  HARNESS_DOCTOR_RULE_CATALOG,
+} from "@harness-doctor/core";
 
-// Executable spec for the rule-copy conventions introduced when every
-// rule gained a human `title` and its messages were rewritten to plain,
-// dash-free prose. `title` is intentionally optional on the `Rule` type
-// so adopted third-party rules can fall back to their `plugin/rule` id,
-// but every FIRST-PARTY harness-doctor rule must carry one — otherwise it
-// silently renders its kebab-case id in the CLI "errors you should fix"
-// block with no other signal. This test is the guard.
+// Executable spec for the rule-catalog conventions: every rule the
+// deterministic checks can emit must be present in the catalog (the
+// `rules` CLI and tag controls key off it), carry a category from the
+// closed user-facing set, and ship usable fix guidance.
 
-const TITLE_MAX_LENGTH_CHARS = 60;
-const DASH_PATTERN = /[—–]/; // em dash / en dash used as separators
-
-const ruleEntries = Object.entries(harnessDoctorPlugin.rules);
-
-describe("rule metadata conventions", () => {
-  it("registers at least the template rule (sanity)", () => {
-    // The boilerplate ships a single example rule (`no-eval`); integrators
-    // grow this number as they author their own rules.
-    expect(ruleEntries.length).toBeGreaterThanOrEqual(1);
+describe("rule catalog conventions", () => {
+  it("registers the docs-structure, supply-chain, and dead-code families", () => {
+    const plugins = new Set(HARNESS_DOCTOR_RULE_CATALOG.map((entry) => entry.plugin));
+    expect(plugins).toEqual(new Set(["harness-doctor", "deslop"]));
+    expect(
+      HARNESS_DOCTOR_RULE_CATALOG.filter((entry) => entry.rule.startsWith("docs-structure/"))
+        .length,
+    ).toBeGreaterThanOrEqual(15);
   });
 
-  it("gives every rule a non-empty title", () => {
-    const missing = ruleEntries
-      .filter(([, rule]) => !rule.title || rule.title.trim().length === 0)
-      .map(([id]) => id);
-    expect(missing, `rules missing a title: ${missing.join(", ")}`).toEqual([]);
-  });
-
-  it("keeps titles short, headline-style (no trailing period, under the cap)", () => {
-    for (const [id, rule] of ruleEntries) {
-      const title = rule.title ?? "";
-      expect(title.endsWith("."), `title for "${id}" should not end with a period`).toBe(false);
-      expect(
-        title.length,
-        `title for "${id}" exceeds ${TITLE_MAX_LENGTH_CHARS} chars: "${title}"`,
-      ).toBeLessThanOrEqual(TITLE_MAX_LENGTH_CHARS);
+  it("derives every key from its plugin and rule", () => {
+    for (const entry of HARNESS_DOCTOR_RULE_CATALOG) {
+      expect(entry.key).toBe(`${entry.plugin}/${entry.rule}`);
     }
   });
 
   it("buckets every rule into one of the five user-facing categories", () => {
     const allowed = new Set<string>(DIAGNOSTIC_CATEGORY_BUCKETS);
-    const offenders = ruleEntries
-      .filter(([, rule]) => !rule.category || !allowed.has(rule.category))
-      .map(([id, rule]) => `${id} → ${rule.category ?? "(none)"}`);
-    expect(
-      offenders,
-      `rules outside ${DIAGNOSTIC_CATEGORY_BUCKETS.join(" / ")}: ${offenders.join(", ")}`,
-    ).toEqual([]);
+    const offenders = HARNESS_DOCTOR_RULE_CATALOG.filter(
+      (entry) => !allowed.has(entry.category),
+    ).map((entry) => `${entry.key} → ${entry.category}`);
+    expect(offenders).toEqual([]);
   });
 
-  it("uses no em/en dashes in titles or recommendations", () => {
-    for (const [id, rule] of ruleEntries) {
-      expect(DASH_PATTERN.test(rule.title ?? ""), `title for "${id}" contains an em/en dash`).toBe(
-        false,
-      );
-      // `no-em-dash-in-jsx-text` is the one rule that legitimately names
-      // the character it bans; its recommendation may reference it.
-      if (id === "design-no-em-dash-in-jsx-text") continue;
-      expect(
-        DASH_PATTERN.test(rule.recommendation ?? ""),
-        `recommendation for "${id}" contains an em/en dash`,
-      ).toBe(false);
+  it("gives every rule a non-empty recommendation and at least one tag", () => {
+    for (const entry of HARNESS_DOCTOR_RULE_CATALOG) {
+      expect(entry.recommendation.trim().length, entry.key).toBeGreaterThan(0);
+      expect(entry.tags.length, entry.key).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("rule catalog ↔ check parity", () => {
+  // A bare directory plus a strict docsContract scan trips most checks;
+  // every diagnostic the checks emit must resolve in the catalog so the
+  // `rules` CLI can explain and configure it.
+  const bareRoot = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-catalog-"));
+  afterAll(() => {
+    fs.rmSync(bareRoot, { recursive: true, force: true });
+  });
+
+  it("every emitted docs-structure / pnpm diagnostic resolves in the catalog", () => {
+    const diagnostics = [
+      ...checkDocsStructure(bareRoot, { docsContract: true }),
+      ...checkPnpmHardening(bareRoot),
+    ];
+    expect(diagnostics.length).toBeGreaterThan(0);
+    for (const diagnostic of diagnostics) {
+      const entry = findRuleMetadata(diagnostic.plugin, diagnostic.rule);
+      expect(entry, `${diagnostic.plugin}/${diagnostic.rule} missing from catalog`).toBeDefined();
+      expect(entry?.category).toBe(diagnostic.category);
     }
   });
 });

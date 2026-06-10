@@ -10,12 +10,12 @@ import { CliInputError } from "./cli-input-error.js";
  *
  * Three distinct shapes reach the CLI's catch blocks:
  *
- * - **Project-discovery failures** (`NoReactDependencyError`,
+ * - **Project-discovery failures** (`ProjectNotFoundError`,
  *   `ProjectNotFoundError`, `PackageJsonNotFoundError`, `NotADirectoryError`,
  *   `AmbiguousProjectError`) arrive as their plain legacy classes (so
  *   `isHarnessDoctorError` is `false` for them) — narrow with
- *   `isProjectDiscoveryError`. Running harness-doctor against a directory that
- *   has no React, or a path that doesn't exist, is the canonical example.
+ *   `isProjectDiscoveryError`. Running harness-doctor against a path that
+ *   doesn't exist is the canonical example.
  * - **CLI invocation mistakes** (`CliInputError`): a malformed
  *   `<file>:<line>` argument, mutually exclusive flags, or an unknown
  *   `--project` name.

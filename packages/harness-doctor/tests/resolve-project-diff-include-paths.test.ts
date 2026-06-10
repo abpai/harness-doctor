@@ -11,12 +11,13 @@ const buildDiffInfo = (changedFiles: string[]): DiffInfo => ({
 });
 
 describe("resolveProjectDiffIncludePaths", () => {
-  it("returns source files unchanged when scanning the diff root", () => {
+  it("returns scannable files (sources and markdown) unchanged when scanning the diff root", () => {
     const rootDirectory = path.join("/repo");
-    const diffInfo = buildDiffInfo(["src/App.tsx", "README.md"]);
+    const diffInfo = buildDiffInfo(["src/App.tsx", "README.md", "assets/logo.png"]);
 
     expect(resolveProjectDiffIncludePaths(rootDirectory, rootDirectory, diffInfo)).toEqual([
       "src/App.tsx",
+      "README.md",
     ]);
   });
 
@@ -42,10 +43,10 @@ describe("resolveProjectDiffIncludePaths", () => {
     expect(resolveProjectDiffIncludePaths(rootDirectory, projectDirectory, diffInfo)).toEqual([]);
   });
 
-  it("returns no files when only non-source files changed in a child workspace", () => {
+  it("returns no files when only non-scannable files changed in a child workspace", () => {
     const rootDirectory = path.join("/repo");
     const projectDirectory = path.join(rootDirectory, "apps", "web");
-    const diffInfo = buildDiffInfo(["apps/web/package.json", "apps/web/README.md"]);
+    const diffInfo = buildDiffInfo(["apps/web/package.json", "apps/web/assets/logo.png"]);
 
     expect(resolveProjectDiffIncludePaths(rootDirectory, projectDirectory, diffInfo)).toEqual([]);
   });

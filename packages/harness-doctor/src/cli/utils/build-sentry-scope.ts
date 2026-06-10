@@ -17,7 +17,7 @@ export interface SentryScope {
  * {@link getSentryProjectInfo project info}, when a scan has discovered it) into
  * the Sentry scope shape — the searchable `tags` that make crashes/transactions
  * filterable (which command, origin, CI provider, coding agent, Node major,
- * package manager, project framework/React major) plus the full `run` and
+ * package manager, project framework) plus the full `run` and
  * `project` context blocks for deep triage.
  *
  * Shared by `instrument.ts` (seeded as `initialScope` so *every* event,

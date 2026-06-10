@@ -13,7 +13,7 @@ export default defineConfig({
       "node_modules",
       "packages/harness-doctor/tests/fixtures/**",
     ],
-    plugins: ["typescript", "react", "import"],
+    plugins: ["typescript", "import"],
     rules: {},
   },
   fmt: {

@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 import {
   AmbiguousProjectError,
+  DeadCodeAnalysisFailed,
   GitBaseBranchInvalid,
   GitBaseBranchMissing,
-  NoReactDependencyError,
   NotADirectoryError,
-  OxlintSpawnFailed,
   PackageJsonNotFoundError,
   ProjectNotFoundError,
   HarnessDoctorError,
@@ -15,10 +14,9 @@ import { isExpectedUserError } from "../src/cli/utils/is-expected-user-error.js"
 
 describe("isExpectedUserError", () => {
   it("classifies every project-discovery failure as an expected user error (kept out of Sentry)", () => {
-    // Regression: running harness-doctor against a directory with no React
-    // (REACT-DOCTOR-1) or a path that doesn't exist (REACT-DOCTOR-4) is
-    // expected, user-actionable behavior — not a crash to report.
-    expect(isExpectedUserError(new NoReactDependencyError("/var/tmp"))).toBe(true);
+    // Regression: running harness-doctor against a directory with no project
+    // or a path that doesn't exist is expected, user-actionable behavior —
+    // not a crash to report.
     expect(isExpectedUserError(new ProjectNotFoundError("/tmp/audit-v7"))).toBe(true);
     expect(
       isExpectedUserError(new ProjectNotFoundError("/tmp/audit-v7", { kind: "missing-path" })),
@@ -58,7 +56,9 @@ describe("isExpectedUserError", () => {
     expect(isExpectedUserError(undefined)).toBe(false);
     expect(
       isExpectedUserError(
-        new HarnessDoctorError({ reason: new OxlintSpawnFailed({ cause: new Error("nope") }) }),
+        new HarnessDoctorError({
+          reason: new DeadCodeAnalysisFailed({ cause: new Error("nope") }),
+        }),
       ),
     ).toBe(false);
   });

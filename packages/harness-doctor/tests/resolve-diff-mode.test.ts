@@ -95,7 +95,7 @@ describe("resolveDiffMode (issue #298 messaging)", () => {
       choices: [
         { title: "Full codebase", description: "Scan every source file", value: "full" },
         {
-          title: "Changed files on feature/login (2)",
+          title: "Changed files on feature/login (3)",
           description: "Compare against main from the branch merge-base",
           value: "branch",
         },

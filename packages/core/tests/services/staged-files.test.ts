@@ -7,11 +7,18 @@ import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { Git, GitInvocationFailed, HarnessDoctorError, StagedFiles } from "@harness-doctor/core";
 
 describe("StagedFiles.layerNode (driven by Git.layerOf)", () => {
-  it("filters staged files through SOURCE_FILE_PATTERN", async () => {
+  it("keeps scannable staged files (sources, markdown, manifests) and drops the rest", async () => {
     const layer = StagedFiles.layerNode.pipe(
       Layer.provide(
         Git.layerOf({
-          stagedFiles: ["src/a.ts", "README.md", "src/b.tsx", "package.json"],
+          stagedFiles: [
+            "src/a.ts",
+            "README.md",
+            "src/b.tsx",
+            "package.json",
+            "pnpm-workspace.yaml",
+            "assets/logo.png",
+          ],
         }),
       ),
     );
@@ -23,7 +30,7 @@ describe("StagedFiles.layerNode (driven by Git.layerOf)", () => {
       }).pipe(Effect.provide(layer)),
     );
 
-    expect(sourceFiles).toEqual(["src/a.ts", "src/b.tsx"]);
+    expect(sourceFiles).toEqual(["src/a.ts", "README.md", "src/b.tsx", "pnpm-workspace.yaml"]);
   });
 
   it("returns an empty list when no files are staged", async () => {

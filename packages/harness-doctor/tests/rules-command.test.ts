@@ -72,49 +72,59 @@ afterEach(() => {
 describe("rules disable / set / enable", () => {
   it("creates a schema-stamped doctor.config.json when none exists", async () => {
     fixture = setupFixture();
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     expect(existsSync(fixture.configPath)).toBe(true);
     const config = readJsonFile(fixture.configPath);
     expect(config.$schema).toBe("https://harness.doctor/schema/config.json");
-    expect(config.rules).toEqual({ "harness-doctor/no-eval": "off" });
+    expect(config.rules).toEqual({ "harness-doctor/docs-structure/no-structure-md": "off" });
     expect(process.exitCode).toBe(0);
   });
 
   it("accepts the bare rule id (resolves to the canonical key)", async () => {
     fixture = setupFixture();
-    await rulesSetAction("no-eval", "error", { cwd: fixture.projectRoot });
+    await rulesSetAction("docs-structure/no-structure-md", "error", { cwd: fixture.projectRoot });
 
     const config = readJsonFile(fixture.configPath);
     expect(config.rules).toMatchObject({
-      "harness-doctor/no-eval": "error",
+      "harness-doctor/docs-structure/no-structure-md": "error",
     });
   });
 
   it("preserves unrelated config fields", async () => {
     fixture = setupFixture();
-    writeFileSync(fixture.configPath, JSON.stringify({ lint: true }, null, 2));
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    writeFileSync(fixture.configPath, JSON.stringify({ deadCode: true }, null, 2));
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     const config = readJsonFile(fixture.configPath);
-    expect(config.lint).toBe(true);
+    expect(config.deadCode).toBe(true);
     expect(config.rules).toMatchObject({
-      "harness-doctor/no-eval": "off",
+      "harness-doctor/docs-structure/no-structure-md": "off",
     });
   });
 
   it("enable uses the rule's recommended severity by default", async () => {
     fixture = setupFixture();
-    await rulesEnableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    await rulesEnableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     const config = readJsonFile(fixture.configPath);
-    const severity = (config.rules as Record<string, string>)["harness-doctor/no-eval"];
+    const severity = (config.rules as Record<string, string>)[
+      "harness-doctor/docs-structure/no-structure-md"
+    ];
     expect(["warn", "error"]).toContain(severity);
   });
 
   it("rejects an invalid severity without writing a config", async () => {
     fixture = setupFixture();
-    await rulesSetAction("harness-doctor/no-eval", "loud", { cwd: fixture.projectRoot });
+    await rulesSetAction("harness-doctor/docs-structure/no-structure-md", "loud", {
+      cwd: fixture.projectRoot,
+    });
 
     expect(existsSync(fixture.configPath)).toBe(false);
     expect(process.exitCode).toBe(1);
@@ -133,14 +143,16 @@ describe("rules config formats", () => {
   it("edits a doctor.config.ts in place, preserving the comment and other options", async () => {
     fixture = setupFixture();
     const tsConfigPath = path.join(fixture.projectRoot, "doctor.config.ts");
-    writeFileSync(tsConfigPath, "export default {\n  // keep this\n  lint: true,\n};\n");
+    writeFileSync(tsConfigPath, "export default {\n  // keep this\n  deadCode: true,\n};\n");
 
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     const written = readFileSync(tsConfigPath, "utf8");
     expect(written).toContain("// keep this");
-    expect(written).toContain("lint: true");
-    expect(written).toContain('"harness-doctor/no-eval": "off"');
+    expect(written).toContain("deadCode: true");
+    expect(written).toContain('"harness-doctor/docs-structure/no-structure-md": "off"');
     // No JSON config created — the TS config was edited directly.
     expect(existsSync(fixture.configPath)).toBe(false);
   });
@@ -150,18 +162,20 @@ describe("rules config formats", () => {
     const tsConfigPath = path.join(fixture.projectRoot, "doctor.config.ts");
     writeFileSync(
       tsConfigPath,
-      'import type { HarnessDoctorConfig } from "harness-doctor/api";\n\nconst config: HarnessDoctorConfig = {\n  // keep this\n  lint: true,\n};\n\nexport default config;\n',
+      'import type { HarnessDoctorConfig } from "harness-doctor/api";\n\nconst config: HarnessDoctorConfig = {\n  // keep this\n  deadCode: true,\n};\n\nexport default config;\n',
     );
 
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     const written = readFileSync(tsConfigPath, "utf8");
     // The const indirection, its type annotation, the comment, and the other
     // option all survive — only the managed `rules` section was spliced in.
     expect(written).toContain("const config: HarnessDoctorConfig");
     expect(written).toContain("// keep this");
-    expect(written).toContain("lint: true");
-    expect(written).toContain('"harness-doctor/no-eval": "off"');
+    expect(written).toContain("deadCode: true");
+    expect(written).toContain('"harness-doctor/docs-structure/no-structure-md": "off"');
     expect(existsSync(fixture.configPath)).toBe(false);
   });
 
@@ -171,46 +185,52 @@ describe("rules config formats", () => {
     // Byte-identical to what migrateLegacyConfig emits.
     writeFileSync(
       tsConfigPath,
-      'import type { HarnessDoctorConfig } from "harness-doctor/api";\n\nexport default {\n  lint: true\n} satisfies HarnessDoctorConfig;\n',
+      'import type { HarnessDoctorConfig } from "harness-doctor/api";\n\nexport default {\n  deadCode: true\n} satisfies HarnessDoctorConfig;\n',
     );
 
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     const written = readFileSync(tsConfigPath, "utf8");
     // magicast unwraps the inline `satisfies` so the object is edited directly —
     // the `satisfies` wrapper and the other option survive, no fallback file.
     expect(written).toContain("satisfies HarnessDoctorConfig");
-    expect(written).toContain("lint: true");
-    expect(written).toContain('"harness-doctor/no-eval": "off"');
+    expect(written).toContain("deadCode: true");
+    expect(written).toContain('"harness-doctor/docs-structure/no-structure-md": "off"');
     expect(existsSync(fixture.configPath)).toBe(false);
   });
 
   it("updates the package.json harnessDoctor block instead of creating a file", async () => {
-    fixture = setupFixture({ name: "fixture", harnessDoctor: { lint: true } });
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    fixture = setupFixture({ name: "fixture", harnessDoctor: { deadCode: true } });
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     expect(existsSync(fixture.configPath)).toBe(false);
     const packageJson = readJsonFile(fixture.packageJsonPath);
     expect(packageJson.harnessDoctor).toMatchObject({
-      lint: true,
-      rules: { "harness-doctor/no-eval": "off" },
+      deadCode: true,
+      rules: { "harness-doctor/docs-structure/no-structure-md": "off" },
     });
   });
 
   it("writes package.json#harnessDoctor and leaves an unparseable config file untouched", async () => {
-    fixture = setupFixture({ name: "fixture", harnessDoctor: { lint: true } });
+    fixture = setupFixture({ name: "fixture", harnessDoctor: { deadCode: true } });
     const brokenConfig = "{ not valid json";
     writeFileSync(fixture.configPath, brokenConfig);
 
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     // The broken file is left as-is — the scanner reads package.json#harnessDoctor
     // when the config file fails to parse, so the mutation must not shadow it.
     expect(readFileSync(fixture.configPath, "utf8")).toBe(brokenConfig);
     const packageJson = readJsonFile(fixture.packageJsonPath);
     expect(packageJson.harnessDoctor).toMatchObject({
-      lint: true,
-      rules: { "harness-doctor/no-eval": "off" },
+      deadCode: true,
+      rules: { "harness-doctor/docs-structure/no-structure-md": "off" },
     });
   });
 });
@@ -257,13 +277,17 @@ describe("rules ignore-tag / unignore-tag", () => {
 describe("rules list / explain JSON output", () => {
   it("reflects the configured severity in `list --json`", async () => {
     fixture = setupFixture();
-    await rulesDisableAction("harness-doctor/no-eval", { cwd: fixture.projectRoot });
+    await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
+      cwd: fixture.projectRoot,
+    });
 
     const output = await captureLog(() =>
       rulesListAction({ json: true, configured: true, cwd: fixture.projectRoot }),
     );
     const payload = JSON.parse(output) as Array<{ key: string; severity: string; source: string }>;
-    const entry = payload.find((row) => row.key === "harness-doctor/no-eval");
+    const entry = payload.find(
+      (row) => row.key === "harness-doctor/docs-structure/no-structure-md",
+    );
     expect(entry).toMatchObject({ severity: "off", source: "rule" });
   });
 
@@ -271,11 +295,18 @@ describe("rules list / explain JSON output", () => {
     fixture = setupFixture();
     writeFileSync(
       fixture.configPath,
-      JSON.stringify({ rules: { "harness-doctor/no-eval": "warning" } }, null, 2),
+      JSON.stringify(
+        { rules: { "harness-doctor/docs-structure/no-structure-md": "warning" } },
+        null,
+        2,
+      ),
     );
 
     const output = await captureLog(() =>
-      rulesExplainAction("harness-doctor/no-eval", { json: true, cwd: fixture.projectRoot }),
+      rulesExplainAction("harness-doctor/docs-structure/no-structure-md", {
+        json: true,
+        cwd: fixture.projectRoot,
+      }),
     );
     const payload = JSON.parse(output) as { severity: string; source: string };
     // `"warning"` is not a valid severity; validateConfigTypes drops it, so the
@@ -287,11 +318,16 @@ describe("rules list / explain JSON output", () => {
   it("explains a rule as JSON with a learn-more URL", async () => {
     fixture = setupFixture();
     const output = await captureLog(() =>
-      rulesExplainAction("harness-doctor/no-eval", { json: true, cwd: fixture.projectRoot }),
+      rulesExplainAction("harness-doctor/docs-structure/no-structure-md", {
+        json: true,
+        cwd: fixture.projectRoot,
+      }),
     );
     const payload = JSON.parse(output) as { key: string; learnMoreUrl: string };
-    expect(payload.key).toBe("harness-doctor/no-eval");
-    expect(payload.learnMoreUrl).toContain("/docs/rules/harness-doctor/no-eval");
+    expect(payload.key).toBe("harness-doctor/docs-structure/no-structure-md");
+    expect(payload.learnMoreUrl).toContain(
+      "/docs/rules/harness-doctor/docs-structure/no-structure-md",
+    );
   });
 
   it("reports an unknown rule for explain", async () => {

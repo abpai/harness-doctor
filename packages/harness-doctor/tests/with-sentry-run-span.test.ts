@@ -14,20 +14,8 @@ import type { ProjectInfo } from "@harness-doctor/core";
 const projectInfo: ProjectInfo = {
   rootDirectory: "/workspace/app",
   projectName: "my-app",
-  reactVersion: "19.0.0",
-  reactMajorVersion: 19,
-  tailwindVersion: null,
-  zodVersion: null,
-  zodMajorVersion: null,
   framework: "vite",
   hasTypeScript: true,
-  hasReactCompiler: true,
-  hasTanStackQuery: false,
-  preactVersion: null,
-  preactMajorVersion: null,
-  hasReactNativeWorkspace: false,
-  expoVersion: null,
-  hasReanimated: false,
   sourceFileCount: 12,
 };
 

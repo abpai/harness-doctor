@@ -3,14 +3,14 @@
  * once, returning results in input order. A pool of workers each pulls the
  * next not-yet-started index until the list drains — so a worker that
  * finishes a fast task immediately picks up the next one (greedy load
- * balancing), which matters when tasks have uneven durations (oxlint
+ * balancing), which matters when tasks have uneven durations (scan
  * batches do).
  *
  * Failure semantics mirror a bounded `Promise.all`: on the first rejection
  * no further tasks are started, the already-in-flight tasks are awaited to
  * settle (so no subprocess is orphaned mid-write), and the returned promise
  * rejects with that first error. This keeps the caller's fail-fast retry
- * path (e.g. oxlint's retry-without-extends) from spawning a second wave on
+ * path from spawning a second wave on
  * top of a still-running first one.
  */
 export const mapWithConcurrency = async <Input, Output>(

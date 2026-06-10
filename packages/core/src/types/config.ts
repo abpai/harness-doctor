@@ -13,10 +13,9 @@ export interface HarnessDoctorIgnoreOverride {
 interface HarnessDoctorIgnoreConfig {
   /**
    * Fully-qualified rule keys (`"<plugin>/<rule>"`) whose diagnostics are
-   * dropped AFTER linting. The rule still runs; its findings are filtered
-   * out. To stop a rule from running at all, set it to `"off"` in the
-   * top-level `rules` map instead. Prefer `harness-doctor rules disable
-   * <rule>` to edit this safely.
+   * dropped after the checks run. Equivalent to setting the rule to
+   * `"off"` in the top-level `rules` map. Prefer `harness-doctor rules
+   * disable <rule>` to edit this safely.
    */
   rules?: string[];
   /**
@@ -27,8 +26,8 @@ interface HarnessDoctorIgnoreConfig {
   /** Per-path rule suppressions — narrower than the top-level `rules`/`files`. */
   overrides?: HarnessDoctorIgnoreOverride[];
   /**
-   * Behavioral tags whose rules are disabled BEFORE linting, skipping a
-   * whole family at once (e.g. `["design", "test-noise", "migration-hint"]`).
+   * Behavioral tags whose rules are skipped entirely, silencing a whole
+   * family at once (e.g. `["docs", "dead-code", "supply-chain"]`).
    * Prefer `harness-doctor rules ignore-tag <tag>` to edit this safely.
    */
   tags?: string[];
@@ -51,21 +50,20 @@ interface HarnessDoctorIgnoreConfig {
  *
  * Defaults: design rules (tag `"design"`) are excluded from `prComment`,
  * `score`, and `ciFailure` so style cleanup doesn't dilute meaningful
- * React findings. They remain in `cli` so locally-running developers
+ * findings. They remain in `cli` so locally-running developers
  * still see the suggestion when they touch the file.
  */
 export type DiagnosticSurface = "cli" | "prComment" | "score" | "ciFailure";
 
 /**
  * Severity value accepted by the top-level `rules` and `categories`
- * config fields. Exactly the same form ESLint and oxlint accept:
- * `"off"` skips registration entirely (the rule never runs and
- * never enters any surface); `"error"` / `"warn"` change the rule's
- * registered severity.
+ * config fields (the same form ESLint accepts): `"off"` drops the
+ * rule's findings entirely (they never enter any surface);
+ * `"error"` / `"warn"` change the reported severity.
  *
  * For visibility-only adjustments (silence on PR comments but keep
- * on CLI / score), prefer `surfaces` instead — severity applies
- * before lint runs and is the most aggressive control.
+ * on CLI / score), prefer `surfaces` instead — severity is the most
+ * aggressive control.
  */
 export type RuleSeverityOverride = "error" | "warn" | "off";
 
@@ -78,23 +76,6 @@ export type RuleSeverityOverride = "error" | "warn" | "off";
 export interface RuleSeverityControls {
   rules?: Record<string, RuleSeverityOverride>;
   categories?: Record<string, RuleSeverityOverride>;
-  /**
-   * Severity overrides keyed by a named rule *bucket* — a curated family of
-   * rules that share a gating story rather than a category. The only bucket
-   * today is `"compiler-cleanup"` (the redundant-memoization rule that ships
-   * as a warning once React Compiler is detected); setting it to `"error"`
-   * re-enables strictness. A per-rule override still wins over a bucket.
-   */
-  buckets?: SeverityBuckets;
-}
-
-/**
- * Closed set of severity buckets. Spelled out (rather than
- * `Record<string, …>`) so an unknown/typo'd bucket key is a type error
- * instead of a silent no-op.
- */
-export interface SeverityBuckets {
-  "compiler-cleanup"?: RuleSeverityOverride;
 }
 
 export interface SurfaceControls {
@@ -116,7 +97,7 @@ export interface SurfaceControls {
   excludeCategories?: string[];
   /**
    * Fully-qualified rule keys (`"<plugin>/<rule>"`, e.g.
-   * `"harness-doctor/design-no-redundant-size-axes"`) to force-include.
+   * `"harness-doctor/docs-structure/no-structure-md"`) to force-include.
    */
   includeRules?: string[];
   /** Fully-qualified rule keys to exclude from this surface. */
@@ -126,10 +107,9 @@ export interface SurfaceControls {
 export interface HarnessDoctorConfig {
   $schema?: string;
   ignore?: HarnessDoctorIgnoreConfig;
-  lint?: boolean;
   /**
-   * Whether to run dead-code analysis (via `deslop-js`) alongside lint.
-   * Reports unused files, unused exports, unused dependencies, and
+   * Whether to run dead-code analysis (via `deslop-js`) alongside the
+   * docs-structure checks. Reports unused files, unused exports, unused dependencies, and
    * circular imports under the "Maintainability" category. Default: `true`.
    * Always skipped in `--diff` / `--staged` modes because reachability
    * is a whole-project property.
@@ -155,7 +135,6 @@ export interface HarnessDoctorConfig {
   warnings?: boolean;
   diff?: boolean | string;
   failOn?: FailOnLevel;
-  customRulesOnly?: boolean;
   share?: boolean;
   noScore?: boolean;
   /**
@@ -166,7 +145,7 @@ export interface HarnessDoctorConfig {
    * run from. Absolute paths are used as-is.
    *
    * Typical use: a monorepo root holds the only `doctor.config.*`
-   * (so editor tooling and child commands all find it), but the React
+   * (so editor tooling and child commands all find it), but the main
    * app lives in `apps/web`. Setting `"rootDir": "apps/web"` makes
    * every invocation that loads this config scan that subproject
    * without anyone needing to `cd` first or pass an explicit path.
@@ -176,38 +155,6 @@ export interface HarnessDoctorConfig {
    * requested directory).
    */
   rootDir?: string;
-  textComponents?: string[];
-  /**
-   * Names of components that safely route string-only children through a
-   * React Native `<Text>` internally (e.g. `heroui-native`'s `Button`,
-   * which stringifies its children and renders them through a
-   * `ButtonLabel` → `Text`). For listed components, `rn-no-raw-text`
-   * is suppressed ONLY when the wrapper's children are entirely
-   * stringifiable (no nested JSX elements). A wrapper with mixed
-   * children — e.g. `<Button>Save<Icon /></Button>` — still reports,
-   * because the wrapper can't safely route raw text alongside a
-   * sibling JSX element.
-   *
-   * Use this instead of `textComponents` when the component is not
-   * itself a text element but is known to wrap its string children
-   * in one. `textComponents` is the broader escape hatch and
-   * suppresses regardless of sibling content.
-   */
-  rawTextWrapperComponents?: string[];
-  /**
-   * Project-level allowlist of function names that the
-   * `server-auth-actions` rule treats as an auth check at the top of
-   * a server action. Names are accepted whether called as a bare
-   * identifier (`myAuthGuard()`) or as the final property of a
-   * member call (`ctx.myAuthGuard()`); unlike the built-in default
-   * list, user-provided names are treated as distinctive and never
-   * subject to receiver-object disambiguation.
-   *
-   * Use this to teach harness-doctor about custom auth guards in
-   * codebases that wrap their auth library — e.g. a project-local
-   * `requireWorkspaceMember` or `ensureSignedIn`.
-   */
-  serverAuthFunctionNames?: string[];
   /**
    * Whether to respect inline `// eslint-disable*`, `// oxlint-disable*`,
    * and `// harness-doctor-disable*` comments in source files. Default: `true`.
@@ -223,31 +170,6 @@ export interface HarnessDoctorConfig {
    * of historical hide-comments.
    */
   respectInlineDisables?: boolean;
-  /**
-   * Whether to merge the user's existing JSON oxlint / eslint config
-   * (`.oxlintrc.json` or `.eslintrc.json`) into the generated scan via
-   * oxlint's `extends` field, so diagnostics from those rules count
-   * toward the harness-doctor score. Default: `true`.
-   *
-   * Detection runs at the scanned directory and walks up to the
-   * nearest project boundary (`.git` directory or monorepo root).
-   * The first match wins, with `.oxlintrc.json` preferred over
-   * `.eslintrc.json`.
-   *
-   * Only JSON-format configs are supported because oxlint's `extends`
-   * cannot evaluate JS/TS configs. Flat configs (`eslint.config.js`),
-   * legacy JS configs (`.eslintrc.js`), and TypeScript oxlint configs
-   * (`oxlint.config.ts`) are silently skipped.
-   *
-   * Category-level enables in the user's config (`"categories": { ... }`)
-   * are NOT honored — harness-doctor explicitly disables every oxlint
-   * category to keep the scan scoped to its curated rule surface, and
-   * local config wins over `extends`. Use rule-level severities to
-   * fold rules into the score.
-   *
-   * Set to `false` to scan only harness-doctor's curated rule set.
-   */
-  adoptExistingLintConfig?: boolean;
   /**
    * Per-surface include/exclude controls. Each `DiagnosticSurface` is
    * resolved independently against rule tags, category, and id so a
@@ -269,14 +191,13 @@ export interface HarnessDoctorConfig {
    */
   surfaces?: Partial<Record<DiagnosticSurface, SurfaceControls>>;
   /**
-   * Per-rule severity map — the exact ESLint / oxlint top-level
-   * `rules` field. Keys are fully-qualified rule keys
-   * (`"<plugin>/<rule>"`, e.g. `"harness-doctor/no-array-index-as-key"`),
+   * Per-rule severity map — the ESLint-shaped top-level `rules`
+   * field. Keys are fully-qualified rule keys (`"<plugin>/<rule>"`,
+   * e.g. `"harness-doctor/docs-structure/spec-contract-exists"`),
    * values are `"error" | "warn" | "off"`.
    *
-   * `"off"` skips registration in the generated lint config so the
-   * rule never runs; `"error"` / `"warn"` re-stamp the registered
-   * severity and the post-lint diagnostic, so downstream consumers
+   * `"off"` drops the rule's findings entirely; `"error"` / `"warn"`
+   * re-stamp the reported severity, so downstream consumers
    * (`--fail-on`, the score, the printed list) all see the
    * user-chosen severity.
    *
@@ -285,73 +206,22 @@ export interface HarnessDoctorConfig {
    * wins: `rules` > `categories` > `tags`.
    *
    * ```json
-   * { "rules": { "harness-doctor/no-array-index-as-key": "error" } }
+   * { "rules": { "harness-doctor/docs-structure/spec-contract-exists": "error" } }
    * ```
    */
   rules?: Record<string, RuleSeverityOverride>;
   /**
-   * Per-category severity map. Mirrors oxlint's top-level
-   * `categories` field, but keyed by Harness Doctor's five user-facing
-   * buckets: `"Security"`, `"Bugs"`, `"Performance"`,
+   * Per-category severity map, keyed by Harness Doctor's five
+   * user-facing buckets: `"Security"`, `"Bugs"`, `"Performance"`,
    * `"Accessibility"`, `"Maintainability"`.
    *
    * ```json
    * { "categories": { "Maintainability": "off", "Performance": "warn" } }
    * ```
    *
-   * To silence a whole tag-defined rule family (e.g. `"design"`,
-   * `"test-noise"`, `"migration-hint"`) that doesn't align with a
-   * single category, use `ignore.tags` instead.
+   * To silence a whole tag-defined rule family (e.g. `"docs"`,
+   * `"dead-code"`) that doesn't align with a single category, use
+   * `ignore.tags` instead.
    */
   categories?: Record<string, RuleSeverityOverride>;
-  /**
-   * Per-bucket severity map. Buckets are curated rule families with a
-   * shared gating story (not categories). Today the only bucket is
-   * `"compiler-cleanup"`: the redundant-memoization rule
-   * (`react-compiler-no-manual-memoization`) that ships as a warning once
-   * React Compiler is detected. Set it to `"error"` to re-enable strictness.
-   *
-   * ```json
-   * { "buckets": { "compiler-cleanup": "error" } }
-   * ```
-   *
-   * A per-rule override in `rules` still wins over a bucket entry.
-   */
-  buckets?: SeverityBuckets;
-  /**
-   * User-defined oxlint plugins to load alongside the built-in
-   * `harness-doctor` plugin. Each entry is either:
-   *
-   * - A **relative path** to a JS / TS file (resolved relative to
-   *   the directory of the config file that declared it — NOT the
-   *   CWD), e.g. `"./lint/my-rules.js"`.
-   * - An **npm package name**, e.g. `"harness-doctor-plugin-team-conventions"`.
-   *
-   * The module must default-export an oxlint-shaped plugin:
-   * `{ meta: { name: string }, rules: Record<string, HostRule> }`.
-   * Use `defineRule` from `oxlint-plugin-harness-doctor` for the
-   * cleanest authoring shape — see CONTRIBUTING.md → "Writing a
-   * custom plugin" for the full template.
-   *
-   * Rules from a user plugin are **opt-in by default**: a rule
-   * doesn't run unless `rules: { "<plugin-name>/<rule>": "warn" | "error" }`
-   * explicitly enables it. (Mirrors how `defaultEnabled: false`
-   * rules behave in the built-in plugin.) Once enabled, the rule
-   * flows through every harness-doctor surface (CLI / PR comment /
-   * score / CI gate) the same as a built-in rule.
-   *
-   * ```json
-   * {
-   *   "plugins": [
-   *     "./lint/my-team-rules.js",
-   *     "harness-doctor-plugin-shopify-conventions"
-   *   ],
-   *   "rules": {
-   *     "my-team-rules/no-bare-fetch": "error",
-   *     "shopify-conventions/use-polaris-tokens": "warn"
-   *   }
-   * }
-   * ```
-   */
-  plugins?: string[];
 }

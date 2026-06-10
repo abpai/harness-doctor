@@ -37,16 +37,13 @@ const filterKnownCategories = (fieldName: string, categories: string[]): string[
 // in JSON by mistake. We coerce-and-warn rather than silently accept the
 // string (which JS treats as truthy and bypasses the negation path).
 const BOOLEAN_FIELD_NAMES = [
-  "lint",
   "deadCode",
   "docsContract",
   "verbose",
   "warnings",
-  "customRulesOnly",
   "share",
   "noScore",
   "respectInlineDisables",
-  "adoptExistingLintConfig",
 ] as const satisfies ReadonlyArray<keyof HarnessDoctorConfig>;
 
 const STRING_FIELD_NAMES = ["rootDir"] as const satisfies ReadonlyArray<keyof HarnessDoctorConfig>;
@@ -160,7 +157,7 @@ const validateSurfacesField = (
 };
 
 // Validates one of the top-level severity maps (`rules` / `categories`) —
-// the ESLint / oxlint-shaped severity surface. Returns the validated map,
+// the ESLint-shaped severity surface. Returns the validated map,
 // dropping invalid entries with a warning. When `keysAreCategories` is set
 // (the `categories` field) each key must be one of the five buckets; a
 // stale pre-collapse name (e.g. `"Correctness"`) is dropped with a warning
@@ -239,8 +236,5 @@ export const validateConfigTypes = (config: HarnessDoctorConfig): HarnessDoctorC
       validateSeverityMap(fieldName, value, fieldName === "categories"),
     );
   }
-  applyFieldValidator(config, validated, "plugins", (value) =>
-    validateStringArrayField("plugins", value),
-  );
   return validated;
 };

@@ -10,16 +10,15 @@ record) for detail. Keep it short and let `docs/` carry the depth.
 
 ## What it checks
 
-- **AST rules** (oxlint plugin) — one violation, one clearly named rule, one
-  co-located test. The template rule is `security/no-eval`.
-- **Structural checks** (core) — non-AST checks that read files off disk and
-  emit `Diagnostic[]`. The template is `checks/pnpm-hardening.ts`. The first
-  real group is the docs-structure checks (does the harness have an entry-point
-  file, is it a map not a manual, does `docs/` exist, etc.).
+- **Structural checks** (core) — deterministic checks that read files off disk
+  and emit `Diagnostic[]`. The template is `checks/pnpm-hardening.ts`. The
+  flagship group is the docs-structure checks (does the harness have an
+  entry-point file, is it a map not a manual, does `docs/` exist, etc.).
+- **Dead-code analysis** (`deslop-js`) — unused files, unused exports, unused
+  dependencies, and circular imports, reported under "Maintainability".
 
-See `docs/` for how to add either:
+See `docs/` for how to add a check:
 
-- `docs/HOW_TO_WRITE_A_RULE.md` — authoring an AST rule.
 - `docs/HOW_TO_WRITE_A_CHECK.md` — authoring a structural check.
 - `docs/CHECK_FIX_RECIPES.md` — agent-facing remediation recipes per finding.
 
@@ -49,11 +48,9 @@ packages/
       run-inspect.ts             streaming orchestrator (the heart)
       calculate-local-score.ts   deterministic offline score (the default)
       services/                  Context.Service classes (Files, Git, Project,
-                                 Config, Linter, DeadCode, Score, Reporter, …)
+                                 Config, DeadCode, Score, Reporter, …)
   api/                           PRIVATE    programmatic diagnose()
   harness-doctor/                PUBLISHED  CLI + public inspect() + bin
-  oxlint-plugin-harness-doctor/  PUBLISHED  the AST rules (template: no-eval)
-  eslint-plugin-harness-doctor/  PUBLISHED  ESLint mirror of the oxlint plugin
 ```
 
 ## Scoring
@@ -75,8 +72,7 @@ Built on `effect@4.0.0-beta.70`. Conventions:
   renderers dispatch on `error.reason._tag`, never on `error.message`.
 - Services are `Context.Service<Self, Interface>()("harness-doctor/Name", …)`.
   Layers: `layerNode` (production), `layerOf(value)` (test), `layerNoop`
-  (void-return), implementation-specific names (`layerOxlint`, `layerLocal`,
-  `layerHttp`).
+  (void-return), implementation-specific names (`layerLocal`, `layerHttp`).
 - Never `try/catch` inside `Effect.gen`; wrap sync throws in `Effect.try` and
   recover with `Effect.catch`.
 

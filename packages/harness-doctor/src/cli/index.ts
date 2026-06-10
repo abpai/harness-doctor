@@ -91,11 +91,11 @@ ${highlighter.dim("Learn more:")}
 
 const program = new Command()
   .name("harness-doctor")
-  .description("Diagnose React codebase health")
+  .description(
+    "Scan a repo's agent-harness readiness: docs contract, supply-chain hardening, dead code",
+  )
   .version(VERSION, "-v, --version", "display the version number")
   .argument("[directory]", "project directory to scan", ".")
-  .option("--lint", "enable linting")
-  .option("--no-lint", "skip linting")
   .option("--dead-code", "enable dead-code analysis (default)")
   .option(
     "--no-dead-code",
@@ -107,10 +107,6 @@ const program = new Command()
   .option("--json-compact", "with --json, emit compact JSON (no indentation)")
   .option("-y, --yes", "skip prompts, scan all workspace projects")
   .option("--full", "force a full scan (overrides any `diff` value in config or `--diff`)")
-  .option(
-    "--no-parallel",
-    "lint serially with one worker (default: parallel across CPU cores; set the worker count with HARNESS_DOCTOR_PARALLEL)",
-  )
   .option("--project <name>", "select workspace project (comma-separated for multiple)")
   .option(
     "--diff [base]",
@@ -142,11 +138,11 @@ const program = new Command()
   .option("--why <file:line>", "alias for --explain")
   .option(
     "--respect-inline-disables",
-    "respect inline `// eslint-disable*` / `// oxlint-disable*` comments (default)",
+    "respect inline `// harness-doctor-disable*` suppression comments (default)",
   )
   .option(
     "--no-respect-inline-disables",
-    "audit mode: neutralize inline lint suppressions before scanning",
+    "audit mode: report every diagnostic regardless of inline suppression comments",
   )
   .option("--warnings", "show warning-severity diagnostics (default)")
   .option("--no-warnings", "hide warning-severity diagnostics (errors only)")
@@ -188,9 +184,8 @@ const rules = program
 rules
   .command("list")
   .description("List rules and the severity they run at under your config")
-  .option("--category <name>", "only show rules in a category (e.g. Performance)")
-  .option("--tag <name>", "only show rules with a tag (e.g. design, test-noise)")
-  .option("--framework <name>", "only show rules for a framework (e.g. global, nextjs)")
+  .option("--category <name>", "only show rules in a category (e.g. Security)")
+  .option("--tag <name>", "only show rules with a tag (e.g. docs, dead-code)")
   .option("--configured", "only show rules your config has changed from the default")
   .option("--json", "output a structured JSON array")
   .option("-c, --cwd <cwd>", "working directory", process.cwd())
@@ -234,7 +229,7 @@ rules
 
 rules
   .command("ignore-tag <tag>")
-  .description("Skip a whole rule family by tag before linting (e.g. design)")
+  .description("Skip a whole rule family by tag (e.g. docs, dead-code)")
   .option("-c, --cwd <cwd>", "working directory", process.cwd())
   .action((tag, _options, command) => rulesIgnoreTagAction(tag, command.optsWithGlobals()));
 

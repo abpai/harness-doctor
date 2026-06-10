@@ -11,7 +11,7 @@ import {
 } from "@harness-doctor/core";
 
 // Inlined to avoid coupling core tests to the harness-doctor regressions
-// test harness (which carries its own runOxlint + git-spawn surface).
+// test harness (which carries its own git-spawn surface).
 const writeFile = (filePath: string, contents: string): void => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, contents);
