@@ -1,4 +1,28 @@
-# harness-doctor
+# @andypai/harness-doctor
+
+## 0.1.0
+
+Initial public release of `@andypai/harness-doctor` — a framework-agnostic
+agent-harness readiness scanner. It audits a repo's docs contract (AGENTS.md
+entry point, `docs/` system of record, `docs/SPEC_CONTRACT.md`), supply-chain
+hardening, and dead code, with readiness scoring, diff mode, and a GitHub
+action.
+
+Notable since the fork:
+
+- Deterministic docs-contract checks (the `docs-structure/*` rule family) and a
+  `docsContract` config option.
+- Dropped the React-specific oxlint/eslint rule stack — the scanner is now
+  framework-agnostic. Removed `--lint`/`--no-lint`/`--no-parallel`/`--framework`
+  flags now degrade gracefully instead of crashing.
+- Hardened CLI resilience: clean handling of unreadable `--changed-files-from`
+  files, unenumerable directories during discovery, and terminal hangups during
+  interactive prompts.
+
+This package descends from `react-doctor` / `harness-doctor` (millionco); the
+pre-fork release history is preserved below for provenance.
+
+---
 
 ## 0.2.18
 
