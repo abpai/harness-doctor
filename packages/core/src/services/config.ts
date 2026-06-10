@@ -11,7 +11,7 @@ export interface ResolvedConfig {
   readonly config: HarnessDoctorConfig | null;
   readonly resolvedDirectory: string;
   /**
-   * Directory of the `harness-doctor.config.json` / `package.json`
+   * Directory of the `harness.config.*` / `package.json`
    * that supplied `config`. `null` when no config was found.
    * Diverges from `resolvedDirectory` whenever `config.rootDir`
    * redirects the scan — used as the resolution base for relative

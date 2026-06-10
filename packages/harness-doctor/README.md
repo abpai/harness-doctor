@@ -78,11 +78,11 @@ bump it.
 
 ## Configure
 
-Drop a `doctor.config.ts` (or `.js`, `.mjs`, `.cjs`, `.json`, `.jsonc`) at your
+Drop a `harness.config.ts` (or `.js`, `.mjs`, `.cjs`, `.json`, `.jsonc`) at your
 project root. Turn rules up, down, or off:
 
 ```ts
-// doctor.config.ts
+// harness.config.ts
 import type { HarnessDoctorConfig } from "harness-doctor/api";
 
 export default {
@@ -122,3 +122,9 @@ Bugs and ideas are welcome — open an
 [issue](https://github.com/abpai/harness-doctor/issues).
 
 MIT-licensed.
+
+## Acknowledgments
+
+Inspired by react-doctor by Aiden Bai — I loved it and wanted a similar system
+for repo prep in harness engineering. Harness Doctor is an independent project
+and is not affiliated with or endorsed by react-doctor or its authors.

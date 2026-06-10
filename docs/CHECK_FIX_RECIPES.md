@@ -133,7 +133,7 @@ structure map.
 **The fix:** move durable structure information into `docs/ARCHITECTURE.md`,
 route to it from `docs/INDEX.md`, and delete `STRUCTURE.md`. A repo
 mid-migration can set `"harness-doctor/docs-structure/no-structure-md": "off"`
-in `doctor.config.*` until the move lands.
+in `harness.config.*` until the move lands.
 
 ## docs-structure/agents-md-within-byte-budget
 
@@ -219,7 +219,7 @@ The thresholds — `ENTRY_POINT_MAX_LINES`, `ENTRY_POINT_MIN_DOCS_LINKS`,
 them there if your project's conventions genuinely differ.
 
 If you'd rather silence a check than satisfy it, set its severity to `"off"` in
-your `doctor.config.*` under `rules`. The key is the fully qualified rule name:
+your `harness.config.*` under `rules`. The key is the fully qualified rule name:
 
 ```jsonc
 {

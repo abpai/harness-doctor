@@ -21,8 +21,7 @@ import type {
   HarnessDoctorConfig,
 } from "@harness-doctor/core";
 import { cliLogger as logger } from "../utils/cli-logger.js";
-import { METRIC, STAGED_FILES_TEMP_DIR_PREFIX } from "../utils/constants.js";
-import { recordCount } from "../utils/record-metric.js";
+import { STAGED_FILES_TEMP_DIR_PREFIX } from "../utils/constants.js";
 import { getStagedSourceFiles, materializeStagedFiles } from "../utils/get-staged-files.js";
 import type { InspectFlags } from "../utils/inspect-flags.js";
 import { handleError, handleUserError } from "../utils/handle-error.js";
@@ -41,7 +40,6 @@ import { hasCompletedOnboarding } from "../utils/onboarding-state.js";
 import { printAnnotations } from "../utils/print-annotations.js";
 import { printBrandedHeader } from "../utils/print-branded-header.js";
 import { playWelcomeScene } from "../utils/render-welcome.js";
-import { reportErrorToSentry } from "../utils/report-error.js";
 import { readChangedFilesFrom } from "../utils/read-changed-files-from.js";
 import { printMultiProjectSummary } from "../utils/render-multi-project-summary.js";
 import { isCiOrCodingAgentEnvironment } from "../utils/is-ci-environment.js";
@@ -135,7 +133,7 @@ interface MigrationGuardInput {
 
 /**
  * On an interactive human run, rename a pre-migration
- * `harness-doctor.config.json` to `doctor.config.ts` before config is loaded,
+ * `doctor.config.json` to `harness.config.ts` before config is loaded,
  * so the scan reads the renamed file and the user is told once. CI, coding
  * agents, JSON/score output, pre-commit (`--staged`) hooks, and non-TTY runs
  * are left untouched — the loader's warning still nudges them — so a scan
@@ -155,7 +153,7 @@ const maybeMigrateLegacyConfig = (
   const migratedPath = migrateLegacyConfig(legacyConfig);
   if (!migratedPath) return;
 
-  logger.success("Migrated harness-doctor.config.json → doctor.config.ts");
+  logger.success("Migrated doctor.config.json → harness.config.ts");
   logger.dim(
     `  Your settings were preserved. Review ${toRelativePath(migratedPath, requestedDirectory)} and commit it.`,
   );
@@ -172,9 +170,6 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
   if (isJsonMode) {
     enableJsonMode({ compact: Boolean(flags.jsonCompact), directory: requestedDirectory });
   }
-  // Recorded after JSON mode is enabled so the metric's run attributes reflect
-  // the true `jsonMode` (run context is rebuilt per emit in `record-metric.ts`).
-  recordCount(METRIC.cliInvoked, 1, { command: "inspect" });
 
   try {
     validateModeFlags(flags);
@@ -433,16 +428,14 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
         })
       ) {
         printAgentInstallHint();
-        recordCount(METRIC.agentInstallHintShown, 1);
       }
     }
   } catch (error) {
     // Expected, user-actionable failures — a directory without a project, a
     // missing package.json, or a bad `--diff` base branch — are the user's
-    // project or input, not a harness-doctor bug: skip Sentry and the "open a prefilled
-    // issue" block so they don't become triage noise.
+    // project or input, not a harness-doctor bug: render a plain message (no
+    // "open a prefilled issue" block) so they don't become triage noise.
     const isUserError = isExpectedUserError(error);
-    const sentryEventId = isUserError ? undefined : await reportErrorToSentry(error);
     if (isJsonMode) {
       writeJsonErrorReport(error);
       process.exitCode = 1;
@@ -452,6 +445,6 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
       handleUserError(error);
       return;
     }
-    handleError(error, { sentryEventId });
+    handleError(error);
   }
 };

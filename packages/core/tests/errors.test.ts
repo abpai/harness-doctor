@@ -13,11 +13,11 @@ describe("HarnessDoctorError leaves", () => {
   it("ConfigParseFailed names the path + cause", () => {
     const error = new HarnessDoctorError({
       reason: new ConfigParseFailed({
-        path: "/repo/harness-doctor.config.json",
+        path: "/repo/harness.config.json",
         cause: new SyntaxError("Unexpected token }"),
       }),
     });
-    expect(formatHarnessDoctorError(error)).toContain("/repo/harness-doctor.config.json");
+    expect(formatHarnessDoctorError(error)).toContain("/repo/harness.config.json");
     expect(formatHarnessDoctorError(error)).toContain("Unexpected token }");
   });
 

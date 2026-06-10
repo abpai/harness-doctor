@@ -59,7 +59,7 @@ disable / tune which checks run (not fix code), use the `doctor-explain` skill
 (alias `/doctor-config`). Start with
 `npx @andypai/harness-doctor@latest rules explain <rule>`, then apply the narrowest
 control via `npx @andypai/harness-doctor@latest rules disable|set|category|ignore-tag …`,
-which edits your `doctor.config.*` (or `package.json#harnessDoctor`).
+which edits your `harness.config.*` (or `package.json#harnessDoctor`).
 
 ## Command reference
 

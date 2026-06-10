@@ -72,11 +72,6 @@ export default defineConfig({
         alwaysBundle: ["commander", "ora"],
         neverBundle: [
           "@effect/platform-node-shared",
-          // Sentry bundles its own OpenTelemetry instrumentation chain
-          // and resolves native/optional deps via require() at runtime;
-          // keep it external so those lookups run untouched (same
-          // rationale as `effect` and `deslop-js` below).
-          "@sentry/node",
           "agent-install",
           // Config loading/editing: jiti (TS/JS config eval) + confbox
           // (JSONC parse) power the loader in @harness-doctor/core (bundled
@@ -110,11 +105,8 @@ export default defineConfig({
       dts: true,
       target: "node20",
       platform: "node",
-      // Emit source maps so the release pipeline (scripts/sentry-sourcemaps.mjs)
-      // can inject Sentry Debug IDs and upload them for readable, de-minified
-      // stack traces. The `.map` files are NOT shipped in the npm tarball (see
-      // package.json "files"); symbolication happens server-side in Sentry via
-      // the Debug IDs injected into the published `dist/cli.js`.
+      // Emit source maps for local debugging. The `.map` files are NOT shipped
+      // in the npm tarball (see package.json "files").
       sourcemap: true,
       env: {
         VERSION: process.env.VERSION ?? packageJson.version,
@@ -139,7 +131,6 @@ export default defineConfig({
         alwaysBundle: ["commander", "ora"],
         neverBundle: [
           "@effect/platform-node-shared",
-          "@sentry/node",
           "agent-install",
           "confbox",
           "jiti",

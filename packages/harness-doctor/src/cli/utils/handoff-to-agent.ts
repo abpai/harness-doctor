@@ -6,8 +6,6 @@ import { cliLogger as logger } from "./cli-logger.js";
 import { detectAvailableAgents } from "./detect-agents.js";
 import { installHarnessDoctorSkillForAgent } from "./install-skill-for-agent.js";
 import { isCommandAvailable } from "./is-command-available.js";
-import { METRIC } from "./constants.js";
-import { recordCount } from "./record-metric.js";
 import {
   CLI_AGENT_BINARIES,
   type CliAgentId,
@@ -81,16 +79,6 @@ export const handoffToAgent = async (input: HandoffToAgentInput): Promise<void> 
 
   // Count the fix-loop outcome (the core activation moment): did the user launch
   // an agent (any agent id), copy the prompt, or skip/cancel?
-  let handoffOutcome = "launch";
-  if (handoffTarget === undefined) handoffOutcome = "cancel";
-  else if (handoffTarget === SKIP_CHOICE) handoffOutcome = "skip";
-  else if (handoffTarget === CLIPBOARD_CHOICE) handoffOutcome = "clipboard";
-  recordCount(METRIC.agentHandoff, 1, {
-    outcome: handoffOutcome,
-    agent: handoffOutcome === "launch" ? handoffTarget : undefined,
-    diagnosticsCount: input.diagnostics.length,
-  });
-
   // Cancel (Esc / Ctrl-C) or "Skip" exits without writing the prompt/files.
   if (handoffTarget === undefined || handoffTarget === SKIP_CHOICE) return;
 

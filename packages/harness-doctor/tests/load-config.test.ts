@@ -17,14 +17,14 @@ afterAll(() => {
 });
 
 describe("loadConfig", () => {
-  describe("doctor.config.json", () => {
+  describe("harness.config.json", () => {
     let configDirectory: string;
 
     beforeAll(() => {
       configDirectory = path.join(tempRootDirectory, "with-config-file");
       fs.mkdirSync(configDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(configDirectory, "doctor.config.json"),
+        path.join(configDirectory, "harness.config.json"),
         JSON.stringify({
           ignore: {
             rules: ["react/no-danger", "harness-doctor/no-giant-component"],
@@ -34,7 +34,7 @@ describe("loadConfig", () => {
       );
     });
 
-    it("loads config from doctor.config.json", async () => {
+    it("loads config from harness.config.json", async () => {
       const config = await loadConfig(configDirectory);
       expect(config).toEqual({
         ignore: {
@@ -45,27 +45,27 @@ describe("loadConfig", () => {
     });
   });
 
-  describe("doctor.config.ts", () => {
+  describe("harness.config.ts", () => {
     it("loads a TypeScript config via jiti", async () => {
       const tsConfigDirectory = path.join(tempRootDirectory, "with-ts-config");
       fs.mkdirSync(tsConfigDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(tsConfigDirectory, "doctor.config.ts"),
+        path.join(tsConfigDirectory, "harness.config.ts"),
         'export default {\n  lint: true,\n  rules: { "harness-doctor/no-danger": "off" },\n};\n',
       );
       const config = await loadConfig(tsConfigDirectory);
       expect(config).toEqual({ lint: true, rules: { "harness-doctor/no-danger": "off" } });
     });
 
-    it("prefers doctor.config.ts over doctor.config.json", async () => {
+    it("prefers harness.config.ts over harness.config.json", async () => {
       const mixedDirectory = path.join(tempRootDirectory, "ts-over-json");
       fs.mkdirSync(mixedDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(mixedDirectory, "doctor.config.ts"),
+        path.join(mixedDirectory, "harness.config.ts"),
         "export default { lint: true };\n",
       );
       fs.writeFileSync(
-        path.join(mixedDirectory, "doctor.config.json"),
+        path.join(mixedDirectory, "harness.config.json"),
         JSON.stringify({ lint: false }),
       );
       const config = await loadConfig(mixedDirectory);
@@ -74,11 +74,11 @@ describe("loadConfig", () => {
   });
 
   describe("JSONC tolerance", () => {
-    it("parses comments and trailing commas in doctor.config.json", async () => {
+    it("parses comments and trailing commas in harness.config.json", async () => {
       const jsoncDirectory = path.join(tempRootDirectory, "with-jsonc");
       fs.mkdirSync(jsoncDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(jsoncDirectory, "doctor.config.json"),
+        path.join(jsoncDirectory, "harness.config.json"),
         '{\n  // disable a noisy rule\n  "rules": { "harness-doctor/no-danger": "off", },\n}\n',
       );
       const config = await loadConfig(jsoncDirectory);
@@ -122,7 +122,7 @@ describe("loadConfig", () => {
       precedenceDirectory = path.join(tempRootDirectory, "precedence");
       fs.mkdirSync(precedenceDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(precedenceDirectory, "doctor.config.json"),
+        path.join(precedenceDirectory, "harness.config.json"),
         JSON.stringify({ ignore: { rules: ["from-config-file"] } }),
       );
       fs.writeFileSync(
@@ -134,7 +134,7 @@ describe("loadConfig", () => {
       );
     });
 
-    it("prefers doctor.config.json over package.json", async () => {
+    it("prefers harness.config.json over package.json", async () => {
       const config = await loadConfig(precedenceDirectory);
       expect(config?.ignore?.rules).toEqual(["from-config-file"]);
     });
@@ -156,24 +156,24 @@ describe("loadConfig", () => {
     it("returns null when config path is a directory instead of a file (EISDIR)", async () => {
       const directoryConfigRoot = path.join(tempRootDirectory, "eisdir-config");
       fs.mkdirSync(directoryConfigRoot, { recursive: true });
-      fs.mkdirSync(path.join(directoryConfigRoot, "doctor.config.json"), { recursive: true });
+      fs.mkdirSync(path.join(directoryConfigRoot, "harness.config.json"), { recursive: true });
       fs.mkdirSync(path.join(directoryConfigRoot, "package.json"), { recursive: true });
 
       const config = await loadConfig(directoryConfigRoot);
       expect(config).toBeNull();
     });
 
-    it("warns when a legacy harness-doctor.config.json is found but no longer read", async () => {
+    it("warns when a legacy doctor.config.json is found but no longer read", async () => {
       const legacyDirectory = path.join(tempRootDirectory, "legacy-config");
       fs.mkdirSync(legacyDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(legacyDirectory, "harness-doctor.config.json"),
+        path.join(legacyDirectory, "doctor.config.json"),
         JSON.stringify({ lint: true }),
       );
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       const config = await loadConfig(legacyDirectory);
       expect(config).toBeNull();
-      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("harness-doctor.config.json"));
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("doctor.config.json"));
       warnSpy.mockRestore();
     });
   });
@@ -185,7 +185,7 @@ describe("loadConfig", () => {
       optionsDirectory = path.join(tempRootDirectory, "with-scan-options");
       fs.mkdirSync(optionsDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(optionsDirectory, "doctor.config.json"),
+        path.join(optionsDirectory, "harness.config.json"),
         JSON.stringify({
           ignore: { rules: ["react/no-danger"] },
           lint: true,
@@ -209,7 +209,7 @@ describe("loadConfig", () => {
       const boolDiffDirectory = path.join(tempRootDirectory, "with-bool-diff");
       fs.mkdirSync(boolDiffDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(boolDiffDirectory, "doctor.config.json"),
+        path.join(boolDiffDirectory, "harness.config.json"),
         JSON.stringify({ diff: true }),
       );
       const config = await loadConfig(boolDiffDirectory);
@@ -224,12 +224,12 @@ describe("loadConfig", () => {
     beforeAll(() => {
       invalidJsonDirectory = path.join(tempRootDirectory, "invalid-json");
       fs.mkdirSync(invalidJsonDirectory, { recursive: true });
-      fs.writeFileSync(path.join(invalidJsonDirectory, "doctor.config.json"), "not valid json{{{");
+      fs.writeFileSync(path.join(invalidJsonDirectory, "harness.config.json"), "not valid json{{{");
 
       nonObjectDirectory = path.join(tempRootDirectory, "non-object-config");
       fs.mkdirSync(nonObjectDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(nonObjectDirectory, "doctor.config.json"),
+        path.join(nonObjectDirectory, "harness.config.json"),
         JSON.stringify([1, 2, 3]),
       );
     });
@@ -253,7 +253,7 @@ describe("loadConfig", () => {
     it("falls through to package.json when config file has malformed JSON", async () => {
       const fallbackDirectory = path.join(tempRootDirectory, "malformed-with-fallback");
       fs.mkdirSync(fallbackDirectory, { recursive: true });
-      fs.writeFileSync(path.join(fallbackDirectory, "doctor.config.json"), "not valid json{{{");
+      fs.writeFileSync(path.join(fallbackDirectory, "harness.config.json"), "not valid json{{{");
       fs.writeFileSync(
         path.join(fallbackDirectory, "package.json"),
         JSON.stringify({
@@ -273,7 +273,7 @@ describe("loadConfig", () => {
       const nonObjectFallbackDirectory = path.join(tempRootDirectory, "non-object-with-fallback");
       fs.mkdirSync(nonObjectFallbackDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(nonObjectFallbackDirectory, "doctor.config.json"),
+        path.join(nonObjectFallbackDirectory, "harness.config.json"),
         JSON.stringify([1, 2, 3]),
       );
       fs.writeFileSync(
@@ -308,7 +308,7 @@ describe("loadConfig", () => {
       const sourceDir = path.join(tempRootDirectory, "with-source");
       fs.mkdirSync(sourceDir, { recursive: true });
       fs.writeFileSync(
-        path.join(sourceDir, "doctor.config.json"),
+        path.join(sourceDir, "harness.config.json"),
         JSON.stringify({ rootDir: "apps/web" }),
       );
       clearConfigCache();
@@ -316,7 +316,7 @@ describe("loadConfig", () => {
       expect(loaded?.sourceDirectory).toBe(sourceDir);
       expect(loaded?.config.rootDir).toBe("apps/web");
       expect(loaded?.format).toBe("json");
-      expect(loaded?.configFilePath).toBe(path.join(sourceDir, "doctor.config.json"));
+      expect(loaded?.configFilePath).toBe(path.join(sourceDir, "harness.config.json"));
     });
 
     it("returns the ancestor directory when the config lives upstream", async () => {
@@ -324,7 +324,7 @@ describe("loadConfig", () => {
       const childDir = path.join(ancestorDir, "packages", "ui");
       fs.mkdirSync(childDir, { recursive: true });
       fs.writeFileSync(
-        path.join(ancestorDir, "doctor.config.json"),
+        path.join(ancestorDir, "harness.config.json"),
         JSON.stringify({ rootDir: "apps/web" }),
       );
       clearConfigCache();
@@ -337,10 +337,10 @@ describe("loadConfig", () => {
       const childDir = path.join(ancestorDir, "packages", "ui");
       fs.mkdirSync(childDir, { recursive: true });
       fs.writeFileSync(
-        path.join(ancestorDir, "doctor.config.json"),
+        path.join(ancestorDir, "harness.config.json"),
         JSON.stringify({ rootDir: "apps/web" }),
       );
-      fs.writeFileSync(path.join(childDir, "doctor.config.json"), "not valid json{{{");
+      fs.writeFileSync(path.join(childDir, "harness.config.json"), "not valid json{{{");
 
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       clearConfigCache();
@@ -355,7 +355,7 @@ describe("loadConfig", () => {
       const badRootDirDir = path.join(tempRootDirectory, "bad-root-dir");
       fs.mkdirSync(badRootDirDir, { recursive: true });
       fs.writeFileSync(
-        path.join(badRootDirDir, "doctor.config.json"),
+        path.join(badRootDirDir, "harness.config.json"),
         JSON.stringify({ rootDir: 42 }),
       );
       const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
@@ -371,7 +371,7 @@ describe("loadConfig", () => {
       const goodRootDirDir = path.join(tempRootDirectory, "good-root-dir");
       fs.mkdirSync(goodRootDirDir, { recursive: true });
       fs.writeFileSync(
-        path.join(goodRootDirDir, "doctor.config.json"),
+        path.join(goodRootDirDir, "harness.config.json"),
         JSON.stringify({ rootDir: "apps/web" }),
       );
       const config = await loadConfig(goodRootDirDir);
@@ -385,7 +385,7 @@ describe("loadConfig", () => {
       const childDirectory = path.join(parentDirectory, "packages", "ui");
       fs.mkdirSync(childDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(parentDirectory, "doctor.config.json"),
+        path.join(parentDirectory, "harness.config.json"),
         JSON.stringify({ ignore: { rules: ["from-monorepo-root"] } }),
       );
 
@@ -398,11 +398,11 @@ describe("loadConfig", () => {
       const childDirectory = path.join(parentDirectory, "packages", "ui");
       fs.mkdirSync(childDirectory, { recursive: true });
       fs.writeFileSync(
-        path.join(parentDirectory, "doctor.config.json"),
+        path.join(parentDirectory, "harness.config.json"),
         JSON.stringify({ ignore: { rules: ["from-parent"] } }),
       );
       fs.writeFileSync(
-        path.join(childDirectory, "doctor.config.json"),
+        path.join(childDirectory, "harness.config.json"),
         JSON.stringify({ ignore: { rules: ["from-child"] } }),
       );
 

@@ -41,13 +41,13 @@ export interface DiagnoseResult {
  * Scan options (`deadCode`, etc.) are flat on the entry and
  * layer on top of the global defaults — omitted fields fall through.
  * `config` is a full `HarnessDoctorConfig` override that replaces the
- * on-disk `doctor.config.*` for this project's scan.
+ * on-disk `harness.config.*` for this project's scan.
  */
 export interface ProjectDefinition extends DiagnoseOptions {
   directory: string;
   /**
    * Full harness-doctor config override for this project. When provided,
-   * replaces the on-disk `doctor.config.*` for this project's
+   * replaces the on-disk `harness.config.*` for this project's
    * scan — the scan target resolver still runs (so `rootDir` and
    * subproject discovery work), but its loaded config is swapped out.
    */

@@ -11,13 +11,6 @@ import {
 import type { HandleErrorOptions } from "@harness-doctor/core";
 import { VERSION } from "./version.js";
 
-// `shouldExit` is optional here (defaults to exiting) and the CLI adds a Sentry
-// event id, surfaced as a reference the user can quote so we can locate the
-// exact crash in Sentry.
-interface CliHandleErrorOptions extends Partial<HandleErrorOptions> {
-  sentryEventId?: string;
-}
-
 const OTLP_ENDPOINT_ENVIRONMENT_VARIABLE = "HARNESS_DOCTOR_OTLP_ENDPOINT";
 const OTLP_AUTH_HEADER_ENVIRONMENT_VARIABLE = "HARNESS_DOCTOR_OTLP_AUTH_HEADER";
 
@@ -48,11 +41,7 @@ const getErrorReportContext = (): ErrorReportContext => ({
 
 const formatConfiguredState = (isConfigured: boolean): string => (isConfigured ? "yes" : "no");
 
-const buildErrorIssueBody = (
-  error: unknown,
-  context: ErrorReportContext,
-  sentryEventId: string | undefined,
-): string => {
+const buildErrorIssueBody = (error: unknown, context: ErrorReportContext): string => {
   const formattedError = formatErrorForReport(error) || "(empty error)";
   const isOtlpExporterEnabled =
     context.isOtlpEndpointConfigured && context.isOtlpAuthHeaderConfigured;
@@ -71,7 +60,6 @@ const buildErrorIssueBody = (
     `- platform: ${context.platform} ${context.architecture}`,
     `- cwd: ${context.cwd}`,
     `- command: ${context.command}`,
-    ...(sentryEventId ? [`- Sentry reference: ${sentryEventId}`] : []),
     "",
     "## OpenTelemetry",
     "",
@@ -86,15 +74,12 @@ const buildErrorIssueBody = (
   ].join("\n");
 };
 
-export const buildErrorIssueUrl = (error: unknown, sentryEventId?: string): string => {
+export const buildErrorIssueUrl = (error: unknown): string => {
   const formattedError = formatSingleLine(formatErrorForReport(error));
   const issueUrl = new URL(`${CANONICAL_GITHUB_URL}/issues/new`);
   issueUrl.searchParams.set("title", formattedError ? `CLI error: ${formattedError}` : "CLI error");
   issueUrl.searchParams.set("labels", "bug");
-  issueUrl.searchParams.set(
-    "body",
-    buildErrorIssueBody(error, getErrorReportContext(), sentryEventId),
-  );
+  issueUrl.searchParams.set("body", buildErrorIssueBody(error, getErrorReportContext()));
   return issueUrl.toString();
 };
 
@@ -105,10 +90,7 @@ export const buildErrorIssueUrl = (error: unknown, sentryEventId?: string): stri
  * red-highlighted (matches the historical `consoleLogger.error`
  * contract) so the user sees a clearly distinguished error block.
  */
-const handleErrorEffect = (
-  error: unknown,
-  sentryEventId: string | undefined,
-): Effect.Effect<void> =>
+const handleErrorEffect = (error: unknown): Effect.Effect<void> =>
   Effect.gen(function* () {
     yield* Console.error("");
     yield* Console.error(
@@ -116,17 +98,12 @@ const handleErrorEffect = (
     );
     yield* Console.error(
       highlighter.error(
-        `If the problem persists, please open this prefilled issue: ${buildErrorIssueUrl(error, sentryEventId)}`,
+        `If the problem persists, please open this prefilled issue: ${buildErrorIssueUrl(error)}`,
       ),
     );
     yield* Console.error(
       highlighter.error(`You can also ask for help in Discord: ${CANONICAL_DISCORD_URL}`),
     );
-    if (sentryEventId) {
-      yield* Console.error(
-        highlighter.error(`Reference (mention this when reporting): ${sentryEventId}`),
-      );
-    }
     yield* Console.error("");
     yield* Console.error(highlighter.error(formatErrorForReport(error)));
     yield* Console.error("");
@@ -137,8 +114,8 @@ const handleErrorEffect = (
  * aren't yet Effect-typed). Bridges via `Effect.runSync` so the
  * underlying Console writes happen exactly like the Effect path.
  */
-export const handleError = (error: unknown, options: CliHandleErrorOptions = {}): void => {
-  Effect.runSync(handleErrorEffect(error, options.sentryEventId));
+export const handleError = (error: unknown, options: Partial<HandleErrorOptions> = {}): void => {
+  Effect.runSync(handleErrorEffect(error));
   if (options.shouldExit !== false) {
     process.exit(1);
   }
@@ -148,8 +125,8 @@ export const handleError = (error: unknown, options: CliHandleErrorOptions = {})
 /**
  * Renderer for expected, user-actionable failures — a bad `--diff` value or
  * a base branch that isn't fetched. Prints just the (already human-readable)
- * message — no "Something went wrong", prefilled issue, Discord link, or
- * Sentry reference — because there is no bug to report.
+ * message — no "Something went wrong", prefilled issue, or Discord link —
+ * because there is no bug to report.
  */
 export const handleUserError = (error: unknown, options: { shouldExit?: boolean } = {}): void => {
   Effect.runSync(

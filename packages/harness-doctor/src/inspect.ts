@@ -12,15 +12,6 @@ import {
 } from "@harness-doctor/core";
 import { applyObservability } from "./cli/utils/apply-observability.js";
 import { buildRuntimeLayers } from "./cli/utils/build-runtime-layers.js";
-import {
-  recordSentryProjectContext,
-  resetSentryRunState,
-  withSentryRunSpan,
-} from "./cli/utils/with-sentry-run-span.js";
-import type { SentryRootSpan } from "./cli/utils/with-sentry-run-span.js";
-import { METRIC } from "./cli/utils/constants.js";
-import { recordCount } from "./cli/utils/record-metric.js";
-import { recordScanMetrics } from "./cli/utils/record-scan-metrics.js";
 import type {
   Diagnostic,
   DiagnosticSurface,
@@ -107,11 +98,6 @@ export const inspect = async (
 ): Promise<InspectResult> => {
   const startTime = performance.now();
 
-  // Clear any run-scoped Sentry state from a prior inspect() (workspace scans
-  // call this once per project) so a stale project/trace can't leak onto this
-  // run's events — including errors thrown before the project is discovered.
-  resetSentryRunState();
-
   const hasConfigOverride = inputOptions.configOverride !== undefined;
   // When the caller pre-loaded a config (CLI's `inspectAction` does
   // this so it can render the rootDir-redirect hint before the scan
@@ -150,25 +136,14 @@ export const inspect = async (
   if (options.silent) setSpinnerSilent(true);
 
   try {
-    const result = await withSentryRunSpan((rootSentrySpan) =>
-      runInspectWithRuntime(
-        scanDirectory,
-        options,
-        userConfig,
-        hasConfigOverride,
-        configSourceDirectory,
-        startTime,
-        rootSentrySpan,
-      ),
+    return await runInspectWithRuntime(
+      scanDirectory,
+      options,
+      userConfig,
+      hasConfigOverride,
+      configSourceDirectory,
+      startTime,
     );
-    // Scan finished cleanly — clear run-scoped Sentry state so a later non-scan
-    // error (inspectAction's finalize/handoff/install steps, or the next
-    // project in a workspace loop) isn't mislabeled with this scan's project or
-    // mislinked to its already-sent transaction. On a thrown error this line is
-    // skipped, so the state persists for the command catch to attribute and
-    // link the crash before the process exits.
-    resetSentryRunState();
-    return result;
   } finally {
     if (options.silent) setSpinnerSilent(wasSpinnerSilent);
   }
@@ -181,7 +156,6 @@ const runInspectWithRuntime = async (
   hasConfigOverride: boolean,
   configSourceDirectory: string | null,
   startTime: number,
-  rootSentrySpan: SentryRootSpan,
 ): Promise<InspectResult> => {
   const isDiffMode = options.includePaths.length > 0;
 
@@ -216,12 +190,6 @@ const runInspectWithRuntime = async (
     {
       beforeScan: (projectInfo, scanIncludePaths) =>
         Effect.gen(function* () {
-          // Attach the discovered project shape to Sentry as early as possible
-          // (this hook fires right after project discovery) so crashes, the run
-          // transaction, and every subsequent metric carry it. No-op when
-          // Sentry/tracing is off.
-          recordSentryProjectContext(projectInfo, rootSentrySpan);
-          recordCount(METRIC.projectDetected, 1);
           if (options.scoreOnly || options.suppressRendering) return;
           const scanSourceFileCount = scanIncludePaths?.length ?? projectInfo.sourceFileCount;
           yield* printProjectDetection({
@@ -242,15 +210,14 @@ const runInspectWithRuntime = async (
   // check a flag itself. Driven by Effect's built-in Console
   // reference, which is `Context.Reference<Console>` with the
   // default value `globalThis.console`.
-  // `applyObservability` installs the tracing backend (user OTLP, else the
-  // Sentry tracer bridge when tracing is live, else the no-op native tracer)
-  // — see its docs for precedence. The silent toggle only swaps the Console
+  // `applyObservability` installs the tracing backend (user OTLP if configured,
+  // else the no-op native tracer). The silent toggle only swaps the Console
   // reference, not the tracer, so observability is applied identically in both
   // branches.
   const baseProgram = options.silent
     ? program.pipe(Effect.provide(layers), Effect.provideService(Console.Console, silentConsole))
     : program.pipe(Effect.provide(layers));
-  const programWithLayers = applyObservability(baseProgram, rootSentrySpan);
+  const programWithLayers = applyObservability(baseProgram);
   const output = await Effect.runPromise(restoreLegacyThrow(programWithLayers));
 
   const inspectDiagnostics: ReadonlyArray<Diagnostic> = output.diagnostics;
@@ -309,14 +276,6 @@ const runInspectWithRuntime = async (
   ) {
     markOnboardingComplete();
   }
-  recordScanMetrics({
-    result,
-    mode: isDiffMode ? "diff" : "full",
-    deadCode: options.deadCode,
-    scoreOnly: options.scoreOnly,
-    noScore: options.noScore,
-    didDeadCodeFail: output.didDeadCodeFail,
-  });
   return result;
 };
 

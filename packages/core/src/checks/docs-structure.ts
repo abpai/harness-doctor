@@ -527,7 +527,7 @@ const checkNoStructureMd = (rootDirectory: string): Diagnostic[] => {
       rule: NO_STRUCTURE_MD_RULE_KEY,
       message:
         "STRUCTURE.md is a non-canonical structure map — the contract route is docs/ARCHITECTURE.md linked from docs/INDEX.md, and a parallel root map drifts from it",
-      help: `Move durable structure information into \`${docsArchitecturePath}\`, route to it from \`${docsIndexPath}\`, and delete \`${STRUCTURE_MD_FILENAME}\`; repos mid-migration can set \`"harness-doctor/${NO_STRUCTURE_MD_RULE_KEY}": "off"\` in doctor.config`,
+      help: `Move durable structure information into \`${docsArchitecturePath}\`, route to it from \`${docsIndexPath}\`, and delete \`${STRUCTURE_MD_FILENAME}\`; repos mid-migration can set \`"harness-doctor/${NO_STRUCTURE_MD_RULE_KEY}": "off"\` in harness.config`,
     }),
   ];
 };

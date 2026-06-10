@@ -144,7 +144,7 @@ export interface HarnessDoctorConfig {
    * the redirect is stable no matter where the CLI / `diagnose()` is
    * run from. Absolute paths are used as-is.
    *
-   * Typical use: a monorepo root holds the only `doctor.config.*`
+   * Typical use: a monorepo root holds the only `harness.config.*`
    * (so editor tooling and child commands all find it), but the main
    * app lives in `apps/web`. Setting `"rootDir": "apps/web"` makes
    * every invocation that loads this config scan that subproject

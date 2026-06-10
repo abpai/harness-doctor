@@ -11,8 +11,6 @@ import {
 import { highlighter, SKILL_NAME } from "@harness-doctor/core";
 import { cliLogger as logger } from "./cli-logger.js";
 import { detectAvailableAgents } from "./detect-agents.js";
-import { METRIC } from "./constants.js";
-import { recordCount } from "./record-metric.js";
 import {
   DOCTOR_PACKAGE_NAME,
   findNearestPackageDirectory,
@@ -291,13 +289,6 @@ const installHarnessDoctorPackageSetup = async (
     const dependencyResult = await installHarnessDoctorDependency({
       projectRoot,
       runner: dependencyRunner,
-    });
-    // Conversion + supply-chain-trust friction: did the local dev-dep install
-    // land, already exist, or get skipped (and why)?
-    recordCount(METRIC.installDependency, 1, {
-      status: dependencyResult.dependencyStatus,
-      reason: dependencyResult.dependencyReason ?? null,
-      packageManager: detectPackageManager(projectRoot),
     });
     if (dependencyResult.dependencyStatus === "skipped") {
       dependencySpinner.fail(formatDependencyInstallMessage(dependencyResult));
@@ -634,7 +625,6 @@ export const runInstallHarnessDoctor = async (
         hooksPathConfig: gitHookTarget.hooksPathConfig,
       });
       hookSpinner.succeed(formatGitHookInstallMessage(hookResult));
-      recordCount(METRIC.installGitHook, 1, { kind: hookResult.kind });
     } catch (error) {
       hookSpinner.fail("Failed to install Harness Doctor pre-commit hook.");
       throw error;
@@ -654,9 +644,6 @@ export const runInstallHarnessDoctor = async (
         hookSpinner.succeed(
           `Harness Doctor agent hooks installed for ${hookResult.installedAgents.map((agent) => getSkillAgentConfig(agent).displayName).join(", ")}.`,
         );
-        recordCount(METRIC.installAgentHooks, 1, {
-          agentsCount: hookResult.installedAgents.length,
-        });
       }
     } catch (error) {
       hookSpinner.fail("Failed to install Harness Doctor agent hooks.");
@@ -674,25 +661,9 @@ export const runInstallHarnessDoctor = async (
       workflowSpinner.succeed(
         `GitHub Actions workflow added at ${path.relative(projectRoot, workflowTargetPath)}.`,
       );
-      recordCount(METRIC.installWorkflow, 1);
     } catch (error) {
       workflowSpinner.fail("Failed to add GitHub Actions workflow.");
       throw error;
     }
-  }
-
-  // Activation summary for a real (non-dry-run) install: how many agents, which
-  // optional integrations, and the dependency outcome. `install.agent` breaks
-  // the agent set down so per-agent adoption is queryable.
-  recordCount(METRIC.installCompleted, 1, {
-    agentsCount: selectedAgents.length,
-    gitHook: shouldInstallGitHook,
-    agentHooks: shouldInstallAgentHooks,
-    workflow: shouldInstallWorkflow,
-    dependencyStatus: dependencyResult.dependencyStatus,
-    packageManager: detectPackageManager(projectRoot),
-  });
-  for (const agent of selectedAgents) {
-    recordCount(METRIC.installAgent, 1, { agent });
   }
 };

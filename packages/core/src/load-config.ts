@@ -13,14 +13,14 @@ const warn = (message: string): void => {
   Effect.runSync(Console.warn(message));
 };
 
-const CONFIG_BASENAME = "doctor.config";
+const CONFIG_BASENAME = "harness.config";
 // TS-first, then the other module formats, then data formats. The first
 // match in a directory wins.
 const CONFIG_EXTENSIONS = ["ts", "mts", "cts", "js", "mjs", "cjs", "json", "jsonc"] as const;
 const DATA_CONFIG_EXTENSIONS: ReadonlySet<string> = new Set(["json", "jsonc"]);
 const PACKAGE_JSON_FILENAME = "package.json";
 const PACKAGE_JSON_CONFIG_KEY = "harnessDoctor";
-const LEGACY_CONFIG_FILENAME = "harness-doctor.config.json";
+const LEGACY_CONFIG_FILENAME = "doctor.config.json";
 
 /**
  * Coarse format of the resolved config, used by the rule-config writer
@@ -42,7 +42,7 @@ export interface LoadedHarnessDoctorConfig {
   format: HarnessDoctorConfigFormat;
 }
 
-// Per-directory lookup outcome. `invalid` means a `doctor.config.*` file is
+// Per-directory lookup outcome. `invalid` means a `harness.config.*` file is
 // present but unparseable / not an object — an explicit-but-broken config
 // that must NOT fall through to an ancestor repo's config.
 interface DirectoryConfigResult {
@@ -179,14 +179,14 @@ export const loadConfigWithSource = (
 };
 
 export interface LegacyConfigLocation {
-  /** Absolute path of the pre-migration `harness-doctor.config.json`. */
+  /** Absolute path of the pre-migration `doctor.config.json`. */
   readonly legacyFilePath: string;
   /** Directory that contains it (where the migrated file should land). */
   readonly directory: string;
 }
 
 // True when the directory already has a current-format config — a
-// `doctor.config.*` file (parseable or not) or a `package.json#harnessDoctor`
+// `harness.config.*` file (parseable or not) or a `package.json#harnessDoctor`
 // key. Such a config supersedes any sibling legacy file, so there's nothing
 // to migrate. Kept side-effect-free (no `validateConfigTypes`) so the
 // detection walk never emits warnings.
@@ -200,7 +200,7 @@ const directoryHasCurrentConfig = (directory: string): boolean => {
 /**
  * Walks up from `rootDirectory` (same boundary semantics as
  * `loadConfigWithSource`) looking for a pre-migration
- * `harness-doctor.config.json` that is no longer read. Returns the first one
+ * `doctor.config.json` that is no longer read. Returns the first one
  * found, or `null` when a current-format config supersedes it or none exists
  * before a project boundary. Detection only — the CLI performs the rename.
  */

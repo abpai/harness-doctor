@@ -2,8 +2,6 @@ import path from "node:path";
 import { buildRuleDocsUrl, highlighter, validateConfigTypes } from "@harness-doctor/core";
 import type { HarnessDoctorConfig, RuleSeverityOverride } from "@harness-doctor/core";
 import { cliLogger as logger } from "../utils/cli-logger.js";
-import { METRIC } from "../utils/constants.js";
-import { recordCount } from "../utils/record-metric.js";
 import { findNearestPackageDirectory } from "../utils/install-doctor-script.js";
 import {
   buildRuleCatalog,
@@ -24,10 +22,6 @@ import {
 } from "../utils/update-rule-config.js";
 
 const SEVERITY_VALUES: ReadonlyArray<RuleSeverityOverride> = ["off", "warn", "error"];
-
-// Every `rules` subcommand records one invocation (the per-subcommand detail
-// comes from `rules.queried` for reads and `rules.changed` for writes).
-const recordRulesInvocation = (): void => recordCount(METRIC.cliInvoked, 1, { command: "rules" });
 
 interface RulesCwdOptions {
   readonly cwd?: string;
@@ -110,11 +104,6 @@ const reportManualEdit = (target: RuleConfigTarget, nextConfig: HarnessDoctorCon
 };
 
 export const rulesListAction = async (options: RulesListOptions): Promise<void> => {
-  recordRulesInvocation();
-  recordCount(METRIC.rulesQueried, 1, {
-    subcommand: "list",
-    hadFilter: Boolean(options.category || options.tag || options.configured),
-  });
   const catalog = buildRuleCatalog();
   const target = await resolveRuleConfigTarget(resolveProjectRoot(options));
   // Validate the on-disk config the same way the loader does so effective
@@ -155,8 +144,6 @@ export const rulesExplainAction = async (
   ruleQuery: string,
   options: RulesExplainOptions,
 ): Promise<void> => {
-  recordRulesInvocation();
-  recordCount(METRIC.rulesQueried, 1, { subcommand: "explain" });
   const catalog = buildRuleCatalog();
   const entry = findRuleInCatalog(catalog, ruleQuery);
   if (!entry) {
@@ -198,7 +185,6 @@ const setRuleSeverityAndReport = async (
   entry: RuleCatalogEntry,
   severity: RuleSeverityOverride,
   options: RulesCwdOptions,
-  action: string,
 ): Promise<void> => {
   const { target, nextConfig, written } = await applyConfigChange(options, (config) =>
     setRuleSeverity(config, entry.key, severity),
@@ -209,7 +195,6 @@ const setRuleSeverityAndReport = async (
   }
   logger.success(`Set ${entry.key} → ${severity}`);
   logger.dim(`  Updated ${describeTargetPath(target)}`);
-  recordCount(METRIC.rulesChanged, 1, { action, severity, target: entry.key });
 };
 
 export const rulesSetAction = async (
@@ -217,7 +202,6 @@ export const rulesSetAction = async (
   severityValue: string,
   options: RulesCwdOptions,
 ): Promise<void> => {
-  recordRulesInvocation();
   const severity = parseSeverity(severityValue);
   if (!severity) {
     reportInvalidSeverity(severityValue);
@@ -228,21 +212,20 @@ export const rulesSetAction = async (
     reportRuleNotFound(ruleQuery);
     return;
   }
-  await setRuleSeverityAndReport(entry, severity, options, "set");
+  await setRuleSeverityAndReport(entry, severity, options);
 };
 
 export const rulesEnableAction = async (
   ruleQuery: string,
   options: RulesEnableOptions,
 ): Promise<void> => {
-  recordRulesInvocation();
   const entry = findRuleInCatalog(buildRuleCatalog(), ruleQuery);
   if (!entry) {
     reportRuleNotFound(ruleQuery);
     return;
   }
   if (options.severity === undefined) {
-    await setRuleSeverityAndReport(entry, entry.defaultSeverity, options, "enable");
+    await setRuleSeverityAndReport(entry, entry.defaultSeverity, options);
     return;
   }
   const severity = parseSeverity(options.severity);
@@ -255,20 +238,19 @@ export const rulesEnableAction = async (
     process.exitCode = 1;
     return;
   }
-  await setRuleSeverityAndReport(entry, severity, options, "enable");
+  await setRuleSeverityAndReport(entry, severity, options);
 };
 
 export const rulesDisableAction = async (
   ruleQuery: string,
   options: RulesCwdOptions,
 ): Promise<void> => {
-  recordRulesInvocation();
   const entry = findRuleInCatalog(buildRuleCatalog(), ruleQuery);
   if (!entry) {
     reportRuleNotFound(ruleQuery);
     return;
   }
-  await setRuleSeverityAndReport(entry, "off", options, "disable");
+  await setRuleSeverityAndReport(entry, "off", options);
 };
 
 export const rulesCategoryAction = async (
@@ -276,7 +258,6 @@ export const rulesCategoryAction = async (
   severityValue: string,
   options: RulesCwdOptions,
 ): Promise<void> => {
-  recordRulesInvocation();
   const severity = parseSeverity(severityValue);
   if (!severity) {
     reportInvalidSeverity(severityValue);
@@ -301,14 +282,12 @@ export const rulesCategoryAction = async (
   }
   logger.success(`Set category "${matchedCategory}" → ${severity}`);
   logger.dim(`  Updated ${describeTargetPath(target)}`);
-  recordCount(METRIC.rulesChanged, 1, { action: "category", severity, target: matchedCategory });
 };
 
 export const rulesIgnoreTagAction = async (
   tag: string,
   options: RulesCwdOptions,
 ): Promise<void> => {
-  recordRulesInvocation();
   const knownTags = listRuleTags(buildRuleCatalog());
   if (!knownTags.includes(tag)) {
     logger.error(`Unknown tag "${tag}".`);
@@ -325,14 +304,12 @@ export const rulesIgnoreTagAction = async (
   }
   logger.success(`Ignoring tag "${tag}" (rules with this tag are skipped)`);
   logger.dim(`  Updated ${describeTargetPath(target)}`);
-  recordCount(METRIC.rulesChanged, 1, { action: "ignoreTag", target: tag });
 };
 
 export const rulesUnignoreTagAction = async (
   tag: string,
   options: RulesCwdOptions,
 ): Promise<void> => {
-  recordRulesInvocation();
   const target = await resolveRuleConfigTarget(resolveProjectRoot(options));
   // Don't write (or create) a config for a no-op — reporting success when
   // the tag was never ignored is misleading and leaves a stray config file.
@@ -348,5 +325,4 @@ export const rulesUnignoreTagAction = async (
   }
   logger.success(`Tag "${tag}" is no longer ignored`);
   logger.dim(`  Updated ${describeTargetPath(target)}`);
-  recordCount(METRIC.rulesChanged, 1, { action: "unignoreTag", target: tag });
 };

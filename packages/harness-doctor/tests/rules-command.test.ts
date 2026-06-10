@@ -30,7 +30,7 @@ const setupFixture = (
   );
   return {
     projectRoot,
-    configPath: path.join(projectRoot, "doctor.config.json"),
+    configPath: path.join(projectRoot, "harness.config.json"),
     packageJsonPath: path.join(projectRoot, "package.json"),
     cleanup: () => rmSync(projectRoot, { recursive: true, force: true }),
   };
@@ -70,7 +70,7 @@ afterEach(() => {
 });
 
 describe("rules disable / set / enable", () => {
-  it("creates a schema-stamped doctor.config.json when none exists", async () => {
+  it("creates a schema-stamped harness.config.json when none exists", async () => {
     fixture = setupFixture();
     await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
       cwd: fixture.projectRoot,
@@ -140,9 +140,9 @@ describe("rules disable / set / enable", () => {
 });
 
 describe("rules config formats", () => {
-  it("edits a doctor.config.ts in place, preserving the comment and other options", async () => {
+  it("edits a harness.config.ts in place, preserving the comment and other options", async () => {
     fixture = setupFixture();
-    const tsConfigPath = path.join(fixture.projectRoot, "doctor.config.ts");
+    const tsConfigPath = path.join(fixture.projectRoot, "harness.config.ts");
     writeFileSync(tsConfigPath, "export default {\n  // keep this\n  deadCode: true,\n};\n");
 
     await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {
@@ -157,9 +157,9 @@ describe("rules config formats", () => {
     expect(existsSync(fixture.configPath)).toBe(false);
   });
 
-  it("edits a doctor.config.ts that exports a const via `export default <name>`", async () => {
+  it("edits a harness.config.ts that exports a const via `export default <name>`", async () => {
     fixture = setupFixture();
-    const tsConfigPath = path.join(fixture.projectRoot, "doctor.config.ts");
+    const tsConfigPath = path.join(fixture.projectRoot, "harness.config.ts");
     writeFileSync(
       tsConfigPath,
       'import type { HarnessDoctorConfig } from "harness-doctor/api";\n\nconst config: HarnessDoctorConfig = {\n  // keep this\n  deadCode: true,\n};\n\nexport default config;\n',
@@ -181,7 +181,7 @@ describe("rules config formats", () => {
 
   it("edits an inline `export default {…} satisfies` config (the migration output shape)", async () => {
     fixture = setupFixture();
-    const tsConfigPath = path.join(fixture.projectRoot, "doctor.config.ts");
+    const tsConfigPath = path.join(fixture.projectRoot, "harness.config.ts");
     // Byte-identical to what migrateLegacyConfig emits.
     writeFileSync(
       tsConfigPath,
