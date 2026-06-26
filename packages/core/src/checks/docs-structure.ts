@@ -15,6 +15,7 @@ import {
   ENTRY_POINT_MIN_DOCS_LINKS,
   MONOLITHIC_DOC_MAX_LINES,
   SPEC_CONTRACT_REQUIRED_SECTIONS,
+  SPEC_CONTRACT_SUFFICIENCY_COLUMN_ALIASES,
   STRUCTURE_MD_FILENAME,
   TODO_SPEC_REQUIRED_SECTIONS,
 } from "../constants.js";
@@ -35,6 +36,8 @@ const FENCED_CODE_BLOCK_PATTERN = /^ {0,3}(```|~~~)[\s\S]*?^ {0,3}\1[ \t]*$/gm;
 const ENTRY_POINT_EXISTS_RULE_KEY = "docs-structure/entry-point-exists";
 const SPEC_CONTRACT_EXISTS_RULE_KEY = "docs-structure/spec-contract-exists";
 const SPEC_CONTRACT_SECTIONS_RULE_KEY = "docs-structure/spec-contract-has-required-sections";
+const SPEC_CONTRACT_SUFFICIENCY_RULE_KEY =
+  "docs-structure/spec-contract-declares-grader-sufficiency";
 const ENGINEERING_DOCS_EXIST_RULE_KEY = "docs-structure/engineering-docs-exist";
 const NO_STRUCTURE_MD_RULE_KEY = "docs-structure/no-structure-md";
 const AGENTS_BYTE_BUDGET_RULE_KEY = "docs-structure/agents-md-within-byte-budget";
@@ -500,6 +503,63 @@ const checkSpecContractSections = (rootDirectory: string): Diagnostic[] => {
   ];
 };
 
+// ── docs-structure/spec-contract-declares-grader-sufficiency ────────────
+// Opt-in (docsContract): the proof menu must say whether each change type's
+// auto-grader is sufficient for "done" (`auto`) or needs human sign-off
+// (`human-gate`) — without it a false-green merges broken work in an
+// unattended loop. We inspect only the proof-menu table's HEADER row, so a
+// stray data cell or an unrelated table never false-passes.
+const SUFFICIENCY_COLUMN_ALIAS_SET: ReadonlySet<string> = new Set(
+  SPEC_CONTRACT_SUFFICIENCY_COLUMN_ALIASES,
+);
+
+// Lines under the `## Proof menu` heading, up to the next heading.
+const proofMenuSectionLines = (content: string): string[] => {
+  const lines = content.split(/\r?\n/);
+  const start = lines.findIndex((lineText) => /^#{1,6}\s+proof menu\b/i.test(lineText.trim()));
+  if (start === -1) return [];
+  const body = lines.slice(start + 1);
+  const nextHeading = body.findIndex((lineText) => /^#{1,6}\s+/.test(lineText.trim()));
+  return nextHeading === -1 ? body : body.slice(0, nextHeading);
+};
+
+// A markdown table separator row (`| --- | :--: |`): pipes, colons, spaces,
+// and at least one dash, nothing else.
+const isTableDelimiterRow = (lineText: string): boolean =>
+  lineText.includes("-") && /^[\s|:-]+$/.test(lineText.trim());
+
+// True when the proof-menu table's header row — the `|`-row directly above the
+// `| --- |` separator — carries a sufficiency-named column.
+const declaresSufficiencyColumn = (content: string): boolean => {
+  const lines = proofMenuSectionLines(content);
+  return lines.some(
+    (lineText, index) =>
+      lineText.includes("|") &&
+      isTableDelimiterRow(lines[index + 1] ?? "") &&
+      lineText
+        .split("|")
+        .some((cell) => SUFFICIENCY_COLUMN_ALIAS_SET.has(cell.trim().toLowerCase())),
+  );
+};
+
+const checkSpecContractDeclaresSufficiency = (
+  rootDirectory: string,
+  options: DocsStructureOptions,
+): Diagnostic[] => {
+  if (options.docsContract !== true) return [];
+  const content = readFileOrNull(path.join(rootDirectory, docsSpecContractPath));
+  if (content === null) return [];
+  if (declaresSufficiencyColumn(content)) return [];
+  return [
+    buildDocsStructureDiagnostic({
+      filePath: docsSpecContractPath,
+      rule: SPEC_CONTRACT_SUFFICIENCY_RULE_KEY,
+      message: `${docsSpecContractPath} proof menu has no Sufficiency column — intake and grading can't tell whether a change type's auto-grader is sufficient evidence for "done" or needs human sign-off, so a false-green merges broken work in an unattended loop`,
+      help: "Add a `Sufficiency` column to each proof-menu row marking whether its auto-grader is sufficient (`auto`) or the change needs human review (`human-gate`)",
+    }),
+  ];
+};
+
 // ── docs-structure/engineering-docs-exist ───────────────────────────────
 const checkEngineeringDocsExist = (
   rootDirectory: string,
@@ -717,6 +777,7 @@ export const checkDocsStructure = (
     ...checkCanonicalGlossary(rootDirectory),
     ...checkSpecContractExists(rootDirectory),
     ...checkSpecContractSections(rootDirectory),
+    ...checkSpecContractDeclaresSufficiency(rootDirectory, options),
     ...checkEngineeringDocsExist(rootDirectory, options),
     ...checkNoStructureMd(rootDirectory),
     ...checkCombinedAgentsByteBudget(markdownFiles),

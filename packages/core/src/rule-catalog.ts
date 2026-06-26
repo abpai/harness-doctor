@@ -108,6 +108,11 @@ export const HARNESS_DOCTOR_RULE_CATALOG: ReadonlyArray<CoreRuleMetadata> = [
     "Add the missing sections (quality bar, proof menu, escalation boundaries) to docs/SPEC_CONTRACT.md.",
   ),
   docsStructureRule(
+    "spec-contract-declares-grader-sufficiency",
+    "Add a Sufficiency column (auto / human-gate) to the SPEC_CONTRACT.md proof menu so each change type declares whether its auto-grader is sufficient, or leave docsContract unset/false.",
+    { defaultEnabled: false },
+  ),
+  docsStructureRule(
     "engineering-docs-exist",
     "Add docs/engineering/commands.md and docs/engineering/testing.md, or leave docsContract unset/false.",
     { defaultEnabled: false },
