@@ -18,6 +18,8 @@ const ARCHITECTURE_MAP_EXISTS_RULE_KEY = "docs-structure/architecture-map-exists
 const SINGLE_CANONICAL_GLOSSARY_RULE_KEY = "docs-structure/single-canonical-glossary";
 const SPEC_CONTRACT_EXISTS_RULE_KEY = "docs-structure/spec-contract-exists";
 const SPEC_CONTRACT_SECTIONS_RULE_KEY = "docs-structure/spec-contract-has-required-sections";
+const SPEC_CONTRACT_SUFFICIENCY_RULE_KEY =
+  "docs-structure/spec-contract-declares-grader-sufficiency";
 const ENGINEERING_DOCS_EXIST_RULE_KEY = "docs-structure/engineering-docs-exist";
 const NO_STRUCTURE_MD_RULE_KEY = "docs-structure/no-structure-md";
 const AGENTS_BYTE_BUDGET_RULE_KEY = "docs-structure/agents-md-within-byte-budget";
@@ -70,9 +72,32 @@ const cleanDocs: ReadonlyArray<FixtureFile> = [
   {
     filename: "SPEC_CONTRACT.md",
     contents:
-      "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact |\n| --- | --- | --- |\n| logic | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
+      "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact | Sufficiency |\n| --- | --- | --- | --- |\n| logic | `pnpm test` | passing run | auto |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
   },
 ];
+
+// Same shape as cleanDocs but with a proof menu that omits the Sufficiency
+// column — the fixture for the docsContract-gated sufficiency check.
+const SPEC_CONTRACT_WITHOUT_SUFFICIENCY =
+  "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact |\n| --- | --- | --- |\n| logic | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n";
+
+const docsWithoutSufficiencyColumn: ReadonlyArray<FixtureFile> = cleanDocs.map((docFile) =>
+  docFile.filename === "SPEC_CONTRACT.md"
+    ? { filename: "SPEC_CONTRACT.md", contents: SPEC_CONTRACT_WITHOUT_SUFFICIENCY }
+    : docFile,
+);
+
+// Proof menu has no Sufficiency column, but a `sufficiency` alias appears in a
+// data cell of an UNRELATED table later in the file — the check must still
+// flag, proving detection is scoped to the proof-menu header row.
+const SPEC_CONTRACT_SUFFICIENCY_ONLY_IN_STRAY_TABLE =
+  "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact |\n| --- | --- | --- |\n| logic | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n\n## Notes\n\n| Field | Value |\n| --- | --- |\n| sufficiency | tracked elsewhere |\n";
+
+const docsWithStraySufficiencyCell: ReadonlyArray<FixtureFile> = cleanDocs.map((docFile) =>
+  docFile.filename === "SPEC_CONTRACT.md"
+    ? { filename: "SPEC_CONTRACT.md", contents: SPEC_CONTRACT_SUFFICIENCY_ONLY_IN_STRAY_TABLE }
+    : docFile,
+);
 
 const completeTodoSpec = `# Pricing entitlement copy
 
@@ -390,6 +415,48 @@ describe("checkDocsStructure", () => {
     expect(flagged).toBeDefined();
     expect(flagged?.message).toContain("proof menu");
     expect(flagged?.message).toContain("escalation boundaries");
+  });
+
+  it("flags spec-contract-declares-grader-sufficiency when the proof menu has no Sufficiency column under the docs contract", () => {
+    const rootDirectory = writeCleanLayout({ docs: docsWithoutSufficiencyColumn });
+    const flagged = checkDocsStructure(rootDirectory, { docsContract: true }).filter(
+      (diagnostic) => diagnostic.rule === SPEC_CONTRACT_SUFFICIENCY_RULE_KEY,
+    );
+    expect(flagged).toHaveLength(1);
+    expect(flagged[0]?.filePath).toBe("docs/SPEC_CONTRACT.md");
+    expect(flagged[0]?.message).toContain("Sufficiency column");
+  });
+
+  it("does NOT flag spec-contract-declares-grader-sufficiency when the proof menu declares a Sufficiency column", () => {
+    const rootDirectory = writeCleanLayout();
+    const ruleKeys = checkDocsStructure(rootDirectory, { docsContract: true }).map(
+      (diagnostic) => diagnostic.rule,
+    );
+    expect(ruleKeys).not.toContain(SPEC_CONTRACT_SUFFICIENCY_RULE_KEY);
+  });
+
+  it("does NOT flag spec-contract-declares-grader-sufficiency when docsContract is unset", () => {
+    const rootDirectory = writeCleanLayout({ docs: docsWithoutSufficiencyColumn });
+    expect(ruleKeysFor(rootDirectory)).not.toContain(SPEC_CONTRACT_SUFFICIENCY_RULE_KEY);
+  });
+
+  it("does NOT flag spec-contract-declares-grader-sufficiency when SPEC_CONTRACT.md is absent (spec-contract-exists owns that gap)", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: cleanDocs.filter((docFile) => docFile.filename !== "SPEC_CONTRACT.md"),
+    });
+    const ruleKeys = checkDocsStructure(rootDirectory, { docsContract: true }).map(
+      (diagnostic) => diagnostic.rule,
+    );
+    expect(ruleKeys).toContain(SPEC_CONTRACT_EXISTS_RULE_KEY);
+    expect(ruleKeys).not.toContain(SPEC_CONTRACT_SUFFICIENCY_RULE_KEY);
+  });
+
+  it("flags spec-contract-declares-grader-sufficiency when a sufficiency alias appears only outside the proof-menu header", () => {
+    const rootDirectory = writeCleanLayout({ docs: docsWithStraySufficiencyCell });
+    const flagged = checkDocsStructure(rootDirectory, { docsContract: true }).filter(
+      (diagnostic) => diagnostic.rule === SPEC_CONTRACT_SUFFICIENCY_RULE_KEY,
+    );
+    expect(flagged).toHaveLength(1);
   });
 
   it("flags missing engineering docs only under the docs contract", () => {

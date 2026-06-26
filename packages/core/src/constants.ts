@@ -205,6 +205,17 @@ export const SPEC_CONTRACT_REQUIRED_SECTIONS = [
   "escalation boundaries",
 ] as const;
 
+// Header cells (lowercased) that mark the proof menu's grader-sufficiency
+// column: per change type, whether the auto-grader is sufficient evidence
+// for "done" (`auto`) or the change needs human sign-off (`human-gate`).
+// A false-GREEN merges broken work in unattended loops, so opted-in repos
+// must declare sufficiency. Only enforced under `docsContract: true`.
+export const SPEC_CONTRACT_SUFFICIENCY_COLUMN_ALIASES = [
+  "sufficiency",
+  "grader sufficiency",
+  "sign-off",
+] as const;
+
 // Engineering core docs the strict docs contract expects: canonical
 // commands (validated by running them) and the change-type → validation
 // map. Only enforced when `docsContract: true` — outside the contract,
