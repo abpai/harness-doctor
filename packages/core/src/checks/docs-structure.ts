@@ -19,6 +19,7 @@ import {
   STRUCTURE_MD_FILENAME,
   TODO_SPEC_REQUIRED_SECTIONS,
 } from "../constants.js";
+import { readIgnoreFile } from "../read-ignore-file.js";
 import {
   IGNORED_DIRECTORIES,
   isDirectory,
@@ -26,6 +27,8 @@ import {
   readDirectoryEntries,
 } from "../project-info/index.js";
 import type { Diagnostic } from "../types/index.js";
+import { compileGlobPattern, InvalidGlobPatternError } from "../utils/match-glob-pattern.js";
+import { warnConfigIssue } from "../utils/warn-config-issue.js";
 
 const MARKDOWN_FILE_PATTERN = /\.md$/i;
 const MARKDOWN_LINK_PATTERN = /(?<!!)\[[^\]\n]+\]\(([^)\n]+)\)/g;
@@ -80,6 +83,15 @@ interface LinkReference {
   readonly column: number;
 }
 
+interface MarkdownIgnorePattern {
+  readonly negated: boolean;
+  readonly matchers: ReadonlyArray<RegExp>;
+}
+
+interface MarkdownIgnoreMatcher {
+  readonly isIgnored: (relativePath: string, isDirectory: boolean) => boolean;
+}
+
 const docsIndexPath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_INDEX_FILENAME);
 const docsArchitecturePath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_ARCHITECTURE_FILENAME);
 const todosIndexPath = path.posix.join(DOCS_DIRECTORY_NAME, "todos", DOCS_INDEX_FILENAME);
@@ -122,26 +134,100 @@ const toPosixPath = (filePath: string): string => filePath.split(path.sep).join(
 const toRelativePosixPath = (rootDirectory: string, absolutePath: string): string =>
   toPosixPath(path.relative(rootDirectory, absolutePath));
 
+const gitignoreCandidatesFor = (
+  pattern: string,
+  isDirectoryOnly: boolean,
+): ReadonlyArray<string> => {
+  const anchored = pattern.startsWith("/");
+  const normalized = pattern.replace(/^\/+/, "");
+  if (normalized.length === 0) return [];
+  const hasSlash = normalized.includes("/");
+  const candidates = new Set<string>();
+  const addCandidate = (candidate: string): void => {
+    candidates.add(candidate);
+    if (isDirectoryOnly) candidates.add(`${candidate}/**`);
+  };
+  addCandidate(normalized);
+  if (!anchored && !hasSlash) addCandidate(`**/${normalized}`);
+  return [...candidates];
+};
+
+const compileGitignorePattern = (rawPattern: string): MarkdownIgnorePattern | null => {
+  const negated = rawPattern.startsWith("!");
+  const unmarked = negated ? rawPattern.slice(1) : rawPattern;
+  const isDirectoryOnly = unmarked.endsWith("/");
+  const normalized = unmarked.replace(/\\/g, "/").replace(/\/+$/, "");
+  if (normalized.length === 0) return null;
+  const matchers: RegExp[] = [];
+  for (const candidate of gitignoreCandidatesFor(normalized, isDirectoryOnly)) {
+    try {
+      matchers.push(compileGlobPattern(candidate));
+    } catch (error) {
+      if (error instanceof InvalidGlobPatternError) {
+        warnConfigIssue(`.gitignore: ${error.message}`);
+        continue;
+      }
+      warnConfigIssue(`.gitignore: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return matchers.length === 0 ? null : { negated, matchers };
+};
+
+const createMarkdownIgnoreMatcher = (rootDirectory: string): MarkdownIgnoreMatcher => {
+  const gitignorePatterns = readIgnoreFile(path.join(rootDirectory, ".gitignore")).flatMap(
+    (pattern) => {
+      const compiled = compileGitignorePattern(pattern);
+      return compiled === null ? [] : [compiled];
+    },
+  );
+
+  return {
+    isIgnored: (relativePath, entryIsDirectory) => {
+      const pathSegments = relativePath.split(path.posix.sep);
+      if (pathSegments.some((segment) => IGNORED_DIRECTORIES.has(segment))) return true;
+      if (
+        entryIsDirectory &&
+        relativePath.length > 0 &&
+        (isFile(path.join(rootDirectory, relativePath, ".git")) ||
+          isDirectory(path.join(rootDirectory, relativePath, ".git")))
+      ) {
+        return true;
+      }
+      let ignored = false;
+      for (const pattern of gitignorePatterns) {
+        if (!pattern.matchers.some((matcher) => matcher.test(relativePath))) continue;
+        ignored = !pattern.negated;
+      }
+      return ignored;
+    },
+  };
+};
+
 const hasPath = (rootDirectory: string, relativePath: string): boolean => {
   const absolutePath = path.join(rootDirectory, relativePath);
   return isFile(absolutePath) || isDirectory(absolutePath);
 };
 
-const listMarkdownFiles = (rootDirectory: string): MarkdownFile[] => {
+const listMarkdownFiles = (
+  rootDirectory: string,
+  ignoreMatcher: MarkdownIgnoreMatcher,
+): MarkdownFile[] => {
   const markdownFiles: MarkdownFile[] = [];
   const visitDirectory = (absoluteDirectory: string): void => {
     for (const entry of readDirectoryEntries(absoluteDirectory)) {
-      if (IGNORED_DIRECTORIES.has(entry.name)) continue;
       const absolutePath = path.join(absoluteDirectory, entry.name);
+      const relativePath = toRelativePosixPath(rootDirectory, absolutePath);
       if (entry.isDirectory()) {
+        if (ignoreMatcher.isIgnored(relativePath, true)) continue;
         visitDirectory(absolutePath);
         continue;
       }
       if (!entry.isFile() || !MARKDOWN_FILE_PATTERN.test(entry.name)) continue;
+      if (ignoreMatcher.isIgnored(relativePath, false)) continue;
       const content = readFileOrNull(absolutePath);
       if (content === null) continue;
       markdownFiles.push({
-        relativePath: toRelativePosixPath(rootDirectory, absolutePath),
+        relativePath,
         absolutePath,
         content,
       });
@@ -333,19 +419,24 @@ const checkEntryPointLinksIntoDocs = (
 const collectInstructionMarkdownFiles = (
   rootDirectory: string,
   entryPointFilename: string | null,
+  ignoreMatcher: MarkdownIgnoreMatcher,
 ): string[] => {
   const candidates: string[] = [];
   for (const entry of readDirectoryEntries(rootDirectory)) {
-    if (entry.isFile() && MARKDOWN_FILE_PATTERN.test(entry.name)) {
+    if (
+      entry.isFile() &&
+      MARKDOWN_FILE_PATTERN.test(entry.name) &&
+      !ignoreMatcher.isIgnored(entry.name, false)
+    ) {
       candidates.push(entry.name);
     }
   }
   const docsDirectory = path.join(rootDirectory, DOCS_DIRECTORY_NAME);
   if (isDirectory(docsDirectory)) {
     for (const entry of readDirectoryEntries(docsDirectory)) {
-      if (entry.isFile() && MARKDOWN_FILE_PATTERN.test(entry.name)) {
-        candidates.push(path.posix.join(DOCS_DIRECTORY_NAME, entry.name));
-      }
+      if (!entry.isFile() || !MARKDOWN_FILE_PATTERN.test(entry.name)) continue;
+      const relativePath = path.posix.join(DOCS_DIRECTORY_NAME, entry.name);
+      if (!ignoreMatcher.isIgnored(relativePath, false)) candidates.push(relativePath);
     }
   }
   return candidates.filter((relativePath) => relativePath !== entryPointFilename);
@@ -354,9 +445,14 @@ const collectInstructionMarkdownFiles = (
 const checkNoMonolithicInstructionFile = (
   rootDirectory: string,
   entryPointFilename: string | null,
+  ignoreMatcher: MarkdownIgnoreMatcher,
 ): Diagnostic[] => {
   const diagnostics: Diagnostic[] = [];
-  for (const relativePath of collectInstructionMarkdownFiles(rootDirectory, entryPointFilename)) {
+  for (const relativePath of collectInstructionMarkdownFiles(
+    rootDirectory,
+    entryPointFilename,
+    ignoreMatcher,
+  )) {
     const content = readFileOrNull(path.join(rootDirectory, relativePath));
     if (content === null) continue;
     const lineCount = countNonBlankLines(content);
@@ -373,9 +469,56 @@ const checkNoMonolithicInstructionFile = (
   return diagnostics;
 };
 
+// A canonical-case existence check. `isFile` resolves through the OS, which is
+// case-insensitive on macOS/Windows — so `isFile("docs/INDEX.md")` returns true
+// even when the real file is `docs/index.md`, which would hide the rename hint
+// on those systems and make the check non-deterministic across filesystems. This
+// compares directory-entry names exactly instead, so the result is identical on
+// case-sensitive and case-insensitive filesystems.
+const hasCanonicalCaseFile = (rootDirectory: string, expectedPath: string): boolean => {
+  const expectedDirectory = path.posix.dirname(expectedPath);
+  const expectedFilename = path.posix.basename(expectedPath);
+  const absoluteDirectory =
+    expectedDirectory === "."
+      ? rootDirectory
+      : path.join(rootDirectory, ...expectedDirectory.split(path.posix.sep));
+  if (!isDirectory(absoluteDirectory)) return false;
+  return readDirectoryEntries(absoluteDirectory).some(
+    (entry) => entry.isFile() && entry.name === expectedFilename,
+  );
+};
+
+const findCaseVariantPath = (rootDirectory: string, expectedPath: string): string | null => {
+  const expectedDirectory = path.posix.dirname(expectedPath);
+  const expectedFilename = path.posix.basename(expectedPath);
+  const absoluteDirectory =
+    expectedDirectory === "."
+      ? rootDirectory
+      : path.join(rootDirectory, ...expectedDirectory.split(path.posix.sep));
+  if (!isDirectory(absoluteDirectory)) return null;
+  for (const entry of readDirectoryEntries(absoluteDirectory)) {
+    if (!entry.isFile()) continue;
+    if (entry.name === expectedFilename) continue;
+    if (entry.name.toLowerCase() !== expectedFilename.toLowerCase()) continue;
+    return expectedDirectory === "." ? entry.name : path.posix.join(expectedDirectory, entry.name);
+  }
+  return null;
+};
+
 // ── docs-structure/docs-index-exists ────────────────────────────────────
 const checkDocsIndexExists = (rootDirectory: string): Diagnostic[] => {
-  if (isFile(path.join(rootDirectory, docsIndexPath))) return [];
+  if (hasCanonicalCaseFile(rootDirectory, docsIndexPath)) return [];
+  const caseVariantPath = findCaseVariantPath(rootDirectory, docsIndexPath);
+  if (caseVariantPath !== null) {
+    return [
+      buildDocsStructureDiagnostic({
+        filePath: caseVariantPath,
+        rule: DOCS_INDEX_EXISTS_RULE_KEY,
+        message: `Found \`${caseVariantPath}\`; rename to \`${docsIndexPath}\` — case-sensitive systems and agents expect the canonical route exactly`,
+        help: `Rename \`${caseVariantPath}\` to \`${docsIndexPath}\``,
+      }),
+    ];
+  }
   return [
     buildDocsStructureDiagnostic({
       filePath: docsIndexPath,
@@ -428,7 +571,18 @@ const checkTodosIndexExists = (
 ): Diagnostic[] => {
   const todosDirectory = path.join(rootDirectory, DOCS_DIRECTORY_NAME, "todos");
   const shouldRequireTodosIndex = options.docsContract === true || isDirectory(todosDirectory);
-  if (!shouldRequireTodosIndex || isFile(path.join(rootDirectory, todosIndexPath))) return [];
+  if (!shouldRequireTodosIndex || hasCanonicalCaseFile(rootDirectory, todosIndexPath)) return [];
+  const caseVariantPath = findCaseVariantPath(rootDirectory, todosIndexPath);
+  if (caseVariantPath !== null) {
+    return [
+      buildDocsStructureDiagnostic({
+        filePath: caseVariantPath,
+        rule: TODOS_INDEX_EXISTS_RULE_KEY,
+        message: `Found \`${caseVariantPath}\`; rename to \`${todosIndexPath}\` — case-sensitive systems and agents expect the canonical route exactly`,
+        help: `Rename \`${caseVariantPath}\` to \`${todosIndexPath}\``,
+      }),
+    ];
+  }
   return [
     buildDocsStructureDiagnostic({
       filePath: todosIndexPath,
@@ -765,13 +919,14 @@ export const checkDocsStructure = (
   options: DocsStructureOptions = {},
 ): Diagnostic[] => {
   const entryPointFilename = resolveEntryPointFilename(rootDirectory);
-  const markdownFiles = listMarkdownFiles(rootDirectory);
+  const ignoreMatcher = createMarkdownIgnoreMatcher(rootDirectory);
+  const markdownFiles = listMarkdownFiles(rootDirectory, ignoreMatcher);
   return [
     ...checkEntryPointExists(entryPointFilename),
     ...checkEntryPointIsAMap(rootDirectory, entryPointFilename),
     ...checkDocsDirectoryExists(rootDirectory),
     ...checkEntryPointLinksIntoDocs(rootDirectory, entryPointFilename),
-    ...checkNoMonolithicInstructionFile(rootDirectory, entryPointFilename),
+    ...checkNoMonolithicInstructionFile(rootDirectory, entryPointFilename, ignoreMatcher),
     ...checkDocsIndexExists(rootDirectory),
     ...checkArchitectureMapExists(rootDirectory),
     ...checkCanonicalGlossary(rootDirectory),

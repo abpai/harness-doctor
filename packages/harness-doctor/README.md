@@ -82,25 +82,80 @@ bump it.
 
 ## Configure
 
-Drop a `harness.config.ts` (or `.js`, `.mjs`, `.cjs`, `.json`, `.jsonc`) at your
-project root. Turn rules up, down, or off:
+Drop a `harness.config.ts` at your project root. Harness Doctor loads the first
+matching config in this order: `harness.config.ts`, `.mts`, `.cts`, `.js`,
+`.mjs`, `.cjs`, `.json`, `.jsonc`; or a `harnessDoctor` object in
+`package.json`.
 
 ```ts
 // harness.config.ts
 import type { HarnessDoctorConfig } from "harness-doctor/api";
 
 export default {
-  deadCode: true,
+  deadCode: false,
   docsContract: true,
   rules: {
     "harness-doctor/docs-structure/spec-contract-exists": "error",
+    "deslop/unused-file": "off",
   },
 } satisfies HarnessDoctorConfig;
 ```
 
 Set `docsContract: true` when a repo has opted into the Harness docs structure
 and should keep a durable `docs/todos/INDEX.md` queue even before open todo
-specs exist.
+specs exist. Set `deadCode: false` to skip the heuristic dead-code family on
+first run; dead-code diagnostics are useful, but dynamically loaded fixtures can
+be false positives.
+
+Config shape:
+
+```ts
+interface HarnessDoctorConfig {
+  $schema?: string;
+  deadCode?: boolean;
+  docsContract?: boolean;
+  verbose?: boolean;
+  warnings?: boolean;
+  diff?: boolean | string;
+  failOn?: "error" | "warning" | "none";
+  share?: boolean;
+  noScore?: boolean;
+  rootDir?: string;
+  respectInlineDisables?: boolean;
+  ignore?: {
+    rules?: string[];
+    files?: string[];
+    tags?: string[];
+    overrides?: Array<{ files: string[]; rules?: string[] }>;
+  };
+  surfaces?: Partial<
+    Record<
+      "cli" | "prComment" | "score" | "ciFailure",
+      {
+        includeTags?: string[];
+        excludeTags?: string[];
+        includeCategories?: string[];
+        excludeCategories?: string[];
+        includeRules?: string[];
+        excludeRules?: string[];
+      }
+    >
+  >;
+  rules?: Record<string, "off" | "warn" | "error">;
+  categories?: Record<
+    "Security" | "Bugs" | "Performance" | "Accessibility" | "Maintainability",
+    "off" | "warn" | "error"
+  >;
+}
+```
+
+Rule keys in `rules`, `ignore.rules`, `surfaces.*.includeRules`, and
+`surfaces.*.excludeRules` must be plugin-prefixed. Use
+`harness-doctor/docs-structure/<rule>` for docs-structure checks,
+`harness-doctor/require-pnpm-hardening` for pnpm hardening, and
+`deslop/<rule>` for dead-code checks. For example,
+`"docs-structure/spec-contract-exists": "off"` is not a valid override key;
+use `"harness-doctor/docs-structure/spec-contract-exists": "off"`.
 
 ## JSON contract
 

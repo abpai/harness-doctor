@@ -89,6 +89,10 @@ interface DeadCodeWorkerFailureMessage {
 }
 
 const TSCONFIG_FILENAMES = ["tsconfig.json", "tsconfig.base.json"];
+const DEAD_CODE_HEURISTIC_CAVEAT =
+  "Dead-code analysis is heuristic; dynamically loaded files or fixtures may be false positives.";
+
+const withDeadCodeCaveat = (help: string): string => `${help} ${DEAD_CODE_HEURISTIC_CAVEAT}`;
 
 // Runs in a child PROCESS (node -e), not a worker_thread — see
 // `createDeadCodeWorker`. Reads the worker input as JSON on stdin and
@@ -469,7 +473,9 @@ export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diag
       rule: "unused-file",
       severity: "warning",
       message: "Unused file — not reachable from any entry point",
-      help: "Delete the file if it is truly unreachable, or import it from an entry point.",
+      help: withDeadCodeCaveat(
+        "Delete the file if it is truly unreachable, or import it from an entry point.",
+      ),
       line: 0,
       column: 0,
       category: DEAD_CODE_CATEGORY,
@@ -484,7 +490,9 @@ export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diag
       rule: unusedExport.isTypeOnly ? "unused-type" : "unused-export",
       severity: "warning",
       message: `Unused ${label}: \`${unusedExport.name}\``,
-      help: "Drop the `export` keyword (or remove the declaration) if no other module uses this symbol.",
+      help: withDeadCodeCaveat(
+        "Drop the `export` keyword (or remove the declaration) if no other module uses this symbol.",
+      ),
       line: unusedExport.line,
       column: unusedExport.column,
       category: DEAD_CODE_CATEGORY,
@@ -499,7 +507,9 @@ export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diag
       rule: unusedDependency.isDevDependency ? "unused-dev-dependency" : "unused-dependency",
       severity: "warning",
       message: `Unused ${label}: \`${unusedDependency.name}\``,
-      help: "Remove the dependency from package.json if it is genuinely unused.",
+      help: withDeadCodeCaveat(
+        "Remove the dependency from package.json if it is genuinely unused.",
+      ),
       line: 0,
       column: 0,
       category: DEAD_CODE_CATEGORY,
@@ -514,7 +524,9 @@ export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diag
       rule: "circular-dependency",
       severity: "warning",
       message: `Circular import cycle: ${cycle.files.map(toRelative).join(" → ")}`,
-      help: "Break the cycle by extracting the shared code into a third module that both files import.",
+      help: withDeadCodeCaveat(
+        "Break the cycle by extracting the shared code into a third module that both files import.",
+      ),
       line: 0,
       column: 0,
       category: DEAD_CODE_CATEGORY,

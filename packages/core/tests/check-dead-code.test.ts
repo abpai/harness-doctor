@@ -82,6 +82,15 @@ const flaggedUnusedFiles = async (rootDirectory: string): Promise<string[]> =>
     .sort();
 
 describe("checkDeadCode", () => {
+  const expectHeuristicCaveat = (diagnostics: Awaited<ReturnType<typeof checkDeadCode>>): void => {
+    expect(diagnostics.length).toBeGreaterThan(0);
+    for (const diagnostic of diagnostics) {
+      expect(diagnostic.help).toContain(
+        "Dead-code analysis is heuristic; dynamically loaded files or fixtures may be false positives.",
+      );
+    }
+  };
+
   it("returns no diagnostics when the directory has no package.json", async () => {
     const directory = path.join(tempRoot, "no-package-json");
     fs.mkdirSync(directory, { recursive: true });
@@ -102,6 +111,7 @@ describe("checkDeadCode", () => {
     expect(orphan?.plugin).toBe("deslop");
     expect(orphan?.category).toBe("Maintainability");
     expect(orphan?.filePath.includes("\\")).toBe(false);
+    expect(orphan?.help).toContain("Dead-code analysis is heuristic");
   });
 
   it("honors ignore patterns from .gitignore and userConfig.ignore.files", async () => {
@@ -182,6 +192,7 @@ describe("checkDeadCode", () => {
     expect(
       diagnostics.find((diagnostic) => diagnostic.rule === "circular-dependency")?.message,
     ).toContain("src/a.ts → src/b.ts");
+    expectHeuristicCaveat(diagnostics);
   });
 
   it("rejects malformed worker results instead of silently dropping diagnostics", async () => {

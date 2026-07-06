@@ -338,6 +338,19 @@ describe("runInspect — runDeadCode=false short-circuits dead-code", () => {
   });
 });
 
+describe("runInspect — dead-code caveat", () => {
+  it("preserves the heuristic caveat on dead-code findings", async () => {
+    const caveatedDiagnostic: Diagnostic = {
+      ...deadCodeDiagnostic,
+      help: "Delete it. Dead-code analysis is heuristic; dynamically loaded files or fixtures may be false positives.",
+    };
+    const output = await Effect.runPromise(
+      runInspect(baseInput).pipe(Effect.provide(layersOf({ deadCode: [caveatedDiagnostic] }))),
+    );
+    expect(output.diagnostics[0]?.help).toContain("Dead-code analysis is heuristic");
+  });
+});
+
 describe("runInspect — Reporter sees post-filter diagnostics", () => {
   it("filters out a diagnostic on a file ignored by config, then emits remaining", async () => {
     const ignoredDiagnostic: Diagnostic = {

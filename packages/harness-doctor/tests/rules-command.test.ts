@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   rulesCategoryAction,
+  rulesDefaultAction,
   rulesDisableAction,
   rulesEnableAction,
   rulesExplainAction,
@@ -297,6 +298,24 @@ describe("rules ignore-tag / unignore-tag", () => {
 });
 
 describe("rules list / explain JSON output", () => {
+  it("prints the full catalog from bare `rules` even when stdout is not a TTY", async () => {
+    fixture = setupFixture();
+    const stdoutDescriptor = Object.getOwnPropertyDescriptor(process.stdout, "isTTY");
+    Object.defineProperty(process.stdout, "isTTY", { configurable: true, value: false });
+    try {
+      const output = await captureLog(() => rulesDefaultAction({ cwd: fixture.projectRoot }));
+      expect(output.length).toBeGreaterThan(0);
+      expect(output).toContain("harness-doctor/docs-structure/entry-point-exists");
+      expect(output).toContain("deslop/unused-file");
+    } finally {
+      if (stdoutDescriptor) {
+        Object.defineProperty(process.stdout, "isTTY", stdoutDescriptor);
+      } else {
+        Reflect.deleteProperty(process.stdout, "isTTY");
+      }
+    }
+  });
+
   it("reflects the configured severity in `list --json`", async () => {
     fixture = setupFixture();
     await rulesDisableAction("harness-doctor/docs-structure/no-structure-md", {

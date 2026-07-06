@@ -140,6 +140,10 @@ export const rulesListAction = async (options: RulesListOptions): Promise<void> 
   logger.log(renderRuleCatalog(rows));
 };
 
+export const rulesDefaultAction = async (options: RulesCwdOptions): Promise<void> => {
+  await rulesListAction({ cwd: options.cwd });
+};
+
 export const rulesExplainAction = async (
   ruleQuery: string,
   options: RulesExplainOptions,
