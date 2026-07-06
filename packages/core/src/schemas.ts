@@ -57,6 +57,25 @@ export class JsonReportError extends Schema.Class<JsonReportError>("JsonReportEr
   chain: Schema.Array(Schema.String),
 }) {}
 
+export class PackageScriptSignal extends Schema.Class<PackageScriptSignal>("PackageScriptSignal")({
+  workspace: Schema.NullOr(Schema.String),
+  name: Schema.String,
+  command: Schema.String,
+}) {}
+
+export class CiCommandSignal extends Schema.Class<CiCommandSignal>("CiCommandSignal")({
+  workflow: Schema.String,
+  job: Schema.String,
+  commands: Schema.Array(Schema.String),
+}) {}
+
+export class SignalsMenu extends Schema.Class<SignalsMenu>("SignalsMenu")({
+  packageScripts: Schema.Array(PackageScriptSignal),
+  ciCommands: Schema.Array(CiCommandSignal),
+  makeTargets: Schema.Array(Schema.String),
+  justRecipes: Schema.Array(Schema.String),
+}) {}
+
 /**
  * Schema for a single project entry within a JsonReport. `project` is
  * `Schema.Unknown` for now because `ProjectInfo` is still a hand-written
@@ -89,6 +108,7 @@ export class JsonReportV1 extends Schema.Class<JsonReportV1>("JsonReportV1")({
   directory: Schema.String,
   mode: JsonReportMode,
   diff: Schema.NullOr(JsonReportDiffInfo),
+  signals: SignalsMenu,
   projects: Schema.Array(JsonReportProjectEntry),
   diagnostics: Schema.Array(Diagnostic),
   summary: JsonReportSummary,

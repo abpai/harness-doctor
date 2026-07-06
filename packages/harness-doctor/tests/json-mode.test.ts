@@ -16,6 +16,12 @@ const buildOkReport = (overrides: Partial<JsonReport> = {}): JsonReport => ({
   directory: "/tmp/foo",
   mode: "full",
   diff: null,
+  signals: {
+    packageScripts: [],
+    ciCommands: [],
+    makeTargets: [],
+    justRecipes: [],
+  },
   projects: [],
   diagnostics: [],
   summary: {

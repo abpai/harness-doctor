@@ -114,6 +114,18 @@ sections (quality bar, proof menu, escalation boundaries).
 **The fix:** add the missing sections. The proof menu is the load-bearing part:
 a contract without it cannot tell intake what this repo can prove.
 
+## docs-structure/proof-menu-command-exists
+
+**What fired:** a proof-menu row is malformed, or its validation command does
+not resolve to the repository's discovered command signals.
+
+**The fix:** keep the proof menu in the constrained table shape:
+`Change type`, `Lane`, `Validation command`, `Proof artifact`, and
+`Sufficiency`. Set `Lane` to `fast` or `full`; set `Sufficiency` to `auto` or
+`human-gate`. The `Validation command` cell must contain only one or more
+backtick-wrapped commands, and each command must be an existing package script,
+Makefile target, or just recipe discovered by `harness-doctor signals`.
+
 ## docs-structure/engineering-docs-exist
 
 **What fired:** the repo opted into the Harness docs contract

@@ -55,6 +55,7 @@ export * from "./resolve-config-root-dir.js";
 export * from "./resolve-rule-severity-override.js";
 export * from "./rule-catalog.js";
 export * from "./rule-key-aliases.js";
+export * from "./signals-menu.js";
 export * from "./summarize-diagnostics.js";
 export * from "./validate-config-types.js";
 export * from "./utils/build-rule-docs-url.js";

@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Command } from "commander";
 import { CANONICAL_GITHUB_URL, highlighter } from "@harness-doctor/core";
 import { inspectAction } from "./commands/inspect.js";
@@ -13,6 +14,7 @@ import {
   rulesSetAction,
   rulesUnignoreTagAction,
 } from "./commands/rules.js";
+import { signalsAction } from "./commands/signals.js";
 import { versionAction } from "./commands/version.js";
 import { applyColorPreference } from "./utils/apply-color-preference.js";
 import { exitGracefully } from "./utils/exit-gracefully.js";
@@ -165,6 +167,21 @@ program
   .option("--color", "force colored output")
   .option("--no-color", "disable colored output (also honors NO_COLOR)")
   .action(versionAction);
+
+program
+  .command("signals")
+  .description("print the discovered package, CI, make, and just command menu as JSON")
+  .argument("[directory]", "project directory to inspect", ".")
+  .option("--json-compact", "emit compact JSON")
+  .option("-c, --cwd <cwd>", "working directory", process.cwd())
+  .option("--color", "force colored output")
+  .option("--no-color", "disable colored output (also honors NO_COLOR)")
+  .action((directory, _options, command) => {
+    const options = command.optsWithGlobals();
+    return signalsAction(path.resolve(options.cwd, directory), {
+      jsonCompact: Boolean(options.jsonCompact),
+    });
+  });
 
 const rules = program
   .command("rules")

@@ -1,0 +1,10 @@
+set shell := ["bash", "-cu"]
+
+default:
+  pnpm test
+
+test:
+  pnpm test
+
+@deploy env:
+  pnpm build

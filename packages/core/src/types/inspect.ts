@@ -2,6 +2,7 @@ import type { DiagnosticSurface, HarnessDoctorConfig } from "./config.js";
 import type { Diagnostic } from "./diagnostic.js";
 import type { ProjectInfo } from "./project-info.js";
 import type { ScoreResult } from "./score.js";
+import type { SignalsMenu } from "./signals.js";
 
 export interface InspectResult {
   diagnostics: Diagnostic[];
@@ -156,6 +157,7 @@ export interface JsonReport {
   directory: string;
   mode: JsonReportMode;
   diff: JsonReportDiffInfo | null;
+  signals: SignalsMenu;
   projects: JsonReportProjectEntry[];
   /**
    * Flattened across `projects[].diagnostics` for convenience. Equivalent to

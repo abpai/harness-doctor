@@ -1,0 +1,10 @@
+{
+  "name": "signals-basic",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest"
+  }
+}

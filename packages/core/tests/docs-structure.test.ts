@@ -20,6 +20,7 @@ const SPEC_CONTRACT_EXISTS_RULE_KEY = "docs-structure/spec-contract-exists";
 const SPEC_CONTRACT_SECTIONS_RULE_KEY = "docs-structure/spec-contract-has-required-sections";
 const SPEC_CONTRACT_SUFFICIENCY_RULE_KEY =
   "docs-structure/spec-contract-declares-grader-sufficiency";
+const PROOF_MENU_COMMAND_EXISTS_RULE_KEY = "docs-structure/proof-menu-command-exists";
 const ENGINEERING_DOCS_EXIST_RULE_KEY = "docs-structure/engineering-docs-exist";
 const NO_STRUCTURE_MD_RULE_KEY = "docs-structure/no-structure-md";
 const AGENTS_BYTE_BUDGET_RULE_KEY = "docs-structure/agents-md-within-byte-budget";
@@ -72,14 +73,14 @@ const cleanDocs: ReadonlyArray<FixtureFile> = [
   {
     filename: "SPEC_CONTRACT.md",
     contents:
-      "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact | Sufficiency |\n| --- | --- | --- | --- |\n| logic | `pnpm test` | passing run | auto |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
+      "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Lane | Validation command | Proof artifact | Sufficiency |\n| --- | --- | --- | --- | --- |\n| logic | full | `pnpm test` | passing run | auto |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
   },
 ];
 
 // Same shape as cleanDocs but with a proof menu that omits the Sufficiency
 // column — the fixture for the docsContract-gated sufficiency check.
 const SPEC_CONTRACT_WITHOUT_SUFFICIENCY =
-  "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact |\n| --- | --- | --- |\n| logic | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n";
+  "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Lane | Validation command | Proof artifact |\n| --- | --- | --- | --- |\n| logic | full | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n";
 
 const docsWithoutSufficiencyColumn: ReadonlyArray<FixtureFile> = cleanDocs.map((docFile) =>
   docFile.filename === "SPEC_CONTRACT.md"
@@ -91,7 +92,7 @@ const docsWithoutSufficiencyColumn: ReadonlyArray<FixtureFile> = cleanDocs.map((
 // data cell of an UNRELATED table later in the file — the check must still
 // flag, proving detection is scoped to the proof-menu header row.
 const SPEC_CONTRACT_SUFFICIENCY_ONLY_IN_STRAY_TABLE =
-  "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Validation command | Proof artifact |\n| --- | --- | --- |\n| logic | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n\n## Notes\n\n| Field | Value |\n| --- | --- |\n| sufficiency | tracked elsewhere |\n";
+  "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Lane | Validation command | Proof artifact |\n| --- | --- | --- | --- |\n| logic | full | `pnpm test` | passing run |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n\n## Notes\n\n| Field | Value |\n| --- | --- |\n| sufficiency | tracked elsewhere |\n";
 
 const docsWithStraySufficiencyCell: ReadonlyArray<FixtureFile> = cleanDocs.map((docFile) =>
   docFile.filename === "SPEC_CONTRACT.md"
@@ -173,6 +174,13 @@ describe("checkDocsStructure", () => {
       },
       docs: cleanDocs,
       ...overrides,
+      rootFiles: [
+        {
+          filename: "package.json",
+          contents: JSON.stringify({ name: "fixture", scripts: { test: "vitest" } }),
+        },
+        ...(overrides.rootFiles ?? []),
+      ],
     });
 
   const ruleKeysFor = (rootDirectory: string): string[] =>
@@ -477,6 +485,67 @@ describe("checkDocsStructure", () => {
       (diagnostic) => diagnostic.rule === SPEC_CONTRACT_SUFFICIENCY_RULE_KEY,
     );
     expect(flagged).toHaveLength(1);
+  });
+
+  it("does NOT flag proof-menu-command-exists when every proof-menu command resolves", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: cleanDocs.map((docFile) =>
+        docFile.filename === "SPEC_CONTRACT.md"
+          ? {
+              filename: "SPEC_CONTRACT.md",
+              contents:
+                "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Lane | Validation command | Proof artifact | Sufficiency |\n| --- | --- | --- | --- | --- |\n| API | full | `pnpm test` | passing run | auto |\n| Build | fast | `make build` | clean exit | auto |\n| Release | full | `just deploy` | human notes | human-gate |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
+            }
+          : docFile,
+      ),
+      rootFiles: [
+        { filename: "Makefile", contents: "build:\n\tpnpm build\n" },
+        { filename: "justfile", contents: "deploy:\n  pnpm build\n" },
+      ],
+    });
+
+    expect(ruleKeysFor(rootDirectory)).not.toContain(PROOF_MENU_COMMAND_EXISTS_RULE_KEY);
+  });
+
+  it("flags proof-menu-command-exists when a proof-menu command is stale", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: cleanDocs.map((docFile) =>
+        docFile.filename === "SPEC_CONTRACT.md"
+          ? {
+              filename: "SPEC_CONTRACT.md",
+              contents:
+                "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Lane | Validation command | Proof artifact | Sufficiency |\n| --- | --- | --- | --- | --- |\n| API | full | `pnpm test:contract` | passing run | auto |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
+            }
+          : docFile,
+      ),
+    });
+    const flagged = checkDocsStructure(rootDirectory).filter(
+      (diagnostic) => diagnostic.rule === PROOF_MENU_COMMAND_EXISTS_RULE_KEY,
+    );
+
+    expect(flagged).toHaveLength(1);
+    expect(flagged[0]?.severity).toBe("error");
+    expect(flagged[0]?.message).toContain("pnpm test:contract");
+  });
+
+  it("flags proof-menu-command-exists when a proof-menu row is malformed", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: cleanDocs.map((docFile) =>
+        docFile.filename === "SPEC_CONTRACT.md"
+          ? {
+              filename: "SPEC_CONTRACT.md",
+              contents:
+                "# Spec contract\n\n## Quality bar\n\n- Self-contained.\n\n## Proof menu\n\n| Change type | Lane | Validation command | Proof artifact | Sufficiency |\n| --- | --- | --- | --- | --- |\n| API | full | `pnpm test` plus fixture | passing run | auto |\n\n## Escalation boundaries\n\n- Stop on irreversible actions.\n",
+            }
+          : docFile,
+      ),
+    });
+    const flagged = checkDocsStructure(rootDirectory).filter(
+      (diagnostic) => diagnostic.rule === PROOF_MENU_COMMAND_EXISTS_RULE_KEY,
+    );
+
+    expect(flagged).toHaveLength(1);
+    expect(flagged[0]?.message).toContain("backtick-wrapped commands");
   });
 
   it("flags missing engineering docs only under the docs contract", () => {

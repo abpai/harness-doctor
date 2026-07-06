@@ -7,6 +7,7 @@ import type {
   InspectResult,
 } from "./types/index.js";
 import { summarizeDiagnostics } from "./summarize-diagnostics.js";
+import { discoverSignalsMenu } from "./signals-menu.js";
 
 interface BuildJsonReportInput {
   version: string;
@@ -70,6 +71,7 @@ export const buildJsonReport = (input: BuildJsonReportInput): JsonReport => {
     directory: input.directory,
     mode: input.mode,
     diff: toJsonDiff(input.diff),
+    signals: discoverSignalsMenu(input.directory),
     projects,
     diagnostics: flattenedDiagnostics,
     summary,
