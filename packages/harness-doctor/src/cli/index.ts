@@ -5,6 +5,7 @@ import { installAction } from "./commands/install.js";
 import {
   rulesCategoryAction,
   rulesDisableAction,
+  rulesDefaultAction,
   rulesEnableAction,
   rulesExplainAction,
   rulesIgnoreTagAction,
@@ -167,7 +168,9 @@ program
 
 const rules = program
   .command("rules")
-  .description("List, explain, and configure which Harness Doctor rules run");
+  .description("List, explain, and configure which Harness Doctor rules run")
+  .option("-c, --cwd <cwd>", "working directory", process.cwd())
+  .action((_options, command) => rulesDefaultAction(command.optsWithGlobals()));
 
 // HACK: `--json` is also declared on the root program (for the default
 // inspect command), so Commander stashes it on the parent rather than the

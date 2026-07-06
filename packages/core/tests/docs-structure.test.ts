@@ -384,6 +384,26 @@ describe("checkDocsStructure", () => {
     expect(ruleKeysFor(rootDirectory)).toContain(DOCS_INDEX_EXISTS_RULE_KEY);
   });
 
+  it("does NOT flag docs-index-exists when docs/INDEX.md uses the canonical case", () => {
+    const rootDirectory = writeCleanLayout();
+    expect(ruleKeysFor(rootDirectory)).not.toContain(DOCS_INDEX_EXISTS_RULE_KEY);
+  });
+
+  it("hints to rename a lowercase docs/index.md instead of reporting a generic missing index", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: cleanDocs.map((docFile) =>
+        docFile.filename === "INDEX.md" ? { ...docFile, filename: "index.md" } : docFile,
+      ),
+    });
+    const flagged = checkDocsStructure(rootDirectory).find(
+      (diagnostic) => diagnostic.rule === DOCS_INDEX_EXISTS_RULE_KEY,
+    );
+    expect(flagged?.filePath).toBe("docs/index.md");
+    expect(flagged?.message).toContain("Found `docs/index.md`");
+    expect(flagged?.message).toContain("rename to `docs/INDEX.md`");
+    expect(flagged?.help).toContain("Rename `docs/index.md` to `docs/INDEX.md`");
+  });
+
   it("flags a missing docs/ARCHITECTURE.md", () => {
     const rootDirectory = writeCleanLayout({
       docs: cleanDocs.filter((docFile) => docFile.filename !== "ARCHITECTURE.md"),
@@ -596,6 +616,41 @@ describe("checkDocsStructure", () => {
     expect(ruleKeysFor(rootDirectory)).toContain(TODOS_INDEX_EXISTS_RULE_KEY);
   });
 
+  it("does NOT flag todos-index-exists when docs/todos/INDEX.md uses the canonical case", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        { filename: "todos/INDEX.md", contents: "# Todo specs\n\n- pricing.md\n" },
+      ],
+    });
+    expect(ruleKeysFor(rootDirectory)).not.toContain(TODOS_INDEX_EXISTS_RULE_KEY);
+  });
+
+  it("hints to rename a lowercase docs/todos/index.md instead of reporting a generic missing todos index", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        { filename: "todos/index.md", contents: "# Todo specs\n\n- pricing.md\n" },
+      ],
+    });
+    const diagnostics = checkDocsStructure(rootDirectory);
+    const flagged = diagnostics.find(
+      (diagnostic) => diagnostic.rule === TODOS_INDEX_EXISTS_RULE_KEY,
+    );
+    expect(flagged?.filePath).toBe("docs/todos/index.md");
+    expect(flagged?.message).toContain("Found `docs/todos/index.md`");
+    expect(flagged?.message).toContain("rename to `docs/todos/INDEX.md`");
+    expect(flagged?.help).toContain("Rename `docs/todos/index.md` to `docs/todos/INDEX.md`");
+    // The rename hint owns this file — it must not ALSO be flagged as a todo spec
+    // missing required sections (that double-flag was the noise this fix removes).
+    const doubleFlag = diagnostics.find(
+      (diagnostic) =>
+        diagnostic.rule === TODO_SPEC_SECTIONS_RULE_KEY &&
+        diagnostic.filePath === "docs/todos/index.md",
+    );
+    expect(doubleFlag).toBeUndefined();
+  });
+
   it("flags incomplete domain docs", () => {
     const rootDirectory = writeCleanLayout({
       docs: [
@@ -636,6 +691,29 @@ describe("checkDocsStructure", () => {
     expect(flagged).toBeDefined();
     expect(flagged?.filePath).toBe("docs/broken.md");
     expect(flagged?.message).toContain("missing.md");
+  });
+
+  it("ignores markdown under scratch directories, gitignored directories, and nested checkouts", () => {
+    const rootDirectory = writeCleanLayout({
+      rootFiles: [
+        { filename: ".scratch/BIG.md", contents: "# Scratch\n\nSee [missing](missing.md).\n" },
+        {
+          filename: ".understand/NOTES.md",
+          contents: "# Notes\n\nSee [missing](missing.md).\n",
+        },
+        { filename: "tmp/NOTES.md", contents: "# Temp\n\nSee [missing](missing.md).\n" },
+        {
+          filename: "vendor/checkout/README.md",
+          contents: "# Checkout\n\nSee [missing](missing.md).\n",
+        },
+        { filename: ".gitignore", contents: "tmp/\n" },
+      ],
+    });
+    fs.mkdirSync(path.join(rootDirectory, "vendor", "checkout", ".git"), { recursive: true });
+    const markdownLinkFindings = checkDocsStructure(rootDirectory).filter(
+      (diagnostic) => diagnostic.rule === MARKDOWN_LINK_TARGET_EXISTS_RULE_KEY,
+    );
+    expect(markdownLinkFindings).toEqual([]);
   });
 
   it("ignores markdown links inside fenced code examples", () => {
