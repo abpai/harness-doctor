@@ -27,7 +27,8 @@ interface WorkflowParseResult {
 }
 
 const PACKAGE_JSON_FILE = "package.json";
-const WORKFLOWS_DIRECTORY = path.join(".github", "workflows");
+const WORKFLOWS_DIRECTORY_SEGMENTS = [".github", "workflows"] as const;
+const WORKFLOWS_DIRECTORY_POSIX = WORKFLOWS_DIRECTORY_SEGMENTS.join(path.posix.sep);
 const WORKFLOW_FILE_PATTERN = /\.ya?ml$/i;
 const MAKEFILE_NAME = "Makefile";
 const JUSTFILE_NAMES = ["justfile", "Justfile"];
@@ -338,14 +339,14 @@ const parseWorkflowCommands = (
 };
 
 const discoverCiCommands = (rootDirectory: string): CiCommandSignal[] => {
-  const workflowsDirectory = path.join(rootDirectory, WORKFLOWS_DIRECTORY);
+  const workflowsDirectory = path.join(rootDirectory, ...WORKFLOWS_DIRECTORY_SEGMENTS);
   if (!isDirectory(workflowsDirectory)) return [];
   const commands: CiCommandSignal[] = [];
   for (const entry of readDirectoryEntries(workflowsDirectory).sort((left, right) =>
     left.name.localeCompare(right.name),
   )) {
     if (!entry.isFile() || !WORKFLOW_FILE_PATTERN.test(entry.name)) continue;
-    const relativeWorkflowPath = path.posix.join(WORKFLOWS_DIRECTORY, entry.name);
+    const relativeWorkflowPath = path.posix.join(WORKFLOWS_DIRECTORY_POSIX, entry.name);
     const result = parseWorkflowCommands(
       path.join(workflowsDirectory, entry.name),
       relativeWorkflowPath,
