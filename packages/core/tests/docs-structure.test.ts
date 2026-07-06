@@ -633,13 +633,22 @@ describe("checkDocsStructure", () => {
         { filename: "todos/index.md", contents: "# Todo specs\n\n- pricing.md\n" },
       ],
     });
-    const flagged = checkDocsStructure(rootDirectory).find(
+    const diagnostics = checkDocsStructure(rootDirectory);
+    const flagged = diagnostics.find(
       (diagnostic) => diagnostic.rule === TODOS_INDEX_EXISTS_RULE_KEY,
     );
     expect(flagged?.filePath).toBe("docs/todos/index.md");
     expect(flagged?.message).toContain("Found `docs/todos/index.md`");
     expect(flagged?.message).toContain("rename to `docs/todos/INDEX.md`");
     expect(flagged?.help).toContain("Rename `docs/todos/index.md` to `docs/todos/INDEX.md`");
+    // The rename hint owns this file — it must not ALSO be flagged as a todo spec
+    // missing required sections (that double-flag was the noise this fix removes).
+    const doubleFlag = diagnostics.find(
+      (diagnostic) =>
+        diagnostic.rule === TODO_SPEC_SECTIONS_RULE_KEY &&
+        diagnostic.filePath === "docs/todos/index.md",
+    );
+    expect(doubleFlag).toBeUndefined();
   });
 
   it("flags incomplete domain docs", () => {

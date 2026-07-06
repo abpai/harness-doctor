@@ -89,7 +89,7 @@ matching config in this order: `harness.config.ts`, `.mts`, `.cts`, `.js`,
 
 ```ts
 // harness.config.ts
-import type { HarnessDoctorConfig } from "harness-doctor/api";
+import type { HarnessDoctorConfig } from "@andypai/harness-doctor/api";
 
 export default {
   deadCode: false,

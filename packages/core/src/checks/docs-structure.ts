@@ -469,6 +469,13 @@ const checkNoMonolithicInstructionFile = (
   return diagnostics;
 };
 
+// A directory entry that resolves to a regular file, following symlinks. The
+// rest of the scanner's `isFile()` helper follows symlinks, but `Dirent.isFile()`
+// is false for a symlink — so a symlinked `docs/INDEX.md` (this repo's own README
+// is a symlink) would otherwise look absent to the canonical-case checks.
+const entryResolvesToFile = (directory: string, entry: fs.Dirent): boolean =>
+  entry.isFile() || (entry.isSymbolicLink() && isFile(path.join(directory, entry.name)));
+
 // A canonical-case existence check. `isFile` resolves through the OS, which is
 // case-insensitive on macOS/Windows — so `isFile("docs/INDEX.md")` returns true
 // even when the real file is `docs/index.md`, which would hide the rename hint
@@ -484,7 +491,7 @@ const hasCanonicalCaseFile = (rootDirectory: string, expectedPath: string): bool
       : path.join(rootDirectory, ...expectedDirectory.split(path.posix.sep));
   if (!isDirectory(absoluteDirectory)) return false;
   return readDirectoryEntries(absoluteDirectory).some(
-    (entry) => entry.isFile() && entry.name === expectedFilename,
+    (entry) => entryResolvesToFile(absoluteDirectory, entry) && entry.name === expectedFilename,
   );
 };
 
@@ -497,7 +504,7 @@ const findCaseVariantPath = (rootDirectory: string, expectedPath: string): strin
       : path.join(rootDirectory, ...expectedDirectory.split(path.posix.sep));
   if (!isDirectory(absoluteDirectory)) return null;
   for (const entry of readDirectoryEntries(absoluteDirectory)) {
-    if (!entry.isFile()) continue;
+    if (!entryResolvesToFile(absoluteDirectory, entry)) continue;
     if (entry.name === expectedFilename) continue;
     if (entry.name.toLowerCase() !== expectedFilename.toLowerCase()) continue;
     return expectedDirectory === "." ? entry.name : path.posix.join(expectedDirectory, entry.name);
@@ -868,7 +875,10 @@ const checkMarkdownLinkTargets = (
 };
 
 // ── docs-structure/todo-spec-has-required-sections ──────────────────────
-const checkTodoSpecSections = (rootDirectory: string): Diagnostic[] => {
+const checkTodoSpecSections = (
+  rootDirectory: string,
+  ignoreMatcher: MarkdownIgnoreMatcher,
+): Diagnostic[] => {
   const diagnostics: Diagnostic[] = [];
   const todosDirectory = path.join(rootDirectory, DOCS_DIRECTORY_NAME, "todos");
   if (!isDirectory(todosDirectory)) return diagnostics;
@@ -876,11 +886,15 @@ const checkTodoSpecSections = (rootDirectory: string): Diagnostic[] => {
     if (
       !entry.isFile() ||
       !MARKDOWN_FILE_PATTERN.test(entry.name) ||
-      entry.name === DOCS_INDEX_FILENAME
+      // Skip any case variant of INDEX.md — the todos-index check owns that file
+      // (and emits the rename hint for a lowercase variant), so treating it as a
+      // todo spec here would double-flag it with a bogus missing-sections finding.
+      entry.name.toLowerCase() === DOCS_INDEX_FILENAME.toLowerCase()
     ) {
       continue;
     }
     const relativePath = path.posix.join(DOCS_DIRECTORY_NAME, "todos", entry.name);
+    if (ignoreMatcher.isIgnored(relativePath, false)) continue;
     const content = readFileOrNull(path.join(todosDirectory, entry.name));
     if (content === null) continue;
     const headings = headingNamesFor(content);
@@ -941,6 +955,6 @@ export const checkDocsStructure = (
     ...checkDomainDocsComplete(rootDirectory),
     ...checkBannedLongLivedPaths(rootDirectory),
     ...checkMarkdownLinkTargets(rootDirectory, markdownFiles),
-    ...checkTodoSpecSections(rootDirectory),
+    ...checkTodoSpecSections(rootDirectory, ignoreMatcher),
   ];
 };
