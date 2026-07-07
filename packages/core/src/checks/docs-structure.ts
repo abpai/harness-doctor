@@ -20,6 +20,7 @@ import {
   TODO_SPEC_REQUIRED_SECTIONS,
 } from "../constants.js";
 import { readIgnoreFile } from "../read-ignore-file.js";
+import { commandExistsInSignalsMenu, discoverSignalsMenu } from "../signals-menu.js";
 import {
   IGNORED_DIRECTORIES,
   isDirectory,
@@ -41,6 +42,7 @@ const SPEC_CONTRACT_EXISTS_RULE_KEY = "docs-structure/spec-contract-exists";
 const SPEC_CONTRACT_SECTIONS_RULE_KEY = "docs-structure/spec-contract-has-required-sections";
 const SPEC_CONTRACT_SUFFICIENCY_RULE_KEY =
   "docs-structure/spec-contract-declares-grader-sufficiency";
+const PROOF_MENU_COMMAND_EXISTS_RULE_KEY = "docs-structure/proof-menu-command-exists";
 const ENGINEERING_DOCS_EXIST_RULE_KEY = "docs-structure/engineering-docs-exist";
 const NO_STRUCTURE_MD_RULE_KEY = "docs-structure/no-structure-md";
 const AGENTS_BYTE_BUDGET_RULE_KEY = "docs-structure/agents-md-within-byte-budget";
@@ -67,6 +69,7 @@ interface BuildDiagnosticInput {
   readonly rule: string;
   readonly message: string;
   readonly help: string;
+  readonly severity?: Diagnostic["severity"];
   readonly line?: number;
   readonly column?: number;
 }
@@ -105,7 +108,7 @@ const buildDocsStructureDiagnostic = (input: BuildDiagnosticInput): Diagnostic =
   filePath: input.filePath,
   plugin: "harness-doctor",
   rule: input.rule,
-  severity: "warning",
+  severity: input.severity ?? "warning",
   message: input.message,
   help: input.help,
   line: input.line ?? 0,
@@ -674,15 +677,27 @@ const SUFFICIENCY_COLUMN_ALIAS_SET: ReadonlySet<string> = new Set(
   SPEC_CONTRACT_SUFFICIENCY_COLUMN_ALIASES,
 );
 
+interface ProofMenuLine {
+  readonly text: string;
+  readonly line: number;
+}
+
 // Lines under the `## Proof menu` heading, up to the next heading.
-const proofMenuSectionLines = (content: string): string[] => {
+const proofMenuSectionLineEntries = (content: string): ProofMenuLine[] => {
   const lines = content.split(/\r?\n/);
   const start = lines.findIndex((lineText) => /^#{1,6}\s+proof menu\b/i.test(lineText.trim()));
   if (start === -1) return [];
-  const body = lines.slice(start + 1);
-  const nextHeading = body.findIndex((lineText) => /^#{1,6}\s+/.test(lineText.trim()));
-  return nextHeading === -1 ? body : body.slice(0, nextHeading);
+  const entries: ProofMenuLine[] = [];
+  for (let lineIndex = start + 1; lineIndex < lines.length; lineIndex += 1) {
+    const text = lines[lineIndex] ?? "";
+    if (/^#{1,6}\s+/.test(text.trim())) break;
+    entries.push({ text, line: lineIndex + 1 });
+  }
+  return entries;
 };
+
+const proofMenuSectionLines = (content: string): string[] =>
+  proofMenuSectionLineEntries(content).map((entry) => entry.text);
 
 // A markdown table separator row (`| --- | :--: |`): pipes, colons, spaces,
 // and at least one dash, nothing else.
@@ -719,6 +734,195 @@ const checkSpecContractDeclaresSufficiency = (
       help: "Add a `Sufficiency` column to each proof-menu row marking whether its auto-grader is sufficient (`auto`) or the change needs human review (`human-gate`)",
     }),
   ];
+};
+
+interface ProofMenuTable {
+  readonly headers: string[];
+  readonly rows: ReadonlyArray<{ readonly cells: string[]; readonly line: number }>;
+  readonly headerLine: number;
+}
+
+interface ProofMenuCommandCell {
+  readonly commands: string[];
+  readonly isValid: boolean;
+}
+
+const REQUIRED_PROOF_MENU_COLUMNS = [
+  "change type",
+  "lane",
+  "validation command",
+  "proof artifact",
+  "sufficiency",
+];
+const PROOF_MENU_LANES = new Set(["fast", "full"]);
+const PROOF_MENU_SUFFICIENCY_VALUES = new Set(["auto", "human-gate"]);
+const BACKTICK_COMMAND_PATTERN = /`([^`\n]+)`/g;
+
+const normalizeProofMenuHeader = (header: string): string =>
+  header.trim().toLowerCase().replace(/\s+/g, " ");
+
+const parseMarkdownTableCells = (lineText: string): string[] | null => {
+  const trimmedLine = lineText.trim();
+  if (!trimmedLine.includes("|")) return null;
+  const withoutLeadingPipe = trimmedLine.startsWith("|") ? trimmedLine.slice(1) : trimmedLine;
+  const withoutTrailingPipe = withoutLeadingPipe.endsWith("|")
+    ? withoutLeadingPipe.slice(0, -1)
+    : withoutLeadingPipe;
+  const cells = withoutTrailingPipe.split("|").map((cell) => cell.trim());
+  return cells.length === 0 ? null : cells;
+};
+
+const findProofMenuTable = (content: string): ProofMenuTable | null => {
+  const lines = proofMenuSectionLineEntries(content);
+  for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
+    const delimiter = lines[lineIndex];
+    const header = lines[lineIndex - 1];
+    if (delimiter === undefined || header === undefined) continue;
+    if (!isTableDelimiterRow(delimiter.text)) continue;
+    const headers = parseMarkdownTableCells(header.text);
+    if (headers === null) continue;
+    const rows: Array<{ cells: string[]; line: number }> = [];
+    for (let rowIndex = lineIndex + 1; rowIndex < lines.length; rowIndex += 1) {
+      const row = lines[rowIndex];
+      if (row === undefined) continue;
+      if (row.text.trim().length === 0) break;
+      const cells = parseMarkdownTableCells(row.text);
+      if (cells === null) break;
+      rows.push({ cells, line: row.line });
+    }
+    return { headers, rows, headerLine: header.line };
+  }
+  return null;
+};
+
+const commandCellCommands = (cell: string): ProofMenuCommandCell => {
+  const commands: string[] = [];
+  const remainder = cell.replace(BACKTICK_COMMAND_PATTERN, (_match, command: string) => {
+    if (command.trim().length > 0) commands.push(command.trim());
+    return "";
+  });
+  return {
+    commands,
+    isValid: commands.length > 0 && remainder.trim().length === 0,
+  };
+};
+
+const buildProofMenuDiagnostic = (input: {
+  readonly message: string;
+  readonly help: string;
+  readonly line: number;
+}): Diagnostic =>
+  buildDocsStructureDiagnostic({
+    filePath: docsSpecContractPath,
+    rule: PROOF_MENU_COMMAND_EXISTS_RULE_KEY,
+    severity: "error",
+    line: input.line,
+    message: input.message,
+    help: input.help,
+  });
+
+const commandColumnIndex = (
+  headerIndexes: ReadonlyMap<string, number>,
+  columnName: string,
+): number | null => headerIndexes.get(columnName) ?? null;
+
+const checkProofMenuCommandsExist = (rootDirectory: string): Diagnostic[] => {
+  const content = readFileOrNull(path.join(rootDirectory, docsSpecContractPath));
+  if (content === null) return [];
+  const table = findProofMenuTable(content);
+  if (table === null) return [];
+
+  const headerIndexes = new Map<string, number>();
+  for (let headerIndex = 0; headerIndex < table.headers.length; headerIndex += 1) {
+    headerIndexes.set(normalizeProofMenuHeader(table.headers[headerIndex] ?? ""), headerIndex);
+  }
+
+  const missingColumns = REQUIRED_PROOF_MENU_COLUMNS.filter(
+    (columnName) => !headerIndexes.has(columnName),
+  );
+  if (missingColumns.length > 0) {
+    return [
+      buildProofMenuDiagnostic({
+        line: table.headerLine,
+        message: `${docsSpecContractPath} proof menu is missing required columns (${missingColumns.join(
+          ", ",
+        )}) — proof rows must be machine-readable before validation commands can be verified`,
+        help: "Use columns `Change type`, `Lane`, `Validation command`, `Proof artifact`, and `Sufficiency` in the proof-menu table",
+      }),
+    ];
+  }
+
+  const laneIndex = commandColumnIndex(headerIndexes, "lane");
+  const validationCommandIndex = commandColumnIndex(headerIndexes, "validation command");
+  const sufficiencyIndex = commandColumnIndex(headerIndexes, "sufficiency");
+  if (laneIndex === null || validationCommandIndex === null || sufficiencyIndex === null) {
+    return [];
+  }
+
+  const diagnostics: Diagnostic[] = [];
+  const signals = discoverSignalsMenu(rootDirectory);
+
+  for (const row of table.rows) {
+    if (row.cells.length !== table.headers.length) {
+      diagnostics.push(
+        buildProofMenuDiagnostic({
+          line: row.line,
+          message: `${docsSpecContractPath} proof-menu row has ${row.cells.length} cells but the header has ${table.headers.length} — the row is not machine-readable`,
+          help: "Keep every proof-menu row aligned with the header columns so each validation command can be statically verified",
+        }),
+      );
+      continue;
+    }
+
+    const lane = row.cells[laneIndex]?.trim() ?? "";
+    if (!PROOF_MENU_LANES.has(lane)) {
+      diagnostics.push(
+        buildProofMenuDiagnostic({
+          line: row.line,
+          message: `${docsSpecContractPath} proof-menu row declares Lane \`${lane}\` — expected \`fast\` or \`full\``,
+          help: "Set Lane to `fast` or `full` so intake can choose a deterministic validation lane",
+        }),
+      );
+      continue;
+    }
+
+    const sufficiency = row.cells[sufficiencyIndex]?.trim() ?? "";
+    if (!PROOF_MENU_SUFFICIENCY_VALUES.has(sufficiency)) {
+      diagnostics.push(
+        buildProofMenuDiagnostic({
+          line: row.line,
+          message: `${docsSpecContractPath} proof-menu row declares Sufficiency \`${sufficiency}\` — expected \`auto\` or \`human-gate\``,
+          help: "Set Sufficiency to `auto` or `human-gate` so proof consumers know whether human review is required",
+        }),
+      );
+      continue;
+    }
+
+    const commandCell = commandCellCommands(row.cells[validationCommandIndex] ?? "");
+    if (!commandCell.isValid) {
+      diagnostics.push(
+        buildProofMenuDiagnostic({
+          line: row.line,
+          message: `${docsSpecContractPath} proof-menu Validation command cell must contain only backtick-wrapped commands`,
+          help: "Replace prose with one or more command spans like `pnpm test:contract`; put explanatory text in the Proof artifact column",
+        }),
+      );
+      continue;
+    }
+
+    for (const command of commandCell.commands) {
+      if (commandExistsInSignalsMenu(command, signals)) continue;
+      diagnostics.push(
+        buildProofMenuDiagnostic({
+          line: row.line,
+          message: `${docsSpecContractPath} proof menu references \`${command}\`, but that command was not found in package scripts, Makefile targets, or just recipes`,
+          help: "Update the proof-menu command to an existing signal or add the missing package script, make target, or just recipe",
+        }),
+      );
+    }
+  }
+
+  return diagnostics;
 };
 
 // ── docs-structure/engineering-docs-exist ───────────────────────────────
@@ -947,6 +1151,7 @@ export const checkDocsStructure = (
     ...checkSpecContractExists(rootDirectory),
     ...checkSpecContractSections(rootDirectory),
     ...checkSpecContractDeclaresSufficiency(rootDirectory, options),
+    ...checkProofMenuCommandsExist(rootDirectory),
     ...checkEngineeringDocsExist(rootDirectory, options),
     ...checkNoStructureMd(rootDirectory),
     ...checkCombinedAgentsByteBudget(markdownFiles),

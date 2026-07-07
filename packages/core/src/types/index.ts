@@ -33,3 +33,4 @@ export type {
 export type { Framework, PackageJson, ProjectInfo, WorkspacePackage } from "./project-info.js";
 export type { PromptMultiselectChoiceState, PromptMultiselectContext } from "./prompts.js";
 export type { ScoreResult, RulePriority, RuleTier } from "./score.js";
+export type { CiCommandSignal, PackageScriptSignal, SignalsMenu } from "./signals.js";

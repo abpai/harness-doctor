@@ -146,6 +146,12 @@ describe("JsonReport (v1)", () => {
       directory: "/repo",
       mode: "full",
       diff: null,
+      signals: {
+        packageScripts: [],
+        ciCommands: [],
+        makeTargets: [],
+        justRecipes: [],
+      },
       projects: [],
       diagnostics: [],
       summary: {
@@ -171,6 +177,12 @@ describe("JsonReport (v1)", () => {
         directory: "/repo",
         mode: "full",
         diff: null,
+        signals: {
+          packageScripts: [],
+          ciCommands: [],
+          makeTargets: [],
+          justRecipes: [],
+        },
         projects: [],
         diagnostics: [],
         summary: {
@@ -196,6 +208,12 @@ describe("JsonReport (v1)", () => {
         directory: "/repo",
         mode: "incremental",
         diff: null,
+        signals: {
+          packageScripts: [],
+          ciCommands: [],
+          makeTargets: [],
+          justRecipes: [],
+        },
         projects: [],
         diagnostics: [],
         summary: {

@@ -43,13 +43,13 @@ export interface CoreRuleMetadata {
 const docsStructureRule = (
   rule: string,
   recommendation: string,
-  options: { defaultEnabled?: boolean } = {},
+  options: { defaultEnabled?: boolean; defaultSeverity?: RuleDefaultSeverity } = {},
 ): CoreRuleMetadata => ({
   key: `harness-doctor/docs-structure/${rule}`,
   plugin: "harness-doctor",
   rule: `docs-structure/${rule}`,
   category: "Maintainability",
-  defaultSeverity: "warn",
+  defaultSeverity: options.defaultSeverity ?? "warn",
   tags: ["docs"],
   recommendation,
   defaultEnabled: options.defaultEnabled ?? true,
@@ -111,6 +111,11 @@ export const HARNESS_DOCTOR_RULE_CATALOG: ReadonlyArray<CoreRuleMetadata> = [
     "spec-contract-declares-grader-sufficiency",
     "Add a Sufficiency column (auto / human-gate) to the SPEC_CONTRACT.md proof menu so each change type declares whether its auto-grader is sufficient, or leave docsContract unset/false.",
     { defaultEnabled: false },
+  ),
+  docsStructureRule(
+    "proof-menu-command-exists",
+    "Update every SPEC_CONTRACT.md proof-menu validation command to reference an existing package script, Makefile target, or just recipe.",
+    { defaultSeverity: "error" },
   ),
   docsStructureRule(
     "engineering-docs-exist",

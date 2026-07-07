@@ -1,0 +1,6 @@
+{
+  "name": "docs-structure-clean",
+  "scripts": {
+    "test": "vitest"
+  }
+}

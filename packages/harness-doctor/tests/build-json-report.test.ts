@@ -57,6 +57,12 @@ describe("buildJsonReport", () => {
     expect(report.version).toBe("1.2.3");
     expect(report.mode).toBe("full");
     expect(report.diff).toBeNull();
+    expect(report.signals).toEqual({
+      packageScripts: [],
+      ciCommands: [],
+      makeTargets: [],
+      justRecipes: [],
+    });
     expect(report.diagnostics).toHaveLength(3);
     expect(report.projects).toHaveLength(1);
     expect(report.summary).toEqual({

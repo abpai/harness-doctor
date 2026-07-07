@@ -1,6 +1,7 @@
 import type { JsonReport, JsonReportMode } from "./types/index.js";
 import { formatHarnessDoctorError, isHarnessDoctorError } from "./errors.js";
 import { getErrorChainMessages } from "./format-error-chain.js";
+import { createEmptySignalsMenu } from "./signals-menu.js";
 
 interface BuildJsonReportErrorInput {
   version: string;
@@ -49,6 +50,7 @@ export const buildJsonReportError = (input: BuildJsonReportErrorInput): JsonRepo
     directory: input.directory,
     mode: input.mode ?? "full",
     diff: null,
+    signals: createEmptySignalsMenu(),
     projects: [],
     diagnostics: [],
     summary: {

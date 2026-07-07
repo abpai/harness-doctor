@@ -42,6 +42,17 @@ npx @andypai/harness-doctor@latest
 You'll get an audit and a score. Add `--verbose` to see every finding with file
 and line numbers.
 
+To inspect the deterministic command surface without running any checks:
+
+```bash
+npx @andypai/harness-doctor@latest signals
+```
+
+This prints the signals menu as JSON: package scripts from the root and
+workspace packages, `.github/workflows/*.yml|*.yaml` `run:` commands grouped by
+workflow/job, Makefile targets, and just recipes. Discovery only reads files; it
+does not execute validation commands.
+
 ## Install for agents
 
 Wire Harness Doctor into your agent's workflow so it reads the findings, fixes
@@ -162,7 +173,16 @@ use `"harness-doctor/docs-structure/spec-contract-exists": "off"`.
 `--json` emits a versioned report with `schemaVersion: 1`. Each finding is a
 diagnostic with `filePath`, `plugin`, `rule`, `severity`, `message`, `help`,
 `line`, `column`, and `category`. Consumers should key behavior off
-`plugin/rule` and `schemaVersion`, not prose.
+`plugin/rule` and `schemaVersion`, not prose. Reports also include top-level
+`signals`, the same deterministic command menu printed by `harness-doctor
+signals`.
+
+The docs-structure rule
+`harness-doctor/docs-structure/proof-menu-command-exists` verifies the
+`docs/SPEC_CONTRACT.md` proof-menu table statically. Its `Validation command`
+cells must contain only backtick-wrapped commands, and each command must resolve
+to an existing package script, Makefile target, or just recipe discovered in the
+signals menu.
 
 ## Docs
 

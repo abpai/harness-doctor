@@ -6,9 +6,9 @@
 
 ## Proof menu
 
-| Change type | Validation command | Proof artifact |
-| ----------- | ------------------ | -------------- |
-| logic       | `pnpm test`        | passing run    |
+| Change type | Lane | Validation command | Proof artifact | Sufficiency |
+| ----------- | ---- | ------------------ | -------------- | ----------- |
+| logic       | full | `pnpm test`        | passing run    | auto        |
 
 ## Escalation boundaries
 
