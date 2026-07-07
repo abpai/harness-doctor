@@ -1,5 +1,16 @@
 # @andypai/harness-doctor
 
+## 0.3.0
+
+### Minor Changes
+
+- [#17](https://github.com/abpai/harness-doctor/pull/17) [`9d30293`](https://github.com/abpai/harness-doctor/commit/9d302930417aae6fe87912006825c74b0a9a4989) Thanks [@abpai](https://github.com/abpai)! - Add deterministic signals-menu discovery and static proof-menu command verification (Phase 4).
+
+  - New `signals` command and `discoverSignalsMenu` API surface the repo's runnable command inventory (package scripts, `.github/workflows` `run:` steps, Makefile targets, justfile recipes) as structured JSON. Discovery is read-only — it never executes validation commands.
+  - New `docs-structure/proof-menu-command-exists` check statically verifies a machine-readable `## Proof menu` table: required columns, `Lane` ∈ fast/full, `Sufficiency` ∈ auto/human-gate, backtick-only command cells, and that each referenced command resolves against the discovered signals menu. The rule only engages when the proof menu is a real table, so free-form menus stay untouched.
+
+- [#14](https://github.com/abpai/harness-doctor/pull/14) [`b91a9e7`](https://github.com/abpai/harness-doctor/commit/b91a9e768b8392a27ee30ca5c90bf81d8792defb) Thanks [@abpai](https://github.com/abpai)! - Add opt-in docs-structure/spec-contract-declares-grader-sufficiency check (docsContract-gated) that nudges SPEC_CONTRACT proof menus to declare grader sufficiency (auto / human-gate), guarding against false-green in unattended agent loops.
+
 ## 0.2.0
 
 - **Config renamed to `harness.config.*`.** The config file is now
@@ -427,7 +438,7 @@ pre-fork release history is preserved below for provenance.
   messages match upstream verbatim with template variables substituted
   in JS.
 
-  | Rule (now `harness-doctor/<id>`)      | What it catches                                                          |
+  | Rule (now `harness-doctor/<id>`)    | What it catches                                                          |
   | ----------------------------------- | ------------------------------------------------------------------------ |
   | `no-derived-state`                  | Storing derived state via a useEffect instead of computing during render |
   | `no-chain-state-updates`            | Chaining state updates across effects                                    |
