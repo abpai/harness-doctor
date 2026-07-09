@@ -118,6 +118,28 @@ export const HARNESS_DOCTOR_RULE_CATALOG: ReadonlyArray<CoreRuleMetadata> = [
     { defaultSeverity: "error" },
   ),
   docsStructureRule(
+    "behavior-baseline-artifacts-exist",
+    "Create docs/BEHAVIOR_INVENTORY.md and docs/BEHAVIOR_LEDGER.md through harness baseline before enabling baseline checks in self-review or CI.",
+  ),
+  docsStructureRule(
+    "behavior-inventory-valid",
+    "Fix docs/BEHAVIOR_INVENTORY.md so it uses the required baseline inventory columns, stable B-001 IDs, and allowed status/risk/priority/confidence values.",
+  ),
+  docsStructureRule(
+    "behavior-ledger-valid",
+    "Fix docs/BEHAVIOR_LEDGER.md so it uses the required ledger columns, references inventory IDs, and records valid proof statuses.",
+  ),
+  docsStructureRule(
+    "behavior-ledger-covers-confirmed",
+    "Run harness baseline capture, or adjust the inventory, so every confirmed/corrected P0/P1 behavior has a terminal ledger outcome.",
+    { defaultSeverity: "error" },
+  ),
+  docsStructureRule(
+    "behavior-ledger-test-path-exists",
+    "Update behavior ledger proof rows so captured or bug-pinned behaviors point to test/snapshot/fixture files that exist.",
+    { defaultSeverity: "error" },
+  ),
+  docsStructureRule(
     "engineering-docs-exist",
     "Add docs/engineering/commands.md and docs/engineering/testing.md, or leave docsContract unset/false.",
     { defaultEnabled: false },

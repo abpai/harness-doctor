@@ -34,6 +34,8 @@ export interface InspectInput {
   readonly directory: string;
   readonly includePaths: ReadonlyArray<string>;
   readonly respectInlineDisables: boolean;
+  /** Require behavior baseline artifacts even before they already exist. */
+  readonly baselineCheck?: boolean;
   /**
    * Per-call override for `HarnessDoctorConfig.warnings`. When omitted,
    * the loaded config's `warnings` value wins (defaulting to `true`),
@@ -257,6 +259,7 @@ export const runInspect = <HooksR = never>(
       ...checkPnpmHardening(scanDirectory),
       ...checkDocsStructure(scanDirectory, {
         docsContract: resolvedConfig.config?.docsContract === true,
+        baselineCheck: input.baselineCheck === true,
       }),
     ].filter(
       (diagnostic) =>

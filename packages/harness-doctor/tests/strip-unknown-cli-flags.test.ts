@@ -75,6 +75,14 @@ describe("stripUnknownCliFlags", () => {
     expect(stripUserArguments([".", "--no-telemetry"])).toEqual([".", "--no-telemetry"]);
   });
 
+  it("keeps the explicit baseline artifact check flag", () => {
+    expect(stripUserArguments([".", "--baseline-check", "--json"])).toEqual([
+      ".",
+      "--baseline-check",
+      "--json",
+    ]);
+  });
+
   it("keeps color flags on the version subcommand and drops unknown ones", () => {
     expect(stripUserArguments(["version", "--no-color"])).toEqual(["version", "--no-color"]);
     expect(stripUserArguments(["version", "--color"])).toEqual(["version", "--color"]);

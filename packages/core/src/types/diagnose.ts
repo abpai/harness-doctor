@@ -9,6 +9,12 @@ export interface DiagnoseOptions {
   verbose?: boolean;
   includePaths?: string[];
   /**
+   * Explicitly require docs/BEHAVIOR_INVENTORY.md and
+   * docs/BEHAVIOR_LEDGER.md. Existing baseline files are always
+   * validated when present; this option reports missing artifacts too.
+   */
+  baselineCheck?: boolean;
+  /**
    * Per-call override for `HarnessDoctorConfig.respectInlineDisables`.
    * See that field's docs for the full contract.
    */

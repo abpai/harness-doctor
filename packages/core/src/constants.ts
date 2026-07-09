@@ -196,6 +196,10 @@ export const DOCS_ARCHITECTURE_FILENAME = "ARCHITECTURE.md";
 // semantic judgment for the harness skill.
 export const DOCS_SPEC_CONTRACT_FILENAME = "SPEC_CONTRACT.md";
 
+export const DOCS_BEHAVIOR_INVENTORY_FILENAME = "BEHAVIOR_INVENTORY.md";
+
+export const DOCS_BEHAVIOR_LEDGER_FILENAME = "BEHAVIOR_LEDGER.md";
+
 // Heading names (lowercased) a spec contract must carry to be consumable
 // by task intake: the generic quality bar, the change-type → validation
 // proof menu, and the escalation boundaries.
