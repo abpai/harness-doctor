@@ -221,7 +221,16 @@ const createMarkdownIgnoreMatcher = (rootDirectory: string): MarkdownIgnoreMatch
 };
 
 const hasPath = (rootDirectory: string, relativePath: string): boolean => {
-  const absolutePath = path.join(rootDirectory, relativePath);
+  const absoluteRootDirectory = path.resolve(rootDirectory);
+  const absolutePath = path.resolve(absoluteRootDirectory, relativePath);
+  const resolvedRelativePath = path.relative(absoluteRootDirectory, absolutePath);
+  if (
+    resolvedRelativePath === ".." ||
+    resolvedRelativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(resolvedRelativePath)
+  ) {
+    return false;
+  }
   return isFile(absolutePath) || isDirectory(absolutePath);
 };
 
@@ -470,6 +479,8 @@ const checkNoMonolithicInstructionFile = (
     entryPointFilename,
     ignoreMatcher,
   )) {
+    // Behavior artifacts are one machine-readable table contract; splitting would break validators.
+    if (relativePath === behaviorInventoryPath || relativePath === behaviorLedgerPath) continue;
     const content = readFileOrNull(path.join(rootDirectory, relativePath));
     if (content === null) continue;
     const lineCount = countNonBlankLines(content);
@@ -778,22 +789,93 @@ const PROOF_MENU_LANES = new Set(["fast", "full"]);
 const PROOF_MENU_SUFFICIENCY_VALUES = new Set(["auto", "human-gate"]);
 const BACKTICK_COMMAND_PATTERN = /`([^`\n]+)`/g;
 
+const stripBalancedSurroundingEmphasis = (value: string): string => {
+  let strippedValue = value.trim();
+  const markers = ["**", "__", "*", "_"];
+  let didStripMarker = true;
+  while (didStripMarker) {
+    didStripMarker = false;
+    for (const marker of markers) {
+      if (
+        strippedValue.length <= marker.length * 2 ||
+        !strippedValue.startsWith(marker) ||
+        !strippedValue.endsWith(marker)
+      ) {
+        continue;
+      }
+      strippedValue = strippedValue.slice(marker.length, -marker.length).trim();
+      didStripMarker = true;
+      break;
+    }
+  }
+  return strippedValue;
+};
+
 const normalizeProofMenuHeader = (header: string): string =>
-  header.trim().toLowerCase().replace(/\s+/g, " ");
+  stripBalancedSurroundingEmphasis(header).toLowerCase().replace(/\s+/g, " ");
 
 const parseMarkdownTableCells = (lineText: string): string[] | null => {
   const trimmedLine = lineText.trim();
-  if (!trimmedLine.includes("|")) return null;
-  const withoutLeadingPipe = trimmedLine.startsWith("|") ? trimmedLine.slice(1) : trimmedLine;
-  const withoutTrailingPipe = withoutLeadingPipe.endsWith("|")
-    ? withoutLeadingPipe.slice(0, -1)
-    : withoutLeadingPipe;
-  const cells = withoutTrailingPipe.split("|").map((cell) => cell.trim());
+  const cells: string[] = [];
+  let currentCell = "";
+  let didFindDelimiter = false;
+  let didEndWithDelimiter = false;
+  for (let characterIndex = 0; characterIndex < trimmedLine.length; characterIndex += 1) {
+    const character = trimmedLine[characterIndex] ?? "";
+    if (character === "\\" && trimmedLine[characterIndex + 1] === "|") {
+      currentCell += "|";
+      characterIndex += 1;
+      didEndWithDelimiter = false;
+      continue;
+    }
+    if (character === "|") {
+      cells.push(currentCell.trim());
+      currentCell = "";
+      didFindDelimiter = true;
+      didEndWithDelimiter = true;
+      continue;
+    }
+    currentCell += character;
+    didEndWithDelimiter = false;
+  }
+  if (!didFindDelimiter) return null;
+  cells.push(currentCell.trim());
+  if (trimmedLine.startsWith("|")) cells.shift();
+  if (didEndWithDelimiter) cells.pop();
   return cells.length === 0 ? null : cells;
 };
 
+const maskFencedCodeBlocks = (content: string): string => {
+  let activeFenceCharacter: string | null = null;
+  let activeFenceLength = 0;
+  return content
+    .split(/\r?\n/)
+    .map((lineText) => {
+      if (activeFenceCharacter === null) {
+        const opener = /^\s*(`{3,}|~{3,})/.exec(lineText)?.[1];
+        if (opener === undefined) return lineText;
+        activeFenceCharacter = opener[0] ?? null;
+        activeFenceLength = opener.length;
+        return "";
+      }
+      const closer = /^\s*(`{3,}|~{3,})\s*$/.exec(lineText)?.[1];
+      if (
+        closer !== undefined &&
+        closer[0] === activeFenceCharacter &&
+        closer.length >= activeFenceLength
+      ) {
+        activeFenceCharacter = null;
+        activeFenceLength = 0;
+      }
+      return "";
+    })
+    .join("\n");
+};
+
 const findMarkdownTables = (content: string): MarkdownTable[] => {
-  const lines = content.split(/\r?\n/).map((text, index) => ({ text, line: index + 1 }));
+  const lines = maskFencedCodeBlocks(content)
+    .split("\n")
+    .map((text, index) => ({ text, line: index + 1 }));
   const tables: MarkdownTable[] = [];
   for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
     const delimiter = lines[lineIndex];
@@ -807,6 +889,9 @@ const findMarkdownTables = (content: string): MarkdownTable[] => {
       const row = lines[rowIndex];
       if (row === undefined) continue;
       if (row.text.trim().length === 0) break;
+      if (isTableDelimiterRow(row.text)) break;
+      const nextRow = lines[rowIndex + 1];
+      if (nextRow !== undefined && isTableDelimiterRow(nextRow.text)) break;
       const cells = parseMarkdownTableCells(row.text);
       if (cells === null) break;
       rows.push({ cells, line: row.line });
@@ -834,7 +919,7 @@ const findBestMarkdownTable = (
 };
 
 const findProofMenuTable = (content: string): ProofMenuTable | null => {
-  const lines = proofMenuSectionLineEntries(content);
+  const lines = proofMenuSectionLineEntries(maskFencedCodeBlocks(content));
   for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
     const delimiter = lines[lineIndex];
     const header = lines[lineIndex - 1];
@@ -847,6 +932,9 @@ const findProofMenuTable = (content: string): ProofMenuTable | null => {
       const row = lines[rowIndex];
       if (row === undefined) continue;
       if (row.text.trim().length === 0) break;
+      if (isTableDelimiterRow(row.text)) break;
+      const nextRow = lines[rowIndex + 1];
+      if (nextRow !== undefined && isTableDelimiterRow(nextRow.text)) break;
       const cells = parseMarkdownTableCells(row.text);
       if (cells === null) break;
       rows.push({ cells, line: row.line });
@@ -1047,8 +1135,14 @@ interface BehaviorLedgerRow {
   readonly testPaths: string[];
 }
 
+interface BehaviorInventoryCheck {
+  readonly rows: BehaviorInventoryRow[];
+  readonly diagnostics: Diagnostic[];
+  readonly didParseTable: boolean;
+}
+
 const normalizeBehaviorHeader = (header: string): string =>
-  header.trim().toLowerCase().replace(/\s+/g, " ");
+  stripBalancedSurroundingEmphasis(header).toLowerCase().replace(/\s+/g, " ");
 
 const markdownTableHeaderIndexes = (table: MarkdownTable): Map<string, number> => {
   const headerIndexes = new Map<string, number>();
@@ -1105,16 +1199,15 @@ const isHighPriorityConfirmedInventoryRow = (row: BehaviorInventoryRow): boolean
   (row.status === "confirmed" || row.status === "corrected") &&
   (row.priority === "P0" || row.priority === "P1");
 
-const checkBehaviorInventory = (
-  rootDirectory: string,
-): { readonly rows: BehaviorInventoryRow[]; readonly diagnostics: Diagnostic[] } => {
+const checkBehaviorInventory = (rootDirectory: string): BehaviorInventoryCheck => {
   const content = readFileOrNull(path.join(rootDirectory, behaviorInventoryPath));
-  if (content === null) return { rows: [], diagnostics: [] };
+  if (content === null) return { rows: [], diagnostics: [], didParseTable: false };
   const diagnostics: Diagnostic[] = [];
   const table = findBestMarkdownTable(content, REQUIRED_BEHAVIOR_INVENTORY_COLUMNS);
   if (table === null) {
     return {
       rows: [],
+      didParseTable: false,
       diagnostics: [
         buildBehaviorDiagnostic({
           filePath: behaviorInventoryPath,
@@ -1138,7 +1231,7 @@ const checkBehaviorInventory = (
         help: "Use columns `ID`, `Area`, `Behavior`, `Entry points`, `Existing proof`, `Missing proof`, `Confidence`, `Risk`, `Status`, `Priority`, and `Notes`",
       }),
     );
-    return { rows: [], diagnostics };
+    return { rows: [], diagnostics, didParseTable: false };
   }
   const headerIndexes = markdownTableHeaderIndexes(table);
   const idIndex = headerIndexes.get("id") ?? 0;
@@ -1249,12 +1342,31 @@ const checkBehaviorInventory = (
     }
     rows.push({ id, status, priority, risk });
   }
-  return { rows, diagnostics };
+  return { rows, diagnostics, didParseTable: true };
+};
+
+const missingBehaviorLedgerCoverageDiagnostics = (
+  inventoryRows: ReadonlyArray<BehaviorInventoryRow>,
+  ledgerRows: ReadonlyArray<BehaviorLedgerRow>,
+): Diagnostic[] => {
+  const ledgerIds = new Set(ledgerRows.map((row) => row.id));
+  return inventoryRows
+    .filter((inventoryRow) => !ledgerIds.has(inventoryRow.id))
+    .map((inventoryRow) =>
+      buildBehaviorDiagnostic({
+        filePath: behaviorLedgerPath,
+        rule: BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY,
+        severity: "error",
+        message: `${inventoryRow.id} is confirmed/corrected ${inventoryRow.priority} behavior in ${behaviorInventoryPath}, but ${behaviorLedgerPath} has no terminal outcome for it`,
+        help: `Run \`harness baseline capture\` for ${inventoryRow.id}, or change its inventory status/priority if it is not in scope`,
+      }),
+    );
 };
 
 const checkBehaviorLedger = (
   rootDirectory: string,
   inventoryRows: ReadonlyArray<BehaviorInventoryRow>,
+  didParseInventoryTable: boolean,
 ): Diagnostic[] => {
   const content = readFileOrNull(path.join(rootDirectory, behaviorLedgerPath));
   const inScopeRows = inventoryRows.filter(isHighPriorityConfirmedInventoryRow);
@@ -1280,6 +1392,7 @@ const checkBehaviorLedger = (
         message: `${behaviorLedgerPath} has no markdown table — baseline ledger must be parseable before agents can trust captured proof`,
         help: "Use the required behavior ledger table header from the harness baseline template",
       }),
+      ...missingBehaviorLedgerCoverageDiagnostics(inScopeRows, []),
     ];
   }
   const missingColumns = tableMissingColumns(table, REQUIRED_BEHAVIOR_LEDGER_COLUMNS);
@@ -1295,6 +1408,7 @@ const checkBehaviorLedger = (
         help: "Use columns `ID`, `Status`, `Capture type`, `Test paths`, `Run command`, `Run evidence`, `Confidence`, and `Remaining gap`",
       }),
     );
+    diagnostics.push(...missingBehaviorLedgerCoverageDiagnostics(inScopeRows, []));
     return diagnostics;
   }
   const headerIndexes = markdownTableHeaderIndexes(table);
@@ -1352,7 +1466,7 @@ const checkBehaviorLedger = (
       );
     }
     ledgerIds.add(id);
-    if (inventoryIds.size > 0 && !inventoryIds.has(id)) {
+    if (didParseInventoryTable && !inventoryIds.has(id)) {
       diagnostics.push(
         buildBehaviorDiagnostic({
           filePath: behaviorLedgerPath,
@@ -1449,19 +1563,7 @@ const checkBehaviorLedger = (
       ledgerRows.push({ id, status, testPaths });
     }
   }
-  const ledgerById = new Map(ledgerRows.map((row) => [row.id, row]));
-  for (const inventoryRow of inScopeRows) {
-    if (ledgerById.has(inventoryRow.id)) continue;
-    diagnostics.push(
-      buildBehaviorDiagnostic({
-        filePath: behaviorLedgerPath,
-        rule: BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY,
-        severity: "error",
-        message: `${inventoryRow.id} is confirmed/corrected ${inventoryRow.priority} behavior in ${behaviorInventoryPath}, but ${behaviorLedgerPath} has no terminal outcome for it`,
-        help: `Run \`harness baseline capture\` for ${inventoryRow.id}, or change its inventory status/priority if it is not in scope`,
-      }),
-    );
-  }
+  diagnostics.push(...missingBehaviorLedgerCoverageDiagnostics(inScopeRows, ledgerRows));
   return diagnostics;
 };
 
@@ -1496,7 +1598,7 @@ const checkBehaviorBaselineArtifacts = (
   return [
     ...artifactDiagnostics,
     ...inventory.diagnostics,
-    ...checkBehaviorLedger(rootDirectory, inventory.rows),
+    ...checkBehaviorLedger(rootDirectory, inventory.rows, inventory.didParseTable),
   ];
 };
 

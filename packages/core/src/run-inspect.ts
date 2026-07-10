@@ -255,18 +255,19 @@ export const runInspect = <HooksR = never>(
     const changedFileSet = isDiffMode
       ? new Set((includePaths ?? []).map((relativePath) => toPosixPath(relativePath)))
       : null;
+    const shouldCheckBehaviorBaseline =
+      input.baselineCheck ?? resolvedConfig.config?.baselineCheck ?? false;
     const environmentDiagnostics: ReadonlyArray<Diagnostic> = [
       ...checkPnpmHardening(scanDirectory),
       ...checkDocsStructure(scanDirectory, {
         docsContract: resolvedConfig.config?.docsContract === true,
-        baselineCheck: input.baselineCheck ?? resolvedConfig.config?.baselineCheck ?? false,
+        baselineCheck: shouldCheckBehaviorBaseline,
       }),
     ].filter(
       (diagnostic) =>
         changedFileSet === null ||
         changedFileSet.has(toPosixPath(diagnostic.filePath)) ||
-        ((input.baselineCheck ?? resolvedConfig.config?.baselineCheck ?? false) &&
-          diagnostic.rule.startsWith("docs-structure/behavior-")),
+        (shouldCheckBehaviorBaseline && diagnostic.rule.startsWith("docs-structure/behavior-")),
     );
     const envCollected = yield* Stream.runCollect(
       applyPerElementPipeline(Stream.fromIterable(environmentDiagnostics)),
