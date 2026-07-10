@@ -31,6 +31,8 @@ const HARNESS_DOCTOR_BLOCK_PATTERN = new RegExp(
 const SHEBANG = "#!/bin/sh";
 const SHEBANG_PREFIX = "#!";
 const LOCAL_HARNESS_DOCTOR_BIN = "./node_modules/.bin/harness-doctor";
+const BUNX_HARNESS_DOCTOR_COMMAND =
+  "bunx @andypai/harness-doctor@latest --staged --fail-on warning";
 const PNPM_HARNESS_DOCTOR_COMMAND =
   "pnpm dlx @andypai/harness-doctor@latest --staged --fail-on warning";
 const NPX_HARNESS_DOCTOR_COMMAND =
@@ -47,6 +49,11 @@ const buildHarnessDoctorHookBlock = (): string =>
     "",
     "  if command -v harness-doctor >/dev/null 2>&1; then",
     `    ${HARNESS_DOCTOR_COMMAND}`,
+    "    return",
+    "  fi",
+    "",
+    "  if command -v bunx >/dev/null 2>&1; then",
+    `    ${BUNX_HARNESS_DOCTOR_COMMAND}`,
     "    return",
     "  fi",
     "",

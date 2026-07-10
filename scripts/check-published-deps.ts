@@ -174,7 +174,7 @@ for (const packageDirectory of publishedPackageDirectories) {
 }
 
 if (hasMissingArtifacts) {
-  console.error("\nBuild the packages before running this check: `pnpm build`.");
+  console.error("\nBuild the packages before running this check: `bun run build`.");
   process.exit(1);
 }
 

@@ -162,7 +162,7 @@ def run_prompt_in_pty(fixture_directory):
 
 def main():
     if not os.path.isfile(CLI_BINARY_PATH):
-        fail(f"Built CLI missing at {CLI_BINARY_PATH}. Run `pnpm build` first.")
+        fail(f"Built CLI missing at {CLI_BINARY_PATH}. Run `bun run build` first.")
 
     fixture_directory = tempfile.mkdtemp(prefix="harness-doctor-tty-smoke-")
     try:

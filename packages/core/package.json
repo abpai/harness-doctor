@@ -27,6 +27,7 @@
     "deslop-js": "^0.0.15",
     "effect": "4.0.0-beta.70",
     "jiti": "^2.7.0",
+    "picocolors": "^1.1.1",
     "picomatch": "^4.0.4",
     "typescript": "^6.0.3"
   },

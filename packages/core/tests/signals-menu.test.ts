@@ -94,7 +94,9 @@ describe("commandExistsInSignalsMenu", () => {
     expect(commandExistsInSignalsMenu("test", menu)).toBe(true);
     expect(commandExistsInSignalsMenu("pnpm test", menu)).toBe(true);
     expect(commandExistsInSignalsMenu("npm run lint", menu)).toBe(true);
+    expect(commandExistsInSignalsMenu("bun run test", menu)).toBe(true);
     expect(commandExistsInSignalsMenu("pnpm --filter web test:e2e", menu)).toBe(true);
+    expect(commandExistsInSignalsMenu("bun run --filter web test:e2e", menu)).toBe(true);
   });
 
   it("resolves make targets and just recipes", () => {
@@ -105,6 +107,8 @@ describe("commandExistsInSignalsMenu", () => {
   it("rejects commands that do not exist in the signals menu", () => {
     expect(commandExistsInSignalsMenu("pnpm missing", menu)).toBe(false);
     expect(commandExistsInSignalsMenu("pnpm --filter api test:e2e", menu)).toBe(false);
+    expect(commandExistsInSignalsMenu("bun run missing", menu)).toBe(false);
+    expect(commandExistsInSignalsMenu("bun run --filter api test:e2e", menu)).toBe(false);
     expect(commandExistsInSignalsMenu("make missing", menu)).toBe(false);
     expect(commandExistsInSignalsMenu("just missing", menu)).toBe(false);
   });

@@ -32,8 +32,8 @@ Run `/deslop` ([`../deslop/SKILL.md`](../deslop/SKILL.md)) to simplify the recen
 ## 3. Commit and push
 
 - Stage only the intended changes; never commit secrets.
-- Add a changeset first when a published package's behavior changed (`pnpm changeset`, one user-facing sentence in the repo's changelog voice); skip only for private/docs/test/tooling-only changes and note why.
-- Run the repo checks that fit the change before committing: `nr test`, `nr lint`, `nr typecheck`, `nr format:check`.
+- Add a changeset first when a published package's behavior changed (`bun run changeset`, one user-facing sentence in the repo's changelog voice); skip only for private/docs/test/tooling-only changes and note why.
+- Run the repo checks that fit the change before committing: `bun run test`, `bun run lint`, `bun run typecheck`, `bun run format:check`.
 - Write a concise commit message in the repo's style, focused on the why.
 - Push the branch, setting upstream with `-u` on the first push.
 - Git safety: no force-push to `main`, no skipped hooks, no `git config` changes.

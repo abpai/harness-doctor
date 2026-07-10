@@ -11,7 +11,7 @@ const CLI_BINARY_PATH = resolve(REPOSITORY_ROOT, "packages/harness-doctor/dist/c
 const FIXTURE_DIRECTORY = resolve(REPOSITORY_ROOT, "packages/core/tests/fixtures/basic-react");
 
 if (!existsSync(CLI_BINARY_PATH)) {
-  console.error(`Built CLI missing at ${CLI_BINARY_PATH}. Run \`pnpm build\` first.`);
+  console.error(`Built CLI missing at ${CLI_BINARY_PATH}. Run \`bun run build\` first.`);
   process.exit(1);
 }
 

@@ -27,21 +27,22 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
 
       - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
-          cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - run: bun ci
 
-      - run: pnpm test
+      - run: bun run test
 
-      - run: pnpm typecheck
+      - run: bun run typecheck
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
 
-      - run: pnpm lint
+      - run: bun run lint
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
 
       - name: Check formatting
@@ -51,7 +52,7 @@ jobs:
           format_output_file="$(mktemp)"
 
           set +e
-          pnpm format:check 2>&1 | tee "$format_output_file"
+          bun run format:check 2>&1 | tee "$format_output_file"
           format_status=${PIPESTATUS[0]}
           set -e
 
@@ -68,7 +69,7 @@ jobs:
               format_annotation_file="${format_annotation_file//$'\n'/'%0A'}"
               format_annotation_file="${format_annotation_file//':'/'%3A'}"
               format_annotation_file="${format_annotation_file//','/'%2C'}"
-              echo "::error file=$format_annotation_file::File is not formatted. Run pnpm format."
+              echo "::error file=$format_annotation_file::File is not formatted. Run bun run format."
             done < "$format_output_file"
           fi
 
@@ -79,7 +80,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
         run: |
           cd packages/harness-doctor
-          pnpm build
+          bun run build
           BUILT_VERSION=$(node bin/harness-doctor.js --version)
           echo "Built CLI reports version: $BUILT_VERSION"
           if [ -z "$BUILT_VERSION" ] || [ "$BUILT_VERSION" = "0.0.0" ]; then
@@ -89,7 +90,7 @@ jobs:
 
       - name: Smoke test JSON report shape
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
-        run: pnpm smoke:json-report
+        run: bun run smoke:json-report
 
       # Regression guard for #629: a published package's built output must not
       # import a package that isn't in its `dependencies` (such phantom imports
@@ -98,8 +99,8 @@ jobs:
       - name: Check published packages declare their runtime dependencies
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
         run: |
-          pnpm build
-          pnpm check:published-deps
+          bun run build
+          bun run check:published-deps
 
       # Allocates a real pseudo-terminal (`pty.openpty()`) so the CLI sees an
       # interactive TTY and renders the multiselect prompt, then asserts the
@@ -107,4 +108,4 @@ jobs:
       # (regression guard for #576: unref'd stdin killed interactive prompts).
       - name: Smoke test interactive TTY prompt
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
-        run: pnpm smoke:tty-prompt
+        run: bun run smoke:tty-prompt

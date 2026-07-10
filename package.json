@@ -9,6 +9,9 @@
     "type": "git",
     "url": "https://github.com/abpai/harness-doctor.git"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "type": "module",
   "scripts": {
     "dev": "turbo run dev --filter=@andypai/harness-doctor",
@@ -22,7 +25,7 @@
     "check": "vp check",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm build && pnpm check:published-deps && changeset publish",
+    "release": "bun run build && bun run check:published-deps && changeset publish",
     "check:published-deps": "node --experimental-strip-types --no-warnings scripts/check-published-deps.ts",
     "smoke:json-report": "node --experimental-strip-types --no-warnings scripts/smoke-json-report.ts",
     "smoke:tty-prompt": "python3 scripts/smoke-tty-prompt.py"
@@ -30,25 +33,29 @@
   "devDependencies": {
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.31.0",
+    "@harness-doctor/core": "workspace:*",
     "@rayhanadev/truffler": "^0.4.2",
     "@types/node": "^25.6.0",
     "@voidzero-dev/vite-plus-core": "^0.1.15",
     "cross-env": "^10.1.0",
+    "effect": "4.0.0-beta.70",
     "ts-json-schema-generator": "^2.9.0",
     "turbo": "^2.9.7",
     "typescript": "^6.0.3",
     "vite-plus": "^0.1.15"
   },
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0",
-    "pnpm": ">=8"
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@^0.1.15",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@^0.1.15"
   },
-  "packageManager": "pnpm@10.29.1",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild",
-      "unrs-resolver"
-    ]
-  }
+  "engines": {
+    "bun": ">=1.1.0",
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "packageManager": "bun@1.3.3",
+  "trustedDependencies": [
+    "@parcel/watcher",
+    "esbuild",
+    "unrs-resolver"
+  ]
 }
