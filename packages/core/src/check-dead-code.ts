@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import type { Diagnostic, HarnessDoctorConfig } from "./types/index.js";
 import { collectIgnorePatterns } from "./collect-ignore-patterns.js";
 import {
@@ -18,6 +20,9 @@ import { toRelativePath } from "./utils/to-relative-path.js";
 // diagnostics actually emitted below.
 export const DEAD_CODE_PLUGIN = "deslop";
 export const DEAD_CODE_CATEGORY = "Maintainability";
+// npm package that backs the plugin (the plugin id above is the short
+// label carried on diagnostics; the package on disk is `deslop-js`).
+const DEAD_CODE_PLUGIN_PACKAGE = "deslop-js";
 
 interface CheckDeadCodeOptions {
   readonly rootDirectory: string;
@@ -32,7 +37,13 @@ interface DeadCodeWorkerInput {
   readonly rootDirectory: string;
   readonly tsConfigPath?: string;
   readonly ignorePatterns: ReadonlyArray<string>;
-  readonly deslopJsModuleSpecifier: string;
+  /**
+   * Where the worker imports deslop from. Omitted by callers that rely on
+   * the default; `createDeadCodeWorker` resolves it lazily so injected
+   * (fake) workers never trigger deslop resolution — see
+   * `resolveDeslopJsSpecifier`.
+   */
+  readonly deslopJsModuleSpecifier?: string;
 }
 
 interface DeadCodeWorkerHandle {
@@ -330,7 +341,30 @@ const buildDeadCodeWorkerError = (workerError: DeadCodeWorkerError): Error => {
   return error;
 };
 
+// Resolve deslop's ESM entry to a file:// specifier the worker can
+// `import()`. We deliberately avoid `import.meta.resolve("deslop-js")`:
+// under Bun on Windows it throws `ENOENT while resolving package` for
+// dependencies in the hoisted store, which broke the dead-code checks in
+// CI. `createRequire(...).resolve` walks the same store reliably on every
+// platform, and reading the package's `module` entry keeps us on the ESM
+// build without hard-coding a dist path.
+const resolveDeslopJsSpecifier = (): string => {
+  const requireFromHere = createRequire(import.meta.url);
+  const packageJsonPath = requireFromHere.resolve(`${DEAD_CODE_PLUGIN_PACKAGE}/package.json`);
+  const packageDirectory = path.dirname(packageJsonPath);
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as {
+    module?: string;
+    main?: string;
+  };
+  const entry = packageJson.module ?? packageJson.main;
+  if (!entry) {
+    throw new Error(`${DEAD_CODE_PLUGIN_PACKAGE} package.json is missing an entry point.`);
+  }
+  return pathToFileURL(path.join(packageDirectory, entry)).href;
+};
+
 const createDeadCodeWorker: DeadCodeWorkerFactory = (input) => {
+  const deslopJsModuleSpecifier = input.deslopJsModuleSpecifier ?? resolveDeslopJsSpecifier();
   // HACK: run deslop in a child PROCESS (runtime -e), not a worker_thread.
   // deslop loads native (oxc) NAPI addons; force-terminating a
   // worker_thread that holds native handles intermittently crashes the
@@ -399,7 +433,7 @@ const createDeadCodeWorker: DeadCodeWorkerFactory = (input) => {
   // writing input, the real failure surfaces via the close/error
   // handlers above.
   child.stdin.on("error", () => {});
-  child.stdin.end(JSON.stringify(input));
+  child.stdin.end(JSON.stringify({ ...input, deslopJsModuleSpecifier }));
 
   return {
     result,
@@ -456,7 +490,9 @@ export const checkDeadCode = async (options: CheckDeadCodeOptions): Promise<Diag
     rootDirectory,
     tsConfigPath: resolveTsConfigPath(rootDirectory),
     ignorePatterns,
-    deslopJsModuleSpecifier: options.deslopJsModuleSpecifier ?? import.meta.resolve("deslop-js"),
+    // Resolved lazily by `createDeadCodeWorker` when omitted, so injected
+    // (fake) workers in tests never force deslop resolution.
+    deslopJsModuleSpecifier: options.deslopJsModuleSpecifier,
   });
   const rawResult = await runDeadCodeWorkerWithTimeout(
     workerHandle,
