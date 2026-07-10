@@ -84,7 +84,7 @@ const mergeInspectOptions = (
   share: userConfig?.share ?? true,
   respectInlineDisables:
     inputOptions.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true,
-  baselineCheck: inputOptions.baselineCheck ?? false,
+  baselineCheck: inputOptions.baselineCheck ?? userConfig?.baselineCheck ?? false,
   warnings: inputOptions.warnings ?? userConfig?.warnings ?? DEFAULT_SHOW_WARNINGS,
   outputSurface: inputOptions.outputSurface ?? "cli",
   suppressRendering: inputOptions.suppressRendering ?? false,

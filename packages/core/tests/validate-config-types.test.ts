@@ -20,6 +20,7 @@ describe("validateConfigTypes", () => {
     const input: HarnessDoctorConfig = {
       deadCode: true,
       docsContract: true,
+      baselineCheck: true,
       verbose: true,
       noScore: true,
       respectInlineDisables: false,
@@ -42,6 +43,14 @@ describe("validateConfigTypes", () => {
       false,
     );
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("docsContract"));
+  });
+
+  it("passes through baselineCheck and coerces stringy variants", () => {
+    expect(validateConfigTypes({ baselineCheck: true }).baselineCheck).toBe(true);
+    expect(
+      validateConfigTypes({ baselineCheck: "false" as unknown as boolean }).baselineCheck,
+    ).toBe(false);
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("baselineCheck"));
   });
 
   it('coerces the string `"false"` to boolean false and writes to stderr', () => {

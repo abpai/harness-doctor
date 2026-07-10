@@ -121,6 +121,12 @@ export interface HarnessDoctorConfig {
    * has open todo specs. Other deterministic docs checks remain always-on.
    */
   docsContract?: boolean;
+  /**
+   * Require docs/BEHAVIOR_INVENTORY.md and docs/BEHAVIOR_LEDGER.md even
+   * before either artifact exists. Existing baseline files are always
+   * validated when present. Default: `false`.
+   */
+  baselineCheck?: boolean;
   verbose?: boolean;
   /**
    * Whether to surface `"warning"`-severity diagnostics. Default: `true`

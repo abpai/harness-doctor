@@ -259,11 +259,14 @@ export const runInspect = <HooksR = never>(
       ...checkPnpmHardening(scanDirectory),
       ...checkDocsStructure(scanDirectory, {
         docsContract: resolvedConfig.config?.docsContract === true,
-        baselineCheck: input.baselineCheck === true,
+        baselineCheck: input.baselineCheck ?? resolvedConfig.config?.baselineCheck ?? false,
       }),
     ].filter(
       (diagnostic) =>
-        changedFileSet === null || changedFileSet.has(toPosixPath(diagnostic.filePath)),
+        changedFileSet === null ||
+        changedFileSet.has(toPosixPath(diagnostic.filePath)) ||
+        ((input.baselineCheck ?? resolvedConfig.config?.baselineCheck ?? false) &&
+          diagnostic.rule.startsWith("docs-structure/behavior-")),
     );
     const envCollected = yield* Stream.runCollect(
       applyPerElementPipeline(Stream.fromIterable(environmentDiagnostics)),

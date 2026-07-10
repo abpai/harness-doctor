@@ -30,7 +30,7 @@ export const resolveCliInspectOptions = (
     deadCode: flags.deadCode,
     verbose: flags.verbose,
     respectInlineDisables: flags.respectInlineDisables,
-    baselineCheck: flags.baselineCheck === true,
+    baselineCheck: flags.baselineCheck,
     warnings: flags.warnings ?? (wantsWarningGate ? true : undefined),
     scoreOnly: flags.score === true,
     noScore: flags.score === false || flags.telemetry === false || (userConfig?.noScore ?? false),

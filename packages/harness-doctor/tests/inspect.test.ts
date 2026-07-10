@@ -61,4 +61,19 @@ describe("inspect", () => {
 
     expect(result.diagnostics.map((diagnostic) => diagnostic.plugin)).not.toContain("deslop");
   });
+
+  it("honors configOverride.baselineCheck=true", async () => {
+    writeCleanDocsProject();
+
+    const result = await inspect(projectRoot, {
+      configOverride: { baselineCheck: true, deadCode: false },
+      noScore: true,
+      silent: true,
+      suppressRendering: true,
+    });
+
+    expect(result.diagnostics.map((diagnostic) => diagnostic.rule)).toContain(
+      "docs-structure/behavior-baseline-artifacts-exist",
+    );
+  });
 });

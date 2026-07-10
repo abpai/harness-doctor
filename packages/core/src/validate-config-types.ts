@@ -39,6 +39,7 @@ const filterKnownCategories = (fieldName: string, categories: string[]): string[
 const BOOLEAN_FIELD_NAMES = [
   "deadCode",
   "docsContract",
+  "baselineCheck",
   "verbose",
   "warnings",
   "share",

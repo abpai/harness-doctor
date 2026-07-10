@@ -882,6 +882,35 @@ describe("checkDocsStructure", () => {
     expect(ruleKeys).not.toContain(BEHAVIOR_LEDGER_TEST_PATH_EXISTS_RULE_KEY);
   });
 
+  it("selects behavior tables by their headers when summary tables come first", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents:
+            "# Behavior inventory\n\n| Gate | Outcome |\n| --- | --- |\n| Gate 0 | passed |\n\n| ID | Area | Behavior | Entry points | Existing proof | Missing proof | Confidence | Risk | Status | Priority | Notes |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | Auth | Google login | `src/auth/google.ts:42` | none | no e2e proof | high | high | confirmed | P0 |  |\n",
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents:
+            "# Behavior ledger\n\n| Status | Count |\n| --- | --- |\n| captured | 1 |\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | captured | integration | `tests/auth/google.test.ts` | `pnpm test tests/auth/google.test.ts` | 3/3 green at abc123 | high |  |\n",
+        },
+      ],
+      rootFiles: [
+        {
+          filename: "tests/auth/google.test.ts",
+          contents: "test('google login characterization', () => {});\n",
+        },
+      ],
+    });
+
+    const ruleKeys = ruleKeysFor(rootDirectory);
+    expect(ruleKeys).not.toContain(BEHAVIOR_INVENTORY_VALID_RULE_KEY);
+    expect(ruleKeys).not.toContain(BEHAVIOR_LEDGER_VALID_RULE_KEY);
+    expect(ruleKeys).not.toContain(BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY);
+  });
+
   it("flags invalid behavior inventory IDs", () => {
     const rootDirectory = writeCleanLayout({
       docs: [
@@ -936,6 +965,63 @@ describe("checkDocsStructure", () => {
     );
     expect(flagged).toBeDefined();
     expect(flagged?.message).toContain("B-001");
+  });
+
+  it("normalizes lowercase priority before applying P0/P1 coverage", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents:
+            "# Behavior inventory\n\n| ID | Area | Behavior | Entry points | Existing proof | Missing proof | Confidence | Risk | Status | Priority | Notes |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | Billing | Downgrade subscription | `src/billing.ts:10` | none | no proof | high | high | confirmed | p0 |  |\n",
+        },
+      ],
+    });
+    const findings = checkDocsStructure(rootDirectory);
+    expect(findings.map((finding) => finding.rule)).toContain(
+      BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY,
+    );
+    expect(findings.map((finding) => finding.message).join("\n")).not.toContain(
+      "has Priority `P0`",
+    );
+  });
+
+  it("does not count an invalid ledger status as a terminal outcome", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents:
+            "# Behavior inventory\n\n| ID | Area | Behavior | Entry points | Existing proof | Missing proof | Confidence | Risk | Status | Priority | Notes |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | Billing | Downgrade subscription | `src/billing.ts:10` | none | no proof | high | high | confirmed | P0 |  |\n",
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents:
+            "# Behavior ledger\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | pending | none | none |  |  | medium | not captured |\n",
+        },
+      ],
+    });
+    const ruleKeys = ruleKeysFor(rootDirectory);
+    expect(ruleKeys).toContain(BEHAVIOR_LEDGER_VALID_RULE_KEY);
+    expect(ruleKeys).toContain(BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY);
+  });
+
+  it("reports malformed inventory rows without inferring coverage fields", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents:
+            "# Behavior inventory\n\n| ID | Area | Behavior | Entry points | Existing proof | Missing proof | Confidence | Risk | Status | Priority | Notes |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | Billing | Downgrade | with | stray pipe | none | no proof | high | high | confirmed | P0 |  |\n",
+        },
+      ],
+    });
+    const ruleKeys = ruleKeysFor(rootDirectory);
+    expect(ruleKeys).toContain(BEHAVIOR_INVENTORY_VALID_RULE_KEY);
+    expect(ruleKeys).not.toContain(BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY);
   });
 
   it("flags captured ledger rows that point to missing test paths", () => {

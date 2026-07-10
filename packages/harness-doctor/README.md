@@ -105,6 +105,7 @@ import type { HarnessDoctorConfig } from "@andypai/harness-doctor/api";
 export default {
   deadCode: false,
   docsContract: true,
+  baselineCheck: true,
   rules: {
     "harness-doctor/docs-structure/spec-contract-exists": "error",
     "deslop/unused-file": "off",
@@ -116,7 +117,9 @@ Set `docsContract: true` when a repo has opted into the Harness docs structure
 and should keep a durable `docs/todos/INDEX.md` queue even before open todo
 specs exist. Set `deadCode: false` to skip the heuristic dead-code family on
 first run; dead-code diagnostics are useful, but dynamically loaded fixtures can
-be false positives.
+be false positives. Set `baselineCheck: true` after adopting the behavior
+baseline workflow so local runs and CI require the inventory and ledger. The
+`--baseline-check` flag remains available for one-off enforcement.
 
 Config shape:
 
@@ -125,6 +128,7 @@ interface HarnessDoctorConfig {
   $schema?: string;
   deadCode?: boolean;
   docsContract?: boolean;
+  baselineCheck?: boolean;
   verbose?: boolean;
   warnings?: boolean;
   diff?: boolean | string;

@@ -792,8 +792,9 @@ const parseMarkdownTableCells = (lineText: string): string[] | null => {
   return cells.length === 0 ? null : cells;
 };
 
-const findFirstMarkdownTable = (content: string): MarkdownTable | null => {
+const findMarkdownTables = (content: string): MarkdownTable[] => {
   const lines = content.split(/\r?\n/).map((text, index) => ({ text, line: index + 1 }));
+  const tables: MarkdownTable[] = [];
   for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
     const delimiter = lines[lineIndex];
     const header = lines[lineIndex - 1];
@@ -810,9 +811,26 @@ const findFirstMarkdownTable = (content: string): MarkdownTable | null => {
       if (cells === null) break;
       rows.push({ cells, line: row.line });
     }
-    return { headers, rows, headerLine: header.line };
+    tables.push({ headers, rows, headerLine: header.line });
   }
-  return null;
+  return tables;
+};
+
+const findBestMarkdownTable = (
+  content: string,
+  requiredColumns: ReadonlyArray<string>,
+): MarkdownTable | null => {
+  let bestTable: MarkdownTable | null = null;
+  let bestMatchCount = -1;
+  for (const table of findMarkdownTables(content)) {
+    const headers = new Set(table.headers.map(normalizeBehaviorHeader));
+    const matchCount = requiredColumns.filter((column) => headers.has(column)).length;
+    if (matchCount <= bestMatchCount) continue;
+    bestTable = table;
+    bestMatchCount = matchCount;
+    if (matchCount === requiredColumns.length) break;
+  }
+  return bestTable;
 };
 
 const findProofMenuTable = (content: string): ProofMenuTable | null => {
@@ -1093,7 +1111,7 @@ const checkBehaviorInventory = (
   const content = readFileOrNull(path.join(rootDirectory, behaviorInventoryPath));
   if (content === null) return { rows: [], diagnostics: [] };
   const diagnostics: Diagnostic[] = [];
-  const table = findFirstMarkdownTable(content);
+  const table = findBestMarkdownTable(content, REQUIRED_BEHAVIOR_INVENTORY_COLUMNS);
   if (table === null) {
     return {
       rows: [],
@@ -1149,7 +1167,7 @@ const checkBehaviorInventory = (
     const confidence = (row.cells[confidenceIndex]?.trim() ?? "").toLowerCase();
     const risk = (row.cells[riskIndex]?.trim() ?? "").toLowerCase();
     const status = (row.cells[statusIndex]?.trim() ?? "").toLowerCase();
-    const priority = row.cells[priorityIndex]?.trim() ?? "";
+    const priority = (row.cells[priorityIndex]?.trim() ?? "").toUpperCase();
     if (!BEHAVIOR_ID_PATTERN.test(id)) {
       diagnostics.push(
         buildBehaviorDiagnostic({
@@ -1180,7 +1198,7 @@ const checkBehaviorInventory = (
           filePath: behaviorInventoryPath,
           rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
           line: row.line,
-          message: `${behaviorInventoryPath} row ${id} has no entry point evidence — ratified behavior needs concrete code routes`,
+          message: `${behaviorInventoryPath} row ${id} has no entry point evidence — inventory behavior needs concrete code routes`,
           help: "Add at least one file or file:line reference in the Entry points column, or mark the row deferred/skip",
         }),
       );
@@ -1253,7 +1271,7 @@ const checkBehaviorLedger = (
     );
   }
   const diagnostics: Diagnostic[] = [];
-  const table = findFirstMarkdownTable(content);
+  const table = findBestMarkdownTable(content, REQUIRED_BEHAVIOR_LEDGER_COLUMNS);
   if (table === null) {
     return [
       buildBehaviorDiagnostic({
@@ -1427,7 +1445,9 @@ const checkBehaviorLedger = (
         );
       }
     }
-    ledgerRows.push({ id, status, testPaths });
+    if (BEHAVIOR_LEDGER_STATUS_VALUES.has(status)) {
+      ledgerRows.push({ id, status, testPaths });
+    }
   }
   const ledgerById = new Map(ledgerRows.map((row) => [row.id, row]));
   for (const inventoryRow of inScopeRows) {

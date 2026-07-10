@@ -66,6 +66,22 @@ describe("diagnose", () => {
     }
   });
 
+  it("honors baselineCheck from harness.config.json", async () => {
+    const projectRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rdc-baseline-config-"));
+    fs.writeFileSync(
+      path.join(projectRoot, "harness.config.json"),
+      JSON.stringify({ baselineCheck: true, deadCode: false }),
+    );
+    try {
+      const result = await diagnose(projectRoot);
+      expect(result.diagnostics.map((diagnostic) => diagnostic.rule)).toContain(
+        "docs-structure/behavior-baseline-artifacts-exist",
+      );
+    } finally {
+      fs.rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
   it("throws NotADirectoryError when the path is a file instead of a directory", async () => {
     const tempDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "rdc-file-"));
     const filePath = path.join(tempDirectory, "not-a-directory.txt");
