@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   checkDocsStructure,
   ENTRY_POINT_MAX_LINES,
+  HARNESS_DOCTOR_RULE_CATALOG,
   MONOLITHIC_DOC_MAX_LINES,
 } from "@harness-doctor/core";
 
@@ -47,6 +48,13 @@ const markdownLines = (count: number): string =>
     { length: count },
     (_lineValue, lineIndex) => `Line ${lineIndex + 1} of content.`,
   ).join("\n");
+
+const BEHAVIOR_INVENTORY_HEADER =
+  "| ID | Area | Behavior | Entry points | Existing proof | Missing proof | Confidence | Risk | Status | Priority | Notes |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |";
+const BEHAVIOR_LEDGER_HEADER =
+  "| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |";
+const CONFIRMED_BEHAVIOR_ROW =
+  "| B-001 | Auth | Google login | `src/auth/google.ts:42` | none | no e2e proof | high | high | confirmed | P0 |  |";
 
 interface FixtureFile {
   readonly filename: string;
@@ -363,6 +371,22 @@ describe("checkDocsStructure", () => {
     );
     expect(flagged).toBeDefined();
     expect(flagged?.filePath).toBe("docs/big.md");
+  });
+
+  it("exempts oversized behavior artifacts from no-monolithic-instruction-file", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${markdownLines(MONOLITHIC_DOC_MAX_LINES + 1)}`,
+        },
+      ],
+    });
+    const monolithFindings = checkDocsStructure(rootDirectory).filter(
+      (diagnostic) => diagnostic.rule === NO_MONOLITHIC_INSTRUCTION_FILE_RULE_KEY,
+    );
+    expect(monolithFindings).toEqual([]);
   });
 
   it("flags an oversized root-level instruction file other than the entry-point", () => {
@@ -865,7 +889,7 @@ describe("checkDocsStructure", () => {
         {
           filename: "BEHAVIOR_LEDGER.md",
           contents:
-            "# Behavior ledger\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | captured | integration | `tests/auth/google.test.ts` | `pnpm test tests/auth/google.test.ts` | 3/3 green at abc123 | high |  |\n",
+            "# Behavior ledger\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | captured | integration | `tests/auth/google.test.ts` | `bun test tests/auth/google.test.ts` | 3/3 green at abc123 | high |  |\n",
         },
       ],
       rootFiles: [
@@ -882,6 +906,92 @@ describe("checkDocsStructure", () => {
     expect(ruleKeys).not.toContain(BEHAVIOR_LEDGER_TEST_PATH_EXISTS_RULE_KEY);
   });
 
+  it("accepts an escaped pipe inside a ledger Run command cell", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | gap | none | none | \`bun test auth \\| bun test fallback\` | command unavailable | high | needs harness |\n`,
+        },
+      ],
+    });
+    expect(ruleKeysFor(rootDirectory)).not.toContain(BEHAVIOR_LEDGER_VALID_RULE_KEY);
+  });
+
+  it("stops the first of two abutting tables before the second header", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | gap | none | none |  |  | high | needs harness |\n| Metric | Value |\n| --- | --- |\n| captured | 0 |\n`,
+        },
+      ],
+    });
+    const messages = checkDocsStructure(rootDirectory)
+      .filter((diagnostic) => diagnostic.rule === BEHAVIOR_LEDGER_VALID_RULE_KEY)
+      .map((diagnostic) => diagnostic.message)
+      .join("\n");
+    expect(messages).not.toContain("cells but the header has");
+  });
+
+  it("ignores a fenced template table when finding behavior ledger tables", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n\`\`\`markdown\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | captured | integration | \`tests/auth.test.ts\` | \`bun test\` | green | high |  |\n\`\`\`\n`,
+        },
+      ],
+    });
+    const flagged = checkDocsStructure(rootDirectory).find(
+      (diagnostic) =>
+        diagnostic.rule === BEHAVIOR_LEDGER_VALID_RULE_KEY &&
+        diagnostic.message.includes("has no markdown table"),
+    );
+    expect(flagged).toBeDefined();
+  });
+
+  it("recognizes balanced emphasis around behavior table headers", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents:
+            "# Behavior inventory\n\n| **_ID_** | **Area** | **Behavior** | **Entry points** | **Existing proof** | **Missing proof** | **Confidence** | **Risk** | **Status** | **Priority** | **Notes** |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n" +
+            `${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents:
+            "# Behavior ledger\n\n| **ID** | **Status** | **Capture type** | **Test paths** | **Run command** | **Run evidence** | **Confidence** | **Remaining gap** |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | gap | none | none |  |  | high | needs harness |\n",
+        },
+      ],
+    });
+    const missingColumnFindings = checkDocsStructure(rootDirectory).filter(
+      (diagnostic) =>
+        (diagnostic.rule === BEHAVIOR_INVENTORY_VALID_RULE_KEY ||
+          diagnostic.rule === BEHAVIOR_LEDGER_VALID_RULE_KEY) &&
+        diagnostic.message.includes("missing required columns"),
+    );
+    expect(missingColumnFindings).toEqual([]);
+  });
+
   it("selects behavior tables by their headers when summary tables come first", () => {
     const rootDirectory = writeCleanLayout({
       docs: [
@@ -894,7 +1004,7 @@ describe("checkDocsStructure", () => {
         {
           filename: "BEHAVIOR_LEDGER.md",
           contents:
-            "# Behavior ledger\n\n| Status | Count |\n| --- | --- |\n| captured | 1 |\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | captured | integration | `tests/auth/google.test.ts` | `pnpm test tests/auth/google.test.ts` | 3/3 green at abc123 | high |  |\n",
+            "# Behavior ledger\n\n| Status | Count |\n| --- | --- |\n| captured | 1 |\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | captured | integration | `tests/auth/google.test.ts` | `bun test tests/auth/google.test.ts` | 3/3 green at abc123 | high |  |\n",
         },
       ],
       rootFiles: [
@@ -967,6 +1077,41 @@ describe("checkDocsStructure", () => {
     expect(flagged?.message).toContain("B-001");
   });
 
+  it("keeps coverage errors when a ledger has no markdown table", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        { filename: "BEHAVIOR_LEDGER.md", contents: "# Behavior ledger\n\nNo table yet.\n" },
+      ],
+    });
+    const ruleKeys = ruleKeysFor(rootDirectory);
+    expect(ruleKeys).toContain(BEHAVIOR_LEDGER_VALID_RULE_KEY);
+    expect(ruleKeys).toContain(BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY);
+  });
+
+  it("keeps coverage errors when a ledger is missing required columns", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: "# Behavior ledger\n\n| ID | Status |\n| --- | --- |\n| B-001 | captured |\n",
+        },
+      ],
+    });
+    const ruleKeys = ruleKeysFor(rootDirectory);
+    expect(ruleKeys).toContain(BEHAVIOR_LEDGER_VALID_RULE_KEY);
+    expect(ruleKeys).toContain(BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY);
+  });
+
   it("normalizes lowercase priority before applying P0/P1 coverage", () => {
     const rootDirectory = writeCleanLayout({
       docs: [
@@ -1024,6 +1169,130 @@ describe("checkDocsStructure", () => {
     expect(ruleKeys).not.toContain(BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY);
   });
 
+  it("flags ledger IDs as orphaned when a valid inventory table is empty", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | gap | none | none |  |  | high | needs inventory |\n`,
+        },
+      ],
+    });
+    const messages = checkDocsStructure(rootDirectory)
+      .filter((diagnostic) => diagnostic.rule === BEHAVIOR_LEDGER_VALID_RULE_KEY)
+      .map((diagnostic) => diagnostic.message)
+      .join("\n");
+    expect(messages).toContain("references B-001");
+  });
+
+  it("flags duplicate behavior inventory IDs", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+      ],
+    });
+    const messages = checkDocsStructure(rootDirectory)
+      .filter((diagnostic) => diagnostic.rule === BEHAVIOR_INVENTORY_VALID_RULE_KEY)
+      .map((diagnostic) => diagnostic.message)
+      .join("\n");
+    expect(messages).toContain("repeats behavior ID `B-001`");
+  });
+
+  it("flags duplicate behavior ledger IDs", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | gap | none | none |  |  | high | first |\n| B-001 | stale | none | none |  |  | high | duplicate |\n`,
+        },
+      ],
+    });
+    const messages = checkDocsStructure(rootDirectory)
+      .filter((diagnostic) => diagnostic.rule === BEHAVIOR_LEDGER_VALID_RULE_KEY)
+      .map((diagnostic) => diagnostic.message)
+      .join("\n");
+    expect(messages).toContain("repeats behavior ID `B-001`");
+  });
+
+  it("flags invalid ledger capture types", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | gap | manual | none |  |  | high | needs automation |\n`,
+        },
+      ],
+    });
+    const messages = checkDocsStructure(rootDirectory)
+      .filter((diagnostic) => diagnostic.rule === BEHAVIOR_LEDGER_VALID_RULE_KEY)
+      .map((diagnostic) => diagnostic.message)
+      .join("\n");
+    expect(messages).toContain("Capture type `manual`");
+  });
+
+  it("flags captured rows missing Run command and Run evidence", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | captured | integration | \`tests/auth.test.ts\` |  |  | high |  |\n`,
+        },
+      ],
+      rootFiles: [{ filename: "tests/auth.test.ts", contents: "test('auth', () => {});\n" }],
+    });
+    const messages = checkDocsStructure(rootDirectory)
+      .filter((diagnostic) => diagnostic.rule === BEHAVIOR_LEDGER_VALID_RULE_KEY)
+      .map((diagnostic) => diagnostic.message)
+      .join("\n");
+    expect(messages).toContain("has no Run command");
+    expect(messages).toContain("has no Run evidence");
+  });
+
+  it("flags captured rows with empty Test paths", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+        {
+          filename: "BEHAVIOR_LEDGER.md",
+          contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | captured | integration |  | \`bun test\` | green at abc123 | high |  |\n`,
+        },
+      ],
+    });
+    const messages = checkDocsStructure(rootDirectory)
+      .filter((diagnostic) => diagnostic.rule === BEHAVIOR_LEDGER_TEST_PATH_EXISTS_RULE_KEY)
+      .map((diagnostic) => diagnostic.message)
+      .join("\n");
+    expect(messages).toContain("has no test path");
+  });
+
   it("flags captured ledger rows that point to missing test paths", () => {
     const rootDirectory = writeCleanLayout({
       docs: [
@@ -1036,7 +1305,7 @@ describe("checkDocsStructure", () => {
         {
           filename: "BEHAVIOR_LEDGER.md",
           contents:
-            "# Behavior ledger\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | captured | integration | `tests/auth/missing.test.ts` | `pnpm test tests/auth/missing.test.ts` | 3/3 green at abc123 | high |  |\n",
+            "# Behavior ledger\n\n| ID | Status | Capture type | Test paths | Run command | Run evidence | Confidence | Remaining gap |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| B-001 | captured | integration | `tests/auth/missing.test.ts` | `bun test tests/auth/missing.test.ts` | 3/3 green at abc123 | high |  |\n",
         },
       ],
     });
@@ -1047,15 +1316,91 @@ describe("checkDocsStructure", () => {
     expect(flagged?.message).toContain("tests/auth/missing.test.ts");
   });
 
+  it("flags ledger test paths outside the repository even when they exist", () => {
+    const outsideFilename = `${path.basename(temporaryRoot)}-outside.test.ts`;
+    const outsideTestPath = path.join(path.dirname(temporaryRoot), outsideFilename);
+    fs.writeFileSync(outsideTestPath, "test('outside', () => {});\n");
+    try {
+      const rootDirectory = writeCleanLayout({
+        docs: [
+          ...cleanDocs,
+          {
+            filename: "BEHAVIOR_INVENTORY.md",
+            contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+          },
+          {
+            filename: "BEHAVIOR_LEDGER.md",
+            contents: `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | captured | integration | \`../${outsideFilename}\` | \`bun test\` | green at abc123 | high |  |\n`,
+          },
+        ],
+      });
+      const flagged = checkDocsStructure(rootDirectory).find(
+        (diagnostic) => diagnostic.rule === BEHAVIOR_LEDGER_TEST_PATH_EXISTS_RULE_KEY,
+      );
+      expect(flagged?.message).toContain(`../${outsideFilename}`);
+    } finally {
+      fs.rmSync(outsideTestPath, { force: true });
+    }
+  });
+
+  it("parses behavior inventory and ledger tables with CRLF line endings", () => {
+    const inventory =
+      `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`.replaceAll(
+        "\n",
+        "\r\n",
+      );
+    const ledger =
+      `# Behavior ledger\n\n${BEHAVIOR_LEDGER_HEADER}\n| B-001 | captured | integration | \`tests/auth.test.ts\` | \`bun test\` | green at abc123 | high |  |\n`.replaceAll(
+        "\n",
+        "\r\n",
+      );
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        { filename: "BEHAVIOR_INVENTORY.md", contents: inventory },
+        { filename: "BEHAVIOR_LEDGER.md", contents: ledger },
+      ],
+      rootFiles: [{ filename: "tests/auth.test.ts", contents: "test('auth', () => {});\r\n" }],
+    });
+    const behaviorFindings = checkDocsStructure(rootDirectory).filter((diagnostic) =>
+      diagnostic.rule.startsWith("docs-structure/behavior-"),
+    );
+    expect(behaviorFindings).toEqual([]);
+  });
+
   // ── Shape / metadata invariants ───────────────────────────────────────
 
-  it("emits Maintainability warnings under the harness-doctor plugin for every finding", () => {
-    const rootDirectory = writeLayout({});
+  it("matches every finding severity to its rule catalog default", () => {
+    const rootDirectory = writeCleanLayout({
+      docs: [
+        ...cleanDocs,
+        {
+          filename: "BEHAVIOR_INVENTORY.md",
+          contents: `# Behavior inventory\n\n${BEHAVIOR_INVENTORY_HEADER}\n${CONFIRMED_BEHAVIOR_ROW}\n`,
+        },
+      ],
+    });
     const diagnostics = checkDocsStructure(rootDirectory);
     expect(diagnostics.length).toBeGreaterThan(0);
+    expect(
+      diagnostics.some(
+        (diagnostic) =>
+          diagnostic.rule === BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY &&
+          diagnostic.severity === "error",
+      ),
+    ).toBe(true);
+    const catalogByRule = new Map(
+      HARNESS_DOCTOR_RULE_CATALOG.filter((entry) => entry.plugin === "harness-doctor").map(
+        (entry) => [entry.rule, entry],
+      ),
+    );
     for (const diagnostic of diagnostics) {
+      const catalogEntry = catalogByRule.get(diagnostic.rule);
+      expect(catalogEntry).toBeDefined();
       expect(diagnostic.plugin).toBe("harness-doctor");
-      expect(diagnostic.severity).toBe("warning");
+      expect(diagnostic.severity).toBe(
+        catalogEntry?.defaultSeverity === "warn" ? "warning" : "error",
+      );
       expect(diagnostic.category).toBe("Maintainability");
       expect(diagnostic.rule.startsWith("docs-structure/")).toBe(true);
       expect(diagnostic.message.length).toBeGreaterThan(0);

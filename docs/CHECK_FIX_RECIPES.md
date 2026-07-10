@@ -114,6 +114,16 @@ sections (quality bar, proof menu, escalation boundaries).
 **The fix:** add the missing sections. The proof menu is the load-bearing part:
 a contract without it cannot tell intake what this repo can prove.
 
+## docs-structure/spec-contract-declares-grader-sufficiency
+
+**What fired:** the repo opted into the Harness docs contract, but the proof
+menu does not declare whether each change type's automated grader is sufficient
+or requires human sign-off.
+
+**The fix:** add a `Sufficiency` column to the proof-menu table and set every
+row to `auto` or `human-gate`. Use `auto` only when the listed validation and
+proof artifact are enough to establish completion without subjective review.
+
 ## docs-structure/proof-menu-command-exists
 
 **What fired:** a proof-menu row is malformed, or its validation command does
@@ -125,6 +135,54 @@ not resolve to the repository's discovered command signals.
 `human-gate`. The `Validation command` cell must contain only one or more
 backtick-wrapped commands, and each command must be an existing package script,
 Makefile target, or just recipe discovered by `harness-doctor signals`.
+
+## docs-structure/behavior-baseline-artifacts-exist
+
+**What fired:** baseline checking is enabled, but
+`docs/BEHAVIOR_INVENTORY.md` or `docs/BEHAVIOR_LEDGER.md` is missing.
+
+**The fix:** run the Harness baseline workflow to create the inventory, ratify
+its proposed behaviors, and capture terminal outcomes in the ledger. Commit
+both artifacts before enabling `baselineCheck: true` in routine scans or CI.
+
+## docs-structure/behavior-inventory-valid
+
+**What fired:** `docs/BEHAVIOR_INVENTORY.md` has no recognizable table, is
+missing required columns, or contains malformed IDs, duplicate IDs, missing
+entry points, or unsupported confidence, risk, status, or priority values.
+
+**The fix:** restore the baseline inventory table header and keep one row per
+stable `B-001`-style ID. Supply concrete entry-point evidence and use only the
+allowed confidence, risk, status, and priority values named in the diagnostic.
+
+## docs-structure/behavior-ledger-valid
+
+**What fired:** `docs/BEHAVIOR_LEDGER.md` is not machine-readable or a row has
+an invalid or duplicate ID, an orphaned inventory reference, an unsupported
+status/capture type/confidence, or incomplete captured proof metadata.
+
+**The fix:** restore the required ledger columns, keep one terminal outcome per
+inventory ID, and use the allowed enum values. Captured and bug-pinned rows must
+record test paths, the exact run command, and durable run evidence.
+
+## docs-structure/behavior-ledger-covers-confirmed
+
+**What fired:** a confirmed or corrected P0/P1 inventory behavior has no valid
+terminal ledger outcome. A missing or malformed ledger does not waive this
+coverage requirement.
+
+**The fix:** run the baseline capture workflow for each reported behavior and
+record a captured, bug-pinned, gap, failed, or stale ledger row. If the behavior
+is not actually in scope, correct its inventory status or priority instead.
+
+## docs-structure/behavior-ledger-test-path-exists
+
+**What fired:** a captured or bug-pinned ledger row has no test path, names a
+path that does not exist, or points outside the repository root.
+
+**The fix:** commit the referenced test, snapshot, fixture, or snapshot
+directory inside the repository and update the ledger path. If the proof no
+longer exists, mark the row as gap or stale rather than preserving a false link.
 
 ## docs-structure/engineering-docs-exist
 

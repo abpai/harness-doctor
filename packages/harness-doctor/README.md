@@ -119,6 +119,8 @@ specs exist. Set `deadCode: false` to skip the heuristic dead-code family on
 first run; dead-code diagnostics are useful, but dynamically loaded fixtures can
 be false positives. Set `baselineCheck: true` after adopting the behavior
 baseline workflow so local runs and CI require the inventory and ledger. The
+external [`harness` skills plugin](https://github.com/abpai/skills) creates
+these artifacts through `/harness baseline`. The
 `--baseline-check` flag remains available for one-off enforcement.
 
 Config shape:

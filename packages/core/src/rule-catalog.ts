@@ -120,6 +120,7 @@ export const HARNESS_DOCTOR_RULE_CATALOG: ReadonlyArray<CoreRuleMetadata> = [
   docsStructureRule(
     "behavior-baseline-artifacts-exist",
     "Create docs/BEHAVIOR_INVENTORY.md and docs/BEHAVIOR_LEDGER.md through harness baseline before enabling baseline checks in self-review or CI.",
+    { defaultEnabled: false },
   ),
   docsStructureRule(
     "behavior-inventory-valid",
