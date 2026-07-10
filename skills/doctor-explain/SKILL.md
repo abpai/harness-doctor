@@ -16,7 +16,7 @@ Triggers: `/doctor-explain`, `/doctor-config`, "why did this rule fire", "I disa
 2. Explain it before changing anything:
 
 ```bash
-npx @andypai/harness-doctor@latest rules explain docs-structure/spec-contract-exists
+bunx --bun @andypai/harness-doctor@latest rules explain docs-structure/spec-contract-exists
 ```
 
 3. Pick the narrowest control that matches the user's intent (see decision guide).
@@ -24,22 +24,22 @@ npx @andypai/harness-doctor@latest rules explain docs-structure/spec-contract-ex
 5. Validate the change did what they wanted:
 
 ```bash
-npx @andypai/harness-doctor@latest --verbose --diff
+bunx --bun @andypai/harness-doctor@latest --verbose --diff
 ```
 
 ## Commands
 
 ```bash
-npx @andypai/harness-doctor@latest rules list                         # every rule + its effective severity
-npx @andypai/harness-doctor@latest rules list --configured            # only what your config changed
-npx @andypai/harness-doctor@latest rules list --category Security      # filter by category
-npx @andypai/harness-doctor@latest rules explain <rule>               # why it matters + how to configure
-npx @andypai/harness-doctor@latest rules disable <rule>               # rule never runs
-npx @andypai/harness-doctor@latest rules enable <rule>                # turn back on at its recommended severity
-npx @andypai/harness-doctor@latest rules set <rule> warn              # off | warn | error
-npx @andypai/harness-doctor@latest rules category "Maintainability" off   # whole category
-npx @andypai/harness-doctor@latest rules ignore-tag dead-code         # skip a rule family
-npx @andypai/harness-doctor@latest rules unignore-tag dead-code
+bunx --bun @andypai/harness-doctor@latest rules list                         # every rule + its effective severity
+bunx --bun @andypai/harness-doctor@latest rules list --configured            # only what your config changed
+bunx --bun @andypai/harness-doctor@latest rules list --category Security      # filter by category
+bunx --bun @andypai/harness-doctor@latest rules explain <rule>               # why it matters + how to configure
+bunx --bun @andypai/harness-doctor@latest rules disable <rule>               # rule never runs
+bunx --bun @andypai/harness-doctor@latest rules enable <rule>                # turn back on at its recommended severity
+bunx --bun @andypai/harness-doctor@latest rules set <rule> warn              # off | warn | error
+bunx --bun @andypai/harness-doctor@latest rules category "Maintainability" off   # whole category
+bunx --bun @andypai/harness-doctor@latest rules ignore-tag dead-code         # skip a rule family
+bunx --bun @andypai/harness-doctor@latest rules unignore-tag dead-code
 ```
 
 Rule references accept the full key (`harness-doctor/docs-structure/spec-contract-exists`) or the bare id (`docs-structure/spec-contract-exists`).

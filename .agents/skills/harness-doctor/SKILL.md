@@ -15,7 +15,7 @@ agnostic and offline: the same repo always produces the same score.
 Run the scan in diff mode and confirm the score did not regress:
 
 ```bash
-npx @andypai/harness-doctor@latest --verbose --diff
+bunx --bun @andypai/harness-doctor@latest --verbose --diff
 ```
 
 If the score dropped, fix the regressions before committing. The score is
@@ -27,7 +27,7 @@ Run a full-codebase scan and fix issues by severity — errors first, then
 warnings:
 
 ```bash
-npx @andypai/harness-doctor@latest --verbose
+bunx --bun @andypai/harness-doctor@latest --verbose
 ```
 
 ## /doctor — local triage workflow
@@ -36,7 +36,7 @@ When the user types `/doctor`, says "run harness doctor", or asks for a full
 triage / cleanup pass (not just a regression check), follow this loop. It edits
 the working tree directly — it never commits and never opens PRs.
 
-1. **Scan.** Run `npx @andypai/harness-doctor@latest --verbose` and read the full output:
+1. **Scan.** Run `bunx --bun @andypai/harness-doctor@latest --verbose` and read the full output:
    the score, the top errors, and the per-rule / per-check groupings.
 2. **Filter.** Pick the highest-value findings first: errors before warnings,
    and within a severity, the rules the report ranks highest.
@@ -46,7 +46,7 @@ the working tree directly — it never commits and never opens PRs.
 4. **Fix.** Apply the narrowest change that resolves the finding. For structural
    checks (e.g. a missing `docs/` directory or an over-long entry-point file),
    the fix is usually editing or splitting docs, not source code.
-5. **Validate.** Re-run `npx @andypai/harness-doctor@latest --verbose --diff` and confirm
+5. **Validate.** Re-run `bunx --bun @andypai/harness-doctor@latest --verbose --diff` and confirm
    the score went up (or at least did not regress) and that no new findings
    appeared. Repeat from step 1 until the score is acceptable.
 
@@ -57,14 +57,14 @@ Never let the score regress relative to where you started.
 When the user wants to understand a rule, disagrees with one, or wants to
 disable / tune which checks run (not fix code), use the `doctor-explain` skill
 (alias `/doctor-config`). Start with
-`npx @andypai/harness-doctor@latest rules explain <rule>`, then apply the narrowest
-control via `npx @andypai/harness-doctor@latest rules disable|set|category|ignore-tag …`,
+`bunx --bun @andypai/harness-doctor@latest rules explain <rule>`, then apply the narrowest
+control via `bunx --bun @andypai/harness-doctor@latest rules disable|set|category|ignore-tag …`,
 which edits your `harness.config.*` (or `package.json#harnessDoctor`).
 
 ## Command reference
 
 ```bash
-npx @andypai/harness-doctor@latest --verbose --diff
+bunx --bun @andypai/harness-doctor@latest --verbose --diff
 ```
 
 | Flag        | Purpose                                       |

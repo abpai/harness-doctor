@@ -32,11 +32,7 @@ const SHEBANG = "#!/bin/sh";
 const SHEBANG_PREFIX = "#!";
 const LOCAL_HARNESS_DOCTOR_BIN = "./node_modules/.bin/harness-doctor";
 const BUNX_HARNESS_DOCTOR_COMMAND =
-  "bunx @andypai/harness-doctor@latest --staged --fail-on warning";
-const PNPM_HARNESS_DOCTOR_COMMAND =
-  "pnpm dlx @andypai/harness-doctor@latest --staged --fail-on warning";
-const NPX_HARNESS_DOCTOR_COMMAND =
-  "npx --yes @andypai/harness-doctor@latest --staged --fail-on warning";
+  "bunx --bun @andypai/harness-doctor@latest --staged --fail-on warning";
 
 const buildHarnessDoctorHookBlock = (): string =>
   [
@@ -52,18 +48,8 @@ const buildHarnessDoctorHookBlock = (): string =>
     "    return",
     "  fi",
     "",
-    "  if command -v bunx >/dev/null 2>&1; then",
+    "  if command -v bun >/dev/null 2>&1; then",
     `    ${BUNX_HARNESS_DOCTOR_COMMAND}`,
-    "    return",
-    "  fi",
-    "",
-    "  if command -v pnpm >/dev/null 2>&1; then",
-    `    ${PNPM_HARNESS_DOCTOR_COMMAND}`,
-    "    return",
-    "  fi",
-    "",
-    "  if command -v npx >/dev/null 2>&1; then",
-    `    ${NPX_HARNESS_DOCTOR_COMMAND}`,
     "    return",
     "  fi",
     "",

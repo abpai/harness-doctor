@@ -351,7 +351,7 @@ describe("printAgentInstallHint", () => {
     });
     const output = writtenLines.join("\n");
 
-    expect(output).toContain("npx @andypai/harness-doctor install --yes");
+    expect(output).toContain("bunx --bun @andypai/harness-doctor install --yes");
     expect(output).toContain("not installed");
     expect(output).toContain("Ask the user");
   });
@@ -360,7 +360,7 @@ describe("printAgentInstallHint", () => {
     expect(AGENT_INSTALL_HINT_LINES.length).toBeGreaterThan(0);
     expect(
       AGENT_INSTALL_HINT_LINES.some((line) =>
-        line.includes("npx @andypai/harness-doctor install --yes"),
+        line.includes("bunx --bun @andypai/harness-doctor install --yes"),
       ),
     ).toBe(true);
   });

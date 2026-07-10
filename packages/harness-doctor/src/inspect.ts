@@ -408,7 +408,7 @@ const finalizeAndRender = (input: FinalizeInput): Effect.Effect<InspectResult> =
     if (demotedDiagnosticCount > 0) {
       yield* Console.log(
         highlighter.gray(
-          `  ${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface (e.g. design cleanup) — run \`npx @andypai/harness-doctor@latest .\` locally for the full list.`,
+          `  ${demotedDiagnosticCount} demoted from the ${options.outputSurface} surface (e.g. design cleanup) — run \`bunx --bun @andypai/harness-doctor@latest .\` locally for the full list.`,
         ),
       );
       yield* Console.log("");

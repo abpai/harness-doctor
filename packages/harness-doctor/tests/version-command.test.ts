@@ -3,11 +3,11 @@ import { buildVersionString } from "../src/cli/commands/version.js";
 import { VERSION } from "../src/cli/utils/version.js";
 
 describe("buildVersionString", () => {
-  it("includes the CLI version, platform/arch, and Node version for debugging", () => {
+  it("includes the CLI version, platform/arch, and Bun version for debugging", () => {
     const versionString = buildVersionString();
     expect(versionString).toContain(`harness-doctor/${VERSION}`);
     expect(versionString).toContain(`${process.platform}-${process.arch}`);
-    expect(versionString).toContain(`node-${process.version}`);
+    expect(versionString).toContain(`bun-${process.versions.bun}`);
   });
 
   it("is a single line", () => {

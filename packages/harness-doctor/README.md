@@ -33,10 +33,12 @@ fix — written to be read by a human or handed straight to a coding agent.
 
 ## Quick start
 
+Requires Bun 1.3.14 or newer.
+
 From the root of any project:
 
 ```bash
-npx @andypai/harness-doctor@latest
+bunx --bun @andypai/harness-doctor@latest
 ```
 
 You'll get an audit and a score. Add `--verbose` to see every finding with file
@@ -45,7 +47,7 @@ and line numbers.
 To inspect the deterministic command surface without running any checks:
 
 ```bash
-npx @andypai/harness-doctor@latest signals
+bunx --bun @andypai/harness-doctor@latest signals
 ```
 
 This prints the signals menu as JSON: package scripts from the root and
@@ -59,7 +61,7 @@ Wire Harness Doctor into your agent's workflow so it reads the findings, fixes
 them, and keeps the score from sliding on the next change:
 
 ```bash
-npx @andypai/harness-doctor@latest install
+bunx --bun @andypai/harness-doctor@latest install
 ```
 
 Works with Claude Code, Cursor, Codex, OpenCode, and others.

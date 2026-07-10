@@ -429,7 +429,7 @@ const buildOverflowSummaryLine = (
   }
 
   const command = highlighter.bold(
-    highlighter.info("npx @andypai/harness-doctor@latest --verbose"),
+    highlighter.info("bunx --bun @andypai/harness-doctor@latest --verbose"),
   );
   const lead =
     parts.length > 0
