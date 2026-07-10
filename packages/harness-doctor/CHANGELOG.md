@@ -1,5 +1,24 @@
 # @andypai/harness-doctor
 
+## 1.0.0
+
+### Major Changes
+
+- [#22](https://github.com/abpai/harness-doctor/pull/22) [`6fcacfa`](https://github.com/abpai/harness-doctor/commit/6fcacfa9c48262b62d5991605abd769409a7a244) Thanks [@abpai](https://github.com/abpai)! - Require Bun 1.3.14 or newer as the runtime for the CLI and GitHub Action.
+
+### Minor Changes
+
+- [#18](https://github.com/abpai/harness-doctor/pull/18) [`297e502`](https://github.com/abpai/harness-doctor/commit/297e5023fb94ad90d03fdc456ce1b6c8b34c0ed7) Thanks [@abpai](https://github.com/abpai)! - Add deterministic checks for Harness behavior baseline artifacts:
+  `docs/BEHAVIOR_INVENTORY.md` and `docs/BEHAVIOR_LEDGER.md`.
+  The new `--baseline-check` flag also reports missing baseline artifacts for
+  self-review and CI gates.
+
+### Patch Changes
+
+- [#21](https://github.com/abpai/harness-doctor/pull/21) [`6d4eb02`](https://github.com/abpai/harness-doctor/commit/6d4eb028f911a73b6b84461ba4fe386bfbd36347) Thanks [@abpai](https://github.com/abpai)! - Harden behavior-baseline checks with GFM escaped-pipe, abutting-table, fenced-block, and emphasis-tolerant parsing; exempt baseline artifacts from monolith warnings; preserve coverage errors for malformed ledgers; enforce empty-inventory orphan and test-path containment checks; and list missing baseline artifacts as opt-in.
+
+- [#19](https://github.com/abpai/harness-doctor/pull/19) [`3633d9a`](https://github.com/abpai/harness-doctor/commit/3633d9a6f27f9577bd067ab59cc3b277e4cc7c83) Thanks [@abpai](https://github.com/abpai)! - Recognize `bun run` proof-menu commands and prefer `bunx` in generated hooks.
+
 ## 0.3.0
 
 ### Minor Changes

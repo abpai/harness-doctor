@@ -1,6 +1,6 @@
 {
   "name": "@andypai/harness-doctor",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "Scan a repo's agent-harness readiness: the docs contract (AGENTS.md, docs/ system of record, spec contract), supply-chain hardening, and dead code — with readiness scoring, diff mode, and a GitHub action",
   "keywords": [
     "agents",
