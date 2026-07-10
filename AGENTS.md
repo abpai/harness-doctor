@@ -82,8 +82,8 @@ Tests live in each package's `tests/` directory and run on `vite-plus/test`.
 Run checks before committing:
 
 ```bash
-pnpm test         # all packages
-pnpm lint
-pnpm typecheck
-pnpm format       # format:check to verify only
+bun run test         # all packages
+bun run lint
+bun run typecheck
+bun run format       # format:check to verify only
 ```

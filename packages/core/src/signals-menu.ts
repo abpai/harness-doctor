@@ -26,6 +26,11 @@ interface WorkflowParseResult {
   readonly didWarn: boolean;
 }
 
+interface ResolvedPackageScript {
+  readonly scriptName: string | null;
+  readonly workspace: string | null;
+}
+
 const PACKAGE_JSON_FILE = "package.json";
 const WORKFLOWS_DIRECTORY_SEGMENTS = [".github", "workflows"] as const;
 const WORKFLOWS_DIRECTORY_POSIX = WORKFLOWS_DIRECTORY_SEGMENTS.join(path.posix.sep);
@@ -466,9 +471,7 @@ const hasPackageScript = (
       (workspace === null || matchesWorkspace(script.workspace, workspace)),
   );
 
-const resolvePnpmScriptName = (
-  tokens: string[],
-): { scriptName: string | null; workspace: string | null } => {
+const resolvePnpmScriptName = (tokens: string[]): ResolvedPackageScript => {
   let workspace: string | null = null;
   let tokenIndex = 1;
   while (tokenIndex < tokens.length) {
@@ -501,6 +504,27 @@ const resolveNpmScriptName = (tokens: string[]): string | null => {
   return tokens[runIndex + 1] ?? null;
 };
 
+const resolveBunScriptName = (tokens: string[]): ResolvedPackageScript => {
+  const runIndex = tokens.indexOf("run");
+  if (runIndex === -1) return { scriptName: null, workspace: null };
+  let workspace: string | null = null;
+  for (let tokenIndex = runIndex + 1; tokenIndex < tokens.length; tokenIndex += 1) {
+    const token = tokens[tokenIndex] ?? "";
+    if (token === "--filter") {
+      workspace = tokens[tokenIndex + 1] ?? null;
+      tokenIndex += 1;
+      continue;
+    }
+    if (token.startsWith("--filter=")) {
+      workspace = token.slice("--filter=".length);
+      continue;
+    }
+    if (token.startsWith("-")) continue;
+    return { scriptName: token, workspace };
+  }
+  return { scriptName: null, workspace };
+};
+
 const firstCommandOperand = (tokens: string[]): string | null => {
   for (let tokenIndex = 1; tokenIndex < tokens.length; tokenIndex += 1) {
     const token = tokens[tokenIndex] ?? "";
@@ -525,6 +549,11 @@ export const commandExistsInSignalsMenu = (command: string, signals: SignalsMenu
   if (executable === "npm") {
     const scriptName = resolveNpmScriptName(tokens);
     return scriptName !== null && hasPackageScript(signals, scriptName);
+  }
+
+  if (executable === "bun") {
+    const { scriptName, workspace } = resolveBunScriptName(tokens);
+    return scriptName !== null && hasPackageScript(signals, scriptName, workspace);
   }
 
   if (executable === "make") {

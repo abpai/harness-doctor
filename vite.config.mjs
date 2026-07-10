@@ -19,6 +19,6 @@ export default defineConfig({
   fmt: {
     semi: true,
     singleQuote: false,
-    ignorePatterns: [".turbo", "node_modules", "dist", "build", "pnpm-lock.yaml"],
+    ignorePatterns: [".turbo", "node_modules", "dist", "build", "bun.lock"],
   },
 });

@@ -13,10 +13,10 @@ configs more reliably across the Node versions supported by this repository.
 The root scripts are the canonical local and CI entry points:
 
 ```bash
-pnpm test
-pnpm lint
-pnpm typecheck
-pnpm format:check
+bun run test
+bun run lint
+bun run typecheck
+bun run format:check
 ```
 
 Run the relevant command after each key code change, and run the full set before

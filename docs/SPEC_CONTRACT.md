@@ -17,13 +17,13 @@ A spec is ready when it:
 
 ## Proof menu
 
-| Change type               | Lane | Validation command              | Proof artifact             | Sufficiency |
-| ------------------------- | ---- | ------------------------------- | -------------------------- | ----------- |
-| Core/API/CLI logic        | full | `pnpm test`                     | passing run output         | auto        |
-| Types or public API shape | full | `pnpm typecheck`                | clean exit                 | auto        |
-| Lint rules or check logic | full | `pnpm test`                     | passing run + fixture diff | auto        |
-| Formatting / style        | full | `pnpm format:check` `pnpm lint` | clean exits                | auto        |
-| Build artifacts           | full | `pnpm build`                    | clean exit                 | auto        |
+| Change type               | Lane | Validation command                    | Proof artifact             | Sufficiency |
+| ------------------------- | ---- | ------------------------------------- | -------------------------- | ----------- |
+| Core/API/CLI logic        | full | `bun run test`                        | passing run output         | auto        |
+| Types or public API shape | full | `bun run typecheck`                   | clean exit                 | auto        |
+| Lint rules or check logic | full | `bun run test`                        | passing run + fixture diff | auto        |
+| Formatting / style        | full | `bun run format:check` `bun run lint` | clean exits                | auto        |
+| Build artifacts           | full | `bun run build`                       | clean exit                 | auto        |
 
 `Sufficiency` says whether the validation command is sufficient evidence for
 "done" (`auto`) or the change needs human sign-off (`human-gate`). A false-green
