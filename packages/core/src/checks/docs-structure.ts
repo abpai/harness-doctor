@@ -6,6 +6,8 @@ import {
   CANONICAL_GLOSSARY_FILENAMES,
   COMBINED_AGENTS_MD_MAX_BYTES,
   DOCS_ARCHITECTURE_FILENAME,
+  DOCS_BEHAVIOR_INVENTORY_FILENAME,
+  DOCS_BEHAVIOR_LEDGER_FILENAME,
   DOCS_DIRECTORY_NAME,
   DOCS_INDEX_FILENAME,
   DOCS_SPEC_CONTRACT_FILENAME,
@@ -59,9 +61,16 @@ const DOMAIN_DOCS_COMPLETE_RULE_KEY = "docs-structure/domain-docs-complete";
 const BANNED_LONG_LIVED_PATH_RULE_KEY = "docs-structure/no-banned-long-lived-path";
 const MARKDOWN_LINK_TARGET_EXISTS_RULE_KEY = "docs-structure/markdown-link-target-exists";
 const TODO_SPEC_SECTIONS_RULE_KEY = "docs-structure/todo-spec-has-required-sections";
+const BEHAVIOR_BASELINE_ARTIFACTS_EXIST_RULE_KEY =
+  "docs-structure/behavior-baseline-artifacts-exist";
+const BEHAVIOR_INVENTORY_VALID_RULE_KEY = "docs-structure/behavior-inventory-valid";
+const BEHAVIOR_LEDGER_VALID_RULE_KEY = "docs-structure/behavior-ledger-valid";
+const BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY = "docs-structure/behavior-ledger-covers-confirmed";
+const BEHAVIOR_LEDGER_TEST_PATH_EXISTS_RULE_KEY = "docs-structure/behavior-ledger-test-path-exists";
 
 export interface DocsStructureOptions {
   readonly docsContract?: boolean;
+  readonly baselineCheck?: boolean;
 }
 
 interface BuildDiagnosticInput {
@@ -99,6 +108,11 @@ const docsIndexPath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_INDEX_FILENAME);
 const docsArchitecturePath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_ARCHITECTURE_FILENAME);
 const todosIndexPath = path.posix.join(DOCS_DIRECTORY_NAME, "todos", DOCS_INDEX_FILENAME);
 const docsSpecContractPath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_SPEC_CONTRACT_FILENAME);
+const behaviorInventoryPath = path.posix.join(
+  DOCS_DIRECTORY_NAME,
+  DOCS_BEHAVIOR_INVENTORY_FILENAME,
+);
+const behaviorLedgerPath = path.posix.join(DOCS_DIRECTORY_NAME, DOCS_BEHAVIOR_LEDGER_FILENAME);
 
 // Every docs-structure diagnostic shares plugin / severity / category so
 // the group reads as one rule family; only the rule key, file, and prose
@@ -742,6 +756,12 @@ interface ProofMenuTable {
   readonly headerLine: number;
 }
 
+interface MarkdownTable {
+  readonly headers: string[];
+  readonly rows: ReadonlyArray<{ readonly cells: string[]; readonly line: number }>;
+  readonly headerLine: number;
+}
+
 interface ProofMenuCommandCell {
   readonly commands: string[];
   readonly isValid: boolean;
@@ -770,6 +790,47 @@ const parseMarkdownTableCells = (lineText: string): string[] | null => {
     : withoutLeadingPipe;
   const cells = withoutTrailingPipe.split("|").map((cell) => cell.trim());
   return cells.length === 0 ? null : cells;
+};
+
+const findMarkdownTables = (content: string): MarkdownTable[] => {
+  const lines = content.split(/\r?\n/).map((text, index) => ({ text, line: index + 1 }));
+  const tables: MarkdownTable[] = [];
+  for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
+    const delimiter = lines[lineIndex];
+    const header = lines[lineIndex - 1];
+    if (delimiter === undefined || header === undefined) continue;
+    if (!isTableDelimiterRow(delimiter.text)) continue;
+    const headers = parseMarkdownTableCells(header.text);
+    if (headers === null) continue;
+    const rows: Array<{ cells: string[]; line: number }> = [];
+    for (let rowIndex = lineIndex + 1; rowIndex < lines.length; rowIndex += 1) {
+      const row = lines[rowIndex];
+      if (row === undefined) continue;
+      if (row.text.trim().length === 0) break;
+      const cells = parseMarkdownTableCells(row.text);
+      if (cells === null) break;
+      rows.push({ cells, line: row.line });
+    }
+    tables.push({ headers, rows, headerLine: header.line });
+  }
+  return tables;
+};
+
+const findBestMarkdownTable = (
+  content: string,
+  requiredColumns: ReadonlyArray<string>,
+): MarkdownTable | null => {
+  let bestTable: MarkdownTable | null = null;
+  let bestMatchCount = -1;
+  for (const table of findMarkdownTables(content)) {
+    const headers = new Set(table.headers.map(normalizeBehaviorHeader));
+    const matchCount = requiredColumns.filter((column) => headers.has(column)).length;
+    if (matchCount <= bestMatchCount) continue;
+    bestTable = table;
+    bestMatchCount = matchCount;
+    if (matchCount === requiredColumns.length) break;
+  }
+  return bestTable;
 };
 
 const findProofMenuTable = (content: string): ProofMenuTable | null => {
@@ -923,6 +984,520 @@ const checkProofMenuCommandsExist = (rootDirectory: string): Diagnostic[] => {
   }
 
   return diagnostics;
+};
+
+const REQUIRED_BEHAVIOR_INVENTORY_COLUMNS = [
+  "id",
+  "area",
+  "behavior",
+  "entry points",
+  "existing proof",
+  "missing proof",
+  "confidence",
+  "risk",
+  "status",
+  "priority",
+  "notes",
+] as const;
+
+const REQUIRED_BEHAVIOR_LEDGER_COLUMNS = [
+  "id",
+  "status",
+  "capture type",
+  "test paths",
+  "run command",
+  "run evidence",
+  "confidence",
+  "remaining gap",
+] as const;
+
+const BEHAVIOR_ID_PATTERN = /^B-\d{3,}$/;
+const BEHAVIOR_CONFIDENCE_VALUES = new Set(["high", "medium", "low"]);
+const BEHAVIOR_RISK_VALUES = new Set(["high", "medium", "low"]);
+const BEHAVIOR_INVENTORY_STATUS_VALUES = new Set([
+  "proposed",
+  "confirmed",
+  "corrected",
+  "skip",
+  "deferred",
+  "stale",
+]);
+const BEHAVIOR_PRIORITY_VALUES = new Set(["P0", "P1", "P2"]);
+const BEHAVIOR_LEDGER_STATUS_VALUES = new Set(["captured", "bug-pinned", "gap", "failed", "stale"]);
+const BEHAVIOR_CAPTURE_TYPE_VALUES = new Set([
+  "unit",
+  "integration",
+  "golden",
+  "snapshot",
+  "screenshot",
+  "contract",
+  "none",
+]);
+
+interface BehaviorInventoryRow {
+  readonly id: string;
+  readonly status: string;
+  readonly priority: string;
+  readonly risk: string;
+}
+
+interface BehaviorLedgerRow {
+  readonly id: string;
+  readonly status: string;
+  readonly testPaths: string[];
+}
+
+const normalizeBehaviorHeader = (header: string): string =>
+  header.trim().toLowerCase().replace(/\s+/g, " ");
+
+const markdownTableHeaderIndexes = (table: MarkdownTable): Map<string, number> => {
+  const headerIndexes = new Map<string, number>();
+  for (let headerIndex = 0; headerIndex < table.headers.length; headerIndex += 1) {
+    headerIndexes.set(normalizeBehaviorHeader(table.headers[headerIndex] ?? ""), headerIndex);
+  }
+  return headerIndexes;
+};
+
+const tableMissingColumns = (
+  table: MarkdownTable,
+  requiredColumns: ReadonlyArray<string>,
+): string[] => {
+  const present = new Set(table.headers.map(normalizeBehaviorHeader));
+  return requiredColumns.filter((column) => !present.has(column));
+};
+
+const buildBehaviorDiagnostic = (input: {
+  readonly filePath: string;
+  readonly rule: string;
+  readonly message: string;
+  readonly help: string;
+  readonly line?: number;
+  readonly severity?: Diagnostic["severity"];
+}): Diagnostic =>
+  buildDocsStructureDiagnostic({
+    filePath: input.filePath,
+    rule: input.rule,
+    line: input.line,
+    severity: input.severity,
+    message: input.message,
+    help: input.help,
+  });
+
+const stripMarkdownPathReference = (value: string): string =>
+  value
+    .trim()
+    .replace(/^`+|`+$/g, "")
+    .replace(/^\.\//, "")
+    .replace(/:\d+(?::\d+)?$/, "");
+
+const pathReferencesFromCell = (cell: string): string[] => {
+  const backtickValues = [...cell.matchAll(BACKTICK_COMMAND_PATTERN)]
+    .map((match) => stripMarkdownPathReference(match[1] ?? ""))
+    .filter((value) => value.length > 0 && value !== "none");
+  if (backtickValues.length > 0) return backtickValues;
+  return cell
+    .split(/[,;]/)
+    .map(stripMarkdownPathReference)
+    .filter((value) => value.length > 0 && value !== "none");
+};
+
+const isHighPriorityConfirmedInventoryRow = (row: BehaviorInventoryRow): boolean =>
+  (row.status === "confirmed" || row.status === "corrected") &&
+  (row.priority === "P0" || row.priority === "P1");
+
+const checkBehaviorInventory = (
+  rootDirectory: string,
+): { readonly rows: BehaviorInventoryRow[]; readonly diagnostics: Diagnostic[] } => {
+  const content = readFileOrNull(path.join(rootDirectory, behaviorInventoryPath));
+  if (content === null) return { rows: [], diagnostics: [] };
+  const diagnostics: Diagnostic[] = [];
+  const table = findBestMarkdownTable(content, REQUIRED_BEHAVIOR_INVENTORY_COLUMNS);
+  if (table === null) {
+    return {
+      rows: [],
+      diagnostics: [
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          message: `${behaviorInventoryPath} has no markdown table — baseline inventory must be parseable before agents can resume across the human ratification gate`,
+          help: "Use the required behavior inventory table header from the harness baseline template",
+        }),
+      ],
+    };
+  }
+  const missingColumns = tableMissingColumns(table, REQUIRED_BEHAVIOR_INVENTORY_COLUMNS);
+  if (missingColumns.length > 0) {
+    diagnostics.push(
+      buildBehaviorDiagnostic({
+        filePath: behaviorInventoryPath,
+        rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+        line: table.headerLine,
+        message: `${behaviorInventoryPath} is missing required columns (${missingColumns.join(
+          ", ",
+        )}) — the inventory must be machine-readable for baseline resume and fleet reporting`,
+        help: "Use columns `ID`, `Area`, `Behavior`, `Entry points`, `Existing proof`, `Missing proof`, `Confidence`, `Risk`, `Status`, `Priority`, and `Notes`",
+      }),
+    );
+    return { rows: [], diagnostics };
+  }
+  const headerIndexes = markdownTableHeaderIndexes(table);
+  const idIndex = headerIndexes.get("id") ?? 0;
+  const entryPointsIndex = headerIndexes.get("entry points") ?? 3;
+  const confidenceIndex = headerIndexes.get("confidence") ?? 6;
+  const riskIndex = headerIndexes.get("risk") ?? 7;
+  const statusIndex = headerIndexes.get("status") ?? 8;
+  const priorityIndex = headerIndexes.get("priority") ?? 9;
+  const rows: BehaviorInventoryRow[] = [];
+  const seenIds = new Set<string>();
+  for (const row of table.rows) {
+    if (row.cells.length !== table.headers.length) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} row has ${row.cells.length} cells but the header has ${table.headers.length} — the row is not machine-readable`,
+          help: "Keep every behavior inventory row aligned with the header columns",
+        }),
+      );
+      continue;
+    }
+    const id = row.cells[idIndex]?.trim() ?? "";
+    const entryPoints = row.cells[entryPointsIndex]?.trim() ?? "";
+    const confidence = (row.cells[confidenceIndex]?.trim() ?? "").toLowerCase();
+    const risk = (row.cells[riskIndex]?.trim() ?? "").toLowerCase();
+    const status = (row.cells[statusIndex]?.trim() ?? "").toLowerCase();
+    const priority = (row.cells[priorityIndex]?.trim() ?? "").toUpperCase();
+    if (!BEHAVIOR_ID_PATTERN.test(id)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} row uses behavior ID \`${id}\` — expected stable IDs like \`B-001\``,
+          help: "Assign a stable `B-001` style ID and preserve it across refreshes",
+        }),
+      );
+      continue;
+    }
+    if (seenIds.has(id)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} repeats behavior ID \`${id}\` — inventory IDs must be unique so ledger rows can refer to exactly one behavior`,
+          help: "Give each inventory row a unique stable behavior ID",
+        }),
+      );
+    }
+    seenIds.add(id);
+    if (entryPoints.length === 0 && status !== "deferred" && status !== "skip") {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} row ${id} has no entry point evidence — inventory behavior needs concrete code routes`,
+          help: "Add at least one file or file:line reference in the Entry points column, or mark the row deferred/skip",
+        }),
+      );
+    }
+    if (!BEHAVIOR_CONFIDENCE_VALUES.has(confidence)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} row ${id} has Confidence \`${confidence}\` — expected high, medium, or low`,
+          help: "Set Confidence to `high`, `medium`, or `low`",
+        }),
+      );
+    }
+    if (!BEHAVIOR_RISK_VALUES.has(risk)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} row ${id} has Risk \`${risk}\` — expected high, medium, or low`,
+          help: "Set Risk to `high`, `medium`, or `low`",
+        }),
+      );
+    }
+    if (!BEHAVIOR_INVENTORY_STATUS_VALUES.has(status)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} row ${id} has Status \`${status}\` — expected proposed, confirmed, corrected, skip, deferred, or stale`,
+          help: "Use one of the allowed behavior inventory statuses",
+        }),
+      );
+    }
+    if (!BEHAVIOR_PRIORITY_VALUES.has(priority)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorInventoryPath,
+          rule: BEHAVIOR_INVENTORY_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorInventoryPath} row ${id} has Priority \`${priority}\` — expected P0, P1, or P2`,
+          help: "Set Priority to `P0`, `P1`, or `P2`",
+        }),
+      );
+    }
+    rows.push({ id, status, priority, risk });
+  }
+  return { rows, diagnostics };
+};
+
+const checkBehaviorLedger = (
+  rootDirectory: string,
+  inventoryRows: ReadonlyArray<BehaviorInventoryRow>,
+): Diagnostic[] => {
+  const content = readFileOrNull(path.join(rootDirectory, behaviorLedgerPath));
+  const inScopeRows = inventoryRows.filter(isHighPriorityConfirmedInventoryRow);
+  if (content === null) {
+    if (inScopeRows.length === 0) return [];
+    return inScopeRows.map((row) =>
+      buildBehaviorDiagnostic({
+        filePath: behaviorLedgerPath,
+        rule: BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY,
+        severity: "error",
+        message: `${behaviorLedgerPath} is missing, but ${row.id} is confirmed/corrected ${row.priority} behavior — ratified baseline behavior needs a terminal ledger outcome`,
+        help: `Run \`harness baseline capture\` for ${row.id}, or change its inventory status/priority if it is not in scope`,
+      }),
+    );
+  }
+  const diagnostics: Diagnostic[] = [];
+  const table = findBestMarkdownTable(content, REQUIRED_BEHAVIOR_LEDGER_COLUMNS);
+  if (table === null) {
+    return [
+      buildBehaviorDiagnostic({
+        filePath: behaviorLedgerPath,
+        rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+        message: `${behaviorLedgerPath} has no markdown table — baseline ledger must be parseable before agents can trust captured proof`,
+        help: "Use the required behavior ledger table header from the harness baseline template",
+      }),
+    ];
+  }
+  const missingColumns = tableMissingColumns(table, REQUIRED_BEHAVIOR_LEDGER_COLUMNS);
+  if (missingColumns.length > 0) {
+    diagnostics.push(
+      buildBehaviorDiagnostic({
+        filePath: behaviorLedgerPath,
+        rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+        line: table.headerLine,
+        message: `${behaviorLedgerPath} is missing required columns (${missingColumns.join(
+          ", ",
+        )}) — the ledger must be machine-readable for doctor and CI checks`,
+        help: "Use columns `ID`, `Status`, `Capture type`, `Test paths`, `Run command`, `Run evidence`, `Confidence`, and `Remaining gap`",
+      }),
+    );
+    return diagnostics;
+  }
+  const headerIndexes = markdownTableHeaderIndexes(table);
+  const idIndex = headerIndexes.get("id") ?? 0;
+  const statusIndex = headerIndexes.get("status") ?? 1;
+  const captureTypeIndex = headerIndexes.get("capture type") ?? 2;
+  const testPathsIndex = headerIndexes.get("test paths") ?? 3;
+  const runCommandIndex = headerIndexes.get("run command") ?? 4;
+  const runEvidenceIndex = headerIndexes.get("run evidence") ?? 5;
+  const confidenceIndex = headerIndexes.get("confidence") ?? 6;
+  const inventoryIds = new Set(inventoryRows.map((row) => row.id));
+  const ledgerRows: BehaviorLedgerRow[] = [];
+  const ledgerIds = new Set<string>();
+  for (const row of table.rows) {
+    if (row.cells.length !== table.headers.length) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} row has ${row.cells.length} cells but the header has ${table.headers.length} — the row is not machine-readable`,
+          help: "Keep every behavior ledger row aligned with the header columns",
+        }),
+      );
+      continue;
+    }
+    const id = row.cells[idIndex]?.trim() ?? "";
+    const status = (row.cells[statusIndex]?.trim() ?? "").toLowerCase();
+    const captureType = (row.cells[captureTypeIndex]?.trim() ?? "").toLowerCase();
+    const testPaths = pathReferencesFromCell(row.cells[testPathsIndex] ?? "");
+    const runCommand = row.cells[runCommandIndex]?.trim() ?? "";
+    const runEvidence = row.cells[runEvidenceIndex]?.trim() ?? "";
+    const confidence = (row.cells[confidenceIndex]?.trim() ?? "").toLowerCase();
+    if (!BEHAVIOR_ID_PATTERN.test(id)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} row uses behavior ID \`${id}\` — expected stable IDs like \`B-001\``,
+          help: "Use the behavior ID from docs/BEHAVIOR_INVENTORY.md",
+        }),
+      );
+      continue;
+    }
+    if (ledgerIds.has(id)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} repeats behavior ID \`${id}\` — one behavior should have one current ledger outcome`,
+          help: "Merge duplicate ledger rows or mark the obsolete row stale outside the table",
+        }),
+      );
+    }
+    ledgerIds.add(id);
+    if (inventoryIds.size > 0 && !inventoryIds.has(id)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} references ${id}, but that ID is not present in ${behaviorInventoryPath}`,
+          help: "Add the missing inventory row or remove the orphaned ledger entry",
+        }),
+      );
+    }
+    if (!BEHAVIOR_LEDGER_STATUS_VALUES.has(status)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} row ${id} has Status \`${status}\` — expected captured, bug-pinned, gap, failed, or stale`,
+          help: "Use one of the allowed behavior ledger statuses",
+        }),
+      );
+    }
+    if (!BEHAVIOR_CAPTURE_TYPE_VALUES.has(captureType)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} row ${id} has Capture type \`${captureType}\` — expected unit, integration, golden, snapshot, screenshot, contract, or none`,
+          help: "Use one of the allowed behavior capture types",
+        }),
+      );
+    }
+    if (!BEHAVIOR_CONFIDENCE_VALUES.has(confidence)) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} row ${id} has Confidence \`${confidence}\` — expected high, medium, or low`,
+          help: "Set Confidence to `high`, `medium`, or `low`",
+        }),
+      );
+    }
+    if ((status === "captured" || status === "bug-pinned") && runCommand.length === 0) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} row ${id} is ${status} but has no Run command — proof-backed rows must say how to rerun the proof`,
+          help: "Add the exact test command used to verify this behavior",
+        }),
+      );
+    }
+    if ((status === "captured" || status === "bug-pinned") && runEvidence.length === 0) {
+      diagnostics.push(
+        buildBehaviorDiagnostic({
+          filePath: behaviorLedgerPath,
+          rule: BEHAVIOR_LEDGER_VALID_RULE_KEY,
+          line: row.line,
+          message: `${behaviorLedgerPath} row ${id} is ${status} but has no Run evidence — proof-backed rows need the pass result and repo snapshot`,
+          help: "Record evidence such as `3/3 green at <sha>`",
+        }),
+      );
+    }
+    if (status === "captured" || status === "bug-pinned") {
+      if (testPaths.length === 0) {
+        diagnostics.push(
+          buildBehaviorDiagnostic({
+            filePath: behaviorLedgerPath,
+            rule: BEHAVIOR_LEDGER_TEST_PATH_EXISTS_RULE_KEY,
+            severity: "error",
+            line: row.line,
+            message: `${behaviorLedgerPath} row ${id} is ${status} but has no test path — proof-backed rows must point to committed tests, snapshots, or fixtures`,
+            help: "Add one or more test/snapshot/fixture paths in the Test paths column",
+          }),
+        );
+      }
+      for (const testPath of testPaths) {
+        if (hasPath(rootDirectory, testPath)) continue;
+        diagnostics.push(
+          buildBehaviorDiagnostic({
+            filePath: behaviorLedgerPath,
+            rule: BEHAVIOR_LEDGER_TEST_PATH_EXISTS_RULE_KEY,
+            severity: "error",
+            line: row.line,
+            message: `${behaviorLedgerPath} row ${id} references missing test path \`${testPath}\` — behavior proof has drifted or was never committed`,
+            help: `Add the missing proof file, update the Test paths cell, or mark ${id} as gap/stale if proof no longer exists`,
+          }),
+        );
+      }
+    }
+    if (BEHAVIOR_LEDGER_STATUS_VALUES.has(status)) {
+      ledgerRows.push({ id, status, testPaths });
+    }
+  }
+  const ledgerById = new Map(ledgerRows.map((row) => [row.id, row]));
+  for (const inventoryRow of inScopeRows) {
+    if (ledgerById.has(inventoryRow.id)) continue;
+    diagnostics.push(
+      buildBehaviorDiagnostic({
+        filePath: behaviorLedgerPath,
+        rule: BEHAVIOR_LEDGER_COVERS_CONFIRMED_RULE_KEY,
+        severity: "error",
+        message: `${inventoryRow.id} is confirmed/corrected ${inventoryRow.priority} behavior in ${behaviorInventoryPath}, but ${behaviorLedgerPath} has no terminal outcome for it`,
+        help: `Run \`harness baseline capture\` for ${inventoryRow.id}, or change its inventory status/priority if it is not in scope`,
+      }),
+    );
+  }
+  return diagnostics;
+};
+
+const checkBehaviorBaselineArtifacts = (
+  rootDirectory: string,
+  options: DocsStructureOptions,
+): Diagnostic[] => {
+  const behaviorInventoryExists = isFile(path.join(rootDirectory, behaviorInventoryPath));
+  const behaviorLedgerExists = isFile(path.join(rootDirectory, behaviorLedgerPath));
+  const artifactDiagnostics: Diagnostic[] = [];
+  if (options.baselineCheck === true && !behaviorInventoryExists) {
+    artifactDiagnostics.push(
+      buildBehaviorDiagnostic({
+        filePath: behaviorInventoryPath,
+        rule: BEHAVIOR_BASELINE_ARTIFACTS_EXIST_RULE_KEY,
+        message: `${behaviorInventoryPath} is missing — baseline checks need a ratifiable behavior inventory before agents can capture legacy behavior systematically`,
+        help: "Run `harness baseline inventory`, review the generated behavior list, then run `harness baseline capture` for approved rows",
+      }),
+    );
+  }
+  if (options.baselineCheck === true && behaviorInventoryExists && !behaviorLedgerExists) {
+    artifactDiagnostics.push(
+      buildBehaviorDiagnostic({
+        filePath: behaviorLedgerPath,
+        rule: BEHAVIOR_BASELINE_ARTIFACTS_EXIST_RULE_KEY,
+        message: `${behaviorLedgerPath} is missing — baseline checks need a ledger of captured, bug-pinned, gap, failed, or stale behavior outcomes`,
+        help: "Run `harness baseline capture` after inventory review so each approved behavior has a durable outcome row",
+      }),
+    );
+  }
+  const inventory = checkBehaviorInventory(rootDirectory);
+  return [
+    ...artifactDiagnostics,
+    ...inventory.diagnostics,
+    ...checkBehaviorLedger(rootDirectory, inventory.rows),
+  ];
 };
 
 // ── docs-structure/engineering-docs-exist ───────────────────────────────
@@ -1152,6 +1727,7 @@ export const checkDocsStructure = (
     ...checkSpecContractSections(rootDirectory),
     ...checkSpecContractDeclaresSufficiency(rootDirectory, options),
     ...checkProofMenuCommandsExist(rootDirectory),
+    ...checkBehaviorBaselineArtifacts(rootDirectory, options),
     ...checkEngineeringDocsExist(rootDirectory, options),
     ...checkNoStructureMd(rootDirectory),
     ...checkCombinedAgentsByteBudget(markdownFiles),

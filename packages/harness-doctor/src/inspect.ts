@@ -62,6 +62,7 @@ interface ResolvedInspectOptions {
   includePaths: string[];
   share: boolean;
   respectInlineDisables: boolean;
+  baselineCheck: boolean;
   warnings: boolean;
   outputSurface: DiagnosticSurface;
   suppressRendering: boolean;
@@ -83,6 +84,7 @@ const mergeInspectOptions = (
   share: userConfig?.share ?? true,
   respectInlineDisables:
     inputOptions.respectInlineDisables ?? userConfig?.respectInlineDisables ?? true,
+  baselineCheck: inputOptions.baselineCheck ?? userConfig?.baselineCheck ?? false,
   warnings: inputOptions.warnings ?? userConfig?.warnings ?? DEFAULT_SHOW_WARNINGS,
   outputSurface: inputOptions.outputSurface ?? "cli",
   suppressRendering: inputOptions.suppressRendering ?? false,
@@ -176,6 +178,7 @@ const runInspectWithRuntime = async (
       directory,
       includePaths: options.includePaths,
       respectInlineDisables: options.respectInlineDisables,
+      baselineCheck: options.baselineCheck,
       warnings: options.warnings,
       runDeadCode: options.deadCode,
       isCi: options.isCi,

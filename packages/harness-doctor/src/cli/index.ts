@@ -57,6 +57,7 @@ ${formatExampleLines([
   ["harness-doctor", "scan the current project"],
   ["harness-doctor ./apps/web", "scan a specific directory"],
   ["harness-doctor --diff main", "scan only files changed vs. main"],
+  ["harness-doctor --baseline-check", "check behavior inventory and ledger artifacts"],
   ["harness-doctor --staged", "scan staged files (pre-commit hook)"],
   ["harness-doctor --fail-on warning", "exit non-zero on warnings (CI gate)"],
   ["harness-doctor --json > report.json", "write a machine-readable report"],
@@ -118,6 +119,10 @@ const program = new Command()
   .option("--no-score", "skip the score API and the share URL")
   .option("--no-telemetry", "alias for --no-score (skip the score API and the share URL)")
   .option("--staged", "scan only staged (git index) files for pre-commit hooks")
+  .option(
+    "--baseline-check",
+    "explicitly check behavior baseline artifacts (automatic when docs/BEHAVIOR_* files exist)",
+  )
   .option(
     "--fail-on <level>",
     "exit with error code on diagnostics: error, warning, none (default: none)",

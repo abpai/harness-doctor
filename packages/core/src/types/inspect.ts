@@ -62,6 +62,12 @@ export interface InspectOptions {
   configOverride?: HarnessDoctorConfig | null;
   respectInlineDisables?: boolean;
   /**
+   * Explicitly enforce behavior baseline artifacts. Existing
+   * docs/BEHAVIOR_* files are always validated when present; this option
+   * also reports when the inventory or ledger is missing.
+   */
+  baselineCheck?: boolean;
+  /**
    * Per-call override for `HarnessDoctorConfig.warnings`. When omitted,
    * `config.warnings` wins (defaulting to `true`), so `"warning"`-
    * severity diagnostics surface on every surface — CLI, PR comment,

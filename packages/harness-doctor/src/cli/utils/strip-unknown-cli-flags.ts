@@ -11,6 +11,7 @@ interface CliFlagSpec {
 const ROOT_FLAG_SPEC: CliFlagSpec = {
   longOptionsWithoutValues: new Set([
     "--annotations",
+    "--baseline-check",
     "--color",
     "--dead-code",
     "--full",

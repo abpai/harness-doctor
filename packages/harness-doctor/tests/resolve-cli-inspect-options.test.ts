@@ -89,3 +89,10 @@ describe("resolveCliInspectOptions: --no-telemetry alias", () => {
     expect(resolveCliInspectOptions({}, null).noScore).toBe(false);
   });
 });
+
+describe("resolveCliInspectOptions: baseline checks", () => {
+  it("passes through --baseline-check as an explicit scan option", () => {
+    expect(resolveCliInspectOptions({ baselineCheck: true }, null).baselineCheck).toBe(true);
+    expect(resolveCliInspectOptions({}, null).baselineCheck).toBeUndefined();
+  });
+});

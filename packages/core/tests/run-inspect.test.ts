@@ -6,7 +6,7 @@ import * as Layer from "effect/Layer";
 import * as Ref from "effect/Ref";
 import * as Stream from "effect/Stream";
 import { afterAll, describe, expect, it } from "vite-plus/test";
-import type { Diagnostic, ProjectInfo } from "@harness-doctor/core";
+import type { Diagnostic, HarnessDoctorConfig, ProjectInfo } from "@harness-doctor/core";
 import { DeadCodeAnalysisFailed, GitInvocationFailed, HarnessDoctorError } from "../src/errors.js";
 import { runInspect, type InspectInput } from "../src/run-inspect.js";
 import { Config } from "../src/services/config.js";
@@ -57,13 +57,14 @@ const baseInput: InspectInput = {
 
 const layersOf = (config: {
   deadCode?: ReadonlyArray<Diagnostic>;
+  harnessConfig?: HarnessDoctorConfig | null;
   githubViewerPermission?: string | null;
   scanDirectory?: string;
 }) =>
   Layer.mergeAll(
     Project.layerOf(sampleProject),
     Config.layerOf({
-      config: null,
+      config: config.harnessConfig ?? null,
       resolvedDirectory: config.scanDirectory ?? CLEAN_DOCS_ROOT,
       configSourceDirectory: null,
     }),
@@ -211,6 +212,22 @@ describe("runInspect — environment checks", () => {
       ),
     );
     expect(output.diagnostics.map((d) => d.rule)).toEqual(["docs-structure/entry-point-exists"]);
+  });
+
+  it("keeps configured baseline findings visible in diff mode", async () => {
+    const output = await Effect.runPromise(
+      runInspect({ ...baseInput, includePaths: ["AGENTS.md"] }).pipe(
+        Effect.provide(
+          layersOf({
+            scanDirectory: CLEAN_DOCS_ROOT,
+            harnessConfig: { baselineCheck: true },
+          }),
+        ),
+      ),
+    );
+    expect(output.diagnostics.map((d) => d.rule)).toContain(
+      "docs-structure/behavior-baseline-artifacts-exist",
+    );
   });
 });
 

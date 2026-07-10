@@ -59,6 +59,7 @@ const buildInspectProgram = (
     includePaths,
     respectInlineDisables:
       options.respectInlineDisables ?? effectiveConfig?.respectInlineDisables ?? true,
+    baselineCheck: options.baselineCheck ?? effectiveConfig?.baselineCheck ?? false,
     warnings: options.warnings ?? effectiveConfig?.warnings ?? DEFAULT_SHOW_WARNINGS,
     runDeadCode: options.deadCode ?? effectiveConfig?.deadCode ?? true,
     isCi: false,

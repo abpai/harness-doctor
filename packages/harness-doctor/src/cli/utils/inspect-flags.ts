@@ -13,6 +13,7 @@ export interface InspectFlags {
   full?: boolean;
   annotations?: boolean;
   staged?: boolean;
+  baselineCheck?: boolean;
   prComment?: boolean;
   respectInlineDisables?: boolean;
   warnings?: boolean;
