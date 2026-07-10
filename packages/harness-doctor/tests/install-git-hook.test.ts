@@ -64,12 +64,8 @@ describe.skipIf(process.platform === "win32")("installHarnessDoctorGitHook", () 
     expect(result.kind).toBe("git");
     expect(hookContent).toContain("#!/bin/sh");
     expect(hookContent).toContain("harness-doctor --staged --fail-on warning");
-    expect(hookContent).toContain("bunx @andypai/harness-doctor@latest --staged --fail-on warning");
     expect(hookContent).toContain(
-      "pnpm dlx @andypai/harness-doctor@latest --staged --fail-on warning",
-    );
-    expect(hookContent).toContain(
-      "npx --yes @andypai/harness-doctor@latest --staged --fail-on warning",
+      "bunx --bun @andypai/harness-doctor@latest --staged --fail-on warning",
     );
     expect(hookContent).toContain("Want them fixed?");
     expect(hookContent).not.toContain("Stop commit");

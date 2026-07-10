@@ -1,6 +1,6 @@
-import * as NodeChildProcessSpawner from "@effect/platform-node-shared/NodeChildProcessSpawner";
-import * as NodeFileSystem from "@effect/platform-node-shared/NodeFileSystem";
-import * as NodePath from "@effect/platform-node-shared/NodePath";
+import * as BunChildProcessSpawner from "@effect/platform-bun/BunChildProcessSpawner";
+import * as BunFileSystem from "@effect/platform-bun/BunFileSystem";
+import * as BunPath from "@effect/platform-bun/BunPath";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -188,7 +188,7 @@ interface GitGrepResult {
  * runs commands through Effect's `ChildProcessSpawner` + `ChildProcess.make`
  * (from `effect/unstable/process`), so spawning, stdio draining,
  * scope-bound cleanup, and error tagging all live inside the
- * Effect runtime — no `node:child_process` imports outside this
+ * Effect runtime — no direct child-process imports outside this
  * file. Tests swap in `layerOf({ ... })` for a deterministic snapshot.
  *
  * All methods fail with `HarnessDoctorError`; "git ran but produced
@@ -656,8 +656,8 @@ export class Git extends Context.Service<
     }),
   ).pipe(
     Layer.provide(
-      NodeChildProcessSpawner.layer.pipe(
-        Layer.provide(Layer.mergeAll(NodeFileSystem.layer, NodePath.layer)),
+      BunChildProcessSpawner.layer.pipe(
+        Layer.provide(Layer.mergeAll(BunFileSystem.layer, BunPath.layer)),
       ),
     ),
   );

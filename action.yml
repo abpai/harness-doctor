@@ -23,9 +23,9 @@ inputs:
   annotations:
     description: "Emit diagnostics as GitHub Actions annotations."
     default: "true"
-  node-version:
-    description: "Node.js version to use"
-    default: "22"
+  bun-version:
+    description: "Bun version to use"
+    default: "1.3.14"
   version:
     description: "harness-doctor npm version or package spec to run"
     default: "latest"
@@ -50,10 +50,9 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-node@v5
+    - uses: oven-sh/setup-bun@v2
       with:
-        node-version: ${{ inputs.node-version }}
-        package-manager-cache: false
+        bun-version: ${{ inputs.bun-version }}
 
     - id: pr-files
       if: ${{ github.event_name == 'pull_request' }}
@@ -109,18 +108,17 @@ runs:
         if [ -n "$INPUT_PROJECT" ]; then FLAGS+=("--project" "$INPUT_PROJECT"); fi
         if [ -n "$CHANGED_FILES_FROM" ]; then FLAGS+=("--changed-files-from" "$CHANGED_FILES_FROM"); fi
 
+        set +e
         if [[ "$INPUT_VERSION" = ./* || "$INPUT_VERSION" = ../* || "$INPUT_VERSION" = /* ]]; then
-          PACKAGE_SPEC="$INPUT_VERSION"
+          bun --bun "$INPUT_VERSION/bin/harness-doctor.js" "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"
         else
           PACKAGE_SPEC="@andypai/harness-doctor@$INPUT_VERSION"
+          bunx --bun "$PACKAGE_SPEC" "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"
         fi
-
-        set +e
-        npm exec --yes --package "$PACKAGE_SPEC" -- harness-doctor "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"
         SCAN_STATUS=$?
         set -e
 
-        if ! node "$GITHUB_ACTION_PATH/scripts/ensure-json-report.mjs" "$REPORT_FILE" "$SCAN_STATUS"; then
+        if ! bun "$GITHUB_ACTION_PATH/scripts/ensure-json-report.mjs" "$REPORT_FILE" "$SCAN_STATUS"; then
           SCAN_STATUS=1
         fi
         echo "exit-code=$SCAN_STATUS" >> "$GITHUB_OUTPUT"
@@ -133,7 +131,7 @@ runs:
         COMMENT_FILE: ${{ runner.temp }}/harness-doctor-comment.md
         GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
-        node "$GITHUB_ACTION_PATH/scripts/render-github-action-comment.mjs" "$REPORT_FILE" "$COMMENT_FILE"
+        bun "$GITHUB_ACTION_PATH/scripts/render-github-action-comment.mjs" "$REPORT_FILE" "$COMMENT_FILE"
         echo "comment-file=$COMMENT_FILE" >> "$GITHUB_OUTPUT"
 
     - name: Update sticky PR comment

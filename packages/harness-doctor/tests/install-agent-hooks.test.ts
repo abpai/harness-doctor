@@ -144,7 +144,7 @@ describe.skipIf(process.platform === "win32")("installHarnessDoctorAgentHooks", 
     expect(hookContent).toContain("project_root=${CLAUDE_PROJECT_DIR:-}");
     expect(hookContent).toContain("harness-doctor --verbose --diff");
     expect(hookContent).toContain(
-      "bunx @andypai/harness-doctor@latest --verbose --diff --fail-on warning --no-score",
+      "bunx --bun @andypai/harness-doctor@latest --verbose --diff --fail-on warning --no-score",
     );
     expect(Boolean(statSync(hookPath).mode & fsConstants.S_IXUSR)).toBe(true);
   });

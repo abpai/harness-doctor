@@ -39,7 +39,7 @@ describe("GitHub Action contract", () => {
       "fail-on",
       "comment",
       "annotations",
-      "node-version",
+      "bun-version",
       "version",
     ]) {
       expect(inputsBlock).toContain(`  ${inputName}:`);
@@ -59,9 +59,9 @@ describe("GitHub Action contract", () => {
     const actionYaml = readActionYaml();
     const prFilesStep = normalizeWhitespace(extractStep(actionYaml, "- id: pr-files"));
 
-    expect(actionYaml).toContain("actions/setup-node@v5");
+    expect(actionYaml).toContain("oven-sh/setup-bun@v2");
     expect(actionYaml).toContain("actions/github-script@v8");
-    expect(actionYaml).not.toContain("actions/setup-node@v4");
+    expect(actionYaml).not.toContain("actions/setup-node");
     expect(actionYaml).not.toContain("actions/github-script@v7");
     expect(prFilesStep).toContain("github.rest.pulls.listFiles");
     expect(prFilesStep).toContain('new Set(["added", "modified", "renamed"])');
@@ -101,7 +101,10 @@ describe("GitHub Action contract", () => {
     );
     expect(scanStep).toContain('FLAGS+=("--changed-files-from" "$CHANGED_FILES_FROM")');
     expect(scanStep).toContain(
-      'npm exec --yes --package "$PACKAGE_SPEC" -- harness-doctor "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"',
+      'bunx --bun "$PACKAGE_SPEC" "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"',
+    );
+    expect(scanStep).toContain(
+      'bun --bun "$INPUT_VERSION/bin/harness-doctor.js" "$INPUT_DIRECTORY" "${FLAGS[@]}" > "$REPORT_FILE"',
     );
     expect(scanStep).toContain('PACKAGE_SPEC="@andypai/harness-doctor@$INPUT_VERSION"');
     expect(scanStep).toContain("SCAN_STATUS=$?");

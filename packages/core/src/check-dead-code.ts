@@ -94,7 +94,7 @@ const DEAD_CODE_HEURISTIC_CAVEAT =
 
 const withDeadCodeCaveat = (help: string): string => `${help} ${DEAD_CODE_HEURISTIC_CAVEAT}`;
 
-// Runs in a child PROCESS (node -e), not a worker_thread — see
+// Runs in a child PROCESS (runtime -e), not a worker_thread — see
 // `createDeadCodeWorker`. Reads the worker input as JSON on stdin and
 // writes the normalized result (or a serialized error) as JSON on
 // stdout, then exits once stdout has flushed.
@@ -331,7 +331,7 @@ const buildDeadCodeWorkerError = (workerError: DeadCodeWorkerError): Error => {
 };
 
 const createDeadCodeWorker: DeadCodeWorkerFactory = (input) => {
-  // HACK: run deslop in a child PROCESS (node -e), not a worker_thread.
+  // HACK: run deslop in a child PROCESS (runtime -e), not a worker_thread.
   // deslop loads native (oxc) NAPI addons; force-terminating a
   // worker_thread that holds native handles intermittently crashes the
   // *host* process on Windows — when the dead-code scan runs inside a

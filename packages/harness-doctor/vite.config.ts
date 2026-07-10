@@ -71,7 +71,7 @@ export default defineConfig({
         // compiler all stay external.
         alwaysBundle: ["commander", "ora"],
         neverBundle: [
-          "@effect/platform-node-shared",
+          "@effect/platform-bun",
           "agent-install",
           // Config loading/editing: jiti (TS/JS config eval) + confbox
           // (JSONC parse) power the loader in @harness-doctor/core (bundled
@@ -103,7 +103,7 @@ export default defineConfig({
         ],
       },
       dts: true,
-      target: "node20",
+      target: "esnext",
       platform: "node",
       // Emit source maps for local debugging. The `.map` files are NOT shipped
       // in the npm tarball (see package.json "files").
@@ -112,8 +112,8 @@ export default defineConfig({
         VERSION: process.env.VERSION ?? packageJson.version,
       },
       // HACK: no shebang on dist/cli.js — the published `bin` entry is
-      // bin/harness-doctor.js, which owns the `#!/usr/bin/env node` line
-      // (and the V8 compile-cache warm-up). dist/cli.js is loaded via
+      // bin/harness-doctor.js, which owns the `#!/usr/bin/env bun` line.
+      // dist/cli.js is loaded via
       // `await import(...)` from that shim, where a stray shebang on
       // line 1 isn't useful and just bloats the bundle. (Programmatic
       // `import "harness-doctor"` consumers don't care either way — Node
@@ -130,7 +130,7 @@ export default defineConfig({
       deps: {
         alwaysBundle: ["commander", "ora"],
         neverBundle: [
-          "@effect/platform-node-shared",
+          "@effect/platform-bun",
           "agent-install",
           "confbox",
           "jiti",
@@ -144,7 +144,7 @@ export default defineConfig({
         ],
       },
       dts: true,
-      target: "node20",
+      target: "esnext",
       platform: "node",
       fixedExtension: false,
     },

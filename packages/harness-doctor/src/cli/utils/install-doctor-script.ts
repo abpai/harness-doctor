@@ -4,7 +4,7 @@ import { getPackageJsonPath, isRecord, readPackageJson, writeJsonFile } from "./
 
 const DOCTOR_SCRIPT_NAME = "doctor";
 const FALLBACK_DOCTOR_SCRIPT_NAME = "harness-doctor";
-const DOCTOR_SCRIPT_COMMAND = "npx @andypai/harness-doctor@latest";
+const DOCTOR_SCRIPT_COMMAND = "bunx --bun @andypai/harness-doctor@latest";
 export const DOCTOR_PACKAGE_NAME = "@andypai/harness-doctor";
 
 const DEPENDENCY_FIELD_NAMES: readonly string[] = [

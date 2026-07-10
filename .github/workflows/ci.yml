@@ -15,38 +15,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        node-version: ["20.19.0", "22.18.0", "24", "25", "26"]
-        include:
-          - os: windows-latest
-            node-version: "22.18.0"
-          - os: macos-latest
-            node-version: "22.18.0"
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
 
       - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.3
-
-      - uses: actions/setup-node@v5
-        with:
-          node-version: ${{ matrix.node-version }}
 
       - run: bun ci
 
       - run: bun run test
 
       - run: bun run typecheck
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
 
       - run: bun run lint
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
 
       - name: Check formatting
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         shell: bash
         run: |
           format_output_file="$(mktemp)"
@@ -77,11 +65,11 @@ jobs:
           exit "$format_status"
 
       - name: Smoke test built CLI
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           cd packages/harness-doctor
           bun run build
-          BUILT_VERSION=$(node bin/harness-doctor.js --version)
+          BUILT_VERSION=$(bun bin/harness-doctor.js --version)
           echo "Built CLI reports version: $BUILT_VERSION"
           if [ -z "$BUILT_VERSION" ] || [ "$BUILT_VERSION" = "0.0.0" ]; then
             echo "Built CLI version is missing or 0.0.0; build env did not inject VERSION"
@@ -89,7 +77,7 @@ jobs:
           fi
 
       - name: Smoke test JSON report shape
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: bun run smoke:json-report
 
       # Regression guard for #629: a published package's built output must not
@@ -97,7 +85,7 @@ jobs:
       # only resolve when a sibling dependency happens to supply them, and crash
       # consumers on strict installs). Builds every package, then audits dist.
       - name: Check published packages declare their runtime dependencies
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           bun run build
           bun run check:published-deps
@@ -107,5 +95,5 @@ jobs:
       # process stays alive waiting for input instead of exiting by itself
       # (regression guard for #576: unref'd stdin killed interactive prompts).
       - name: Smoke test interactive TTY prompt
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.node-version == '22.18.0' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: bun run smoke:tty-prompt

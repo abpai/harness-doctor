@@ -81,7 +81,7 @@ mk.line([(ox, oy + 22), (ox + 12, oy + 50)], fill=BG, width=6)
 mk.ellipse([ox - 4, oy + 50, ox + 4, oy + 58], fill=BG)
 
 draw.text((lx + ls + 26, ly + 16), "Harness Doctor", font=bold(40), fill=TEXT)
-draw.text((lx + ls + 28, ly + 64), "npx @andypai/harness-doctor", font=mono(22), fill=MUTED)
+draw.text((lx + ls + 28, ly + 64), "bunx --bun @andypai/harness-doctor", font=mono(22), fill=MUTED)
 
 LEFT_W = 560  # left text column width
 
