@@ -1,5 +1,18 @@
 # @andypai/harness-doctor
 
+## 2.0.0
+
+### Major Changes
+
+- [#23](https://github.com/abpai/harness-doctor/pull/23) [`c4df6a7`](https://github.com/abpai/harness-doctor/commit/c4df6a7476cd5936087437bcae574df06afb1292) Thanks [@abpai](https://github.com/abpai)! - Use Knip's JSON CLI reporter for dead-code analysis in an isolated subprocess.
+  Repository-owned Knip configuration is discovered automatically. Full monorepo
+  scans invoke it once from the selected root, retaining cross-workspace usage
+  edges.
+
+  **Breaking change:** rename every dead-code severity override and suppression
+  from `deslop/<rule>` to `knip/<rule>` (for example,
+  `deslop/unused-file` becomes `knip/unused-file`).
+
 ## 1.0.0
 
 ### Major Changes
