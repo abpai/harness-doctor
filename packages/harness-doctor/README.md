@@ -125,6 +125,15 @@ external [`harness` skills plugin](https://github.com/abpai/skills) creates
 these artifacts through `/harness baseline`. The
 `--baseline-check` flag remains available for one-off enforcement.
 
+Dead-code analysis runs the bundled Knip CLI as an isolated subprocess. Knip
+automatically reads repository-owned `knip.json`, `knip.jsonc`, `.knip.json`,
+`.knip.jsonc`, `knip.js`, `knip.ts`, `knip.config.js`, `knip.config.ts`, or
+`package.json#knip`; use that
+configuration for dynamic entry points, generated code, framework plugins, and
+workspace layout. Knip configuration hints are forwarded to stderr. Existing
+Harness Doctor rule keys remain `deslop/<rule>` for backwards-compatible
+severity and suppression configuration.
+
 Config shape:
 
 ```ts
@@ -172,7 +181,8 @@ Rule keys in `rules`, `ignore.rules`, `surfaces.*.includeRules`, and
 `surfaces.*.excludeRules` must be plugin-prefixed. Use
 `harness-doctor/docs-structure/<rule>` for docs-structure checks,
 `harness-doctor/require-pnpm-hardening` for pnpm hardening, and
-`deslop/<rule>` for dead-code checks. For example,
+`deslop/<rule>` for dead-code checks (the stable compatibility namespace for
+Knip findings). For example,
 `"docs-structure/spec-contract-exists": "off"` is not a valid override key;
 use `"harness-doctor/docs-structure/spec-contract-exists": "off"`.
 

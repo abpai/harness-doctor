@@ -117,15 +117,6 @@ export const SKILL_NAME = "harness-doctor";
 
 export const DEAD_CODE_WORKER_TIMEOUT_MS = 120_000;
 
-// deslop's semantic pass builds a full TypeScript program and walks
-// every identifier through the type checker. On type-heavy projects
-// (large tRPC routers, Effect/Zod schemas, deep generics) the checker
-// instantiates enormous types and the child can exceed Node's default
-// ~4 GB heap, dying with an uncatchable "heap out of memory" — which
-// surfaces as a silent "Scanning failed (dead-code analysis)". Raise
-// the child's heap so those projects complete instead of crashing.
-export const DEAD_CODE_WORKER_MAX_OLD_SPACE_MB = 8192;
-
 // HACK: lookahead cap for JSX opener-span scanning; bounds worst-case
 // work on pathological files. Real openers stay well under this.
 export const JSX_OPENER_SCAN_MAX_LINES = 32;

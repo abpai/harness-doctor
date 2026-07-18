@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, describe, expect, it } from "vite-plus/test";
+import { afterAll, describe, expect, it, vi } from "vite-plus/test";
 import { checkDeadCode } from "../src/check-dead-code.js";
+import { mergeAndFilterDiagnostics } from "../src/merge-and-filter-diagnostics.js";
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "rd-check-dead-code-"));
 
@@ -30,11 +31,7 @@ const setupProject = (caseId: string, files: Record<string, string>): string => 
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, contents);
   }
-  // Canonicalize: `checkDeadCode` realpaths its root (so deslop's
-  // fast-glob graph lines up with oxc-resolver), and `os.tmpdir()` is a
-  // symlink into /private on macOS — tests that build worker paths from
-  // this directory must use the same canonical form.
-  return fs.realpathSync(projectDirectory);
+  return projectDirectory;
 };
 
 // A Next.js `src/` project whose only edges into `Button` / `format`
@@ -114,22 +111,63 @@ describe("checkDeadCode", () => {
     expect(orphan?.help).toContain("Dead-code analysis is heuristic");
   });
 
-  it("honors ignore patterns from .gitignore and userConfig.ignore.files", async () => {
+  it("honors .gitignore without overriding the repository's Knip configuration", async () => {
     const directory = setupProject("ignore-patterns", {
       "src/index.ts": "export const used = 1;\n",
       "src/gitignored.ts": "export const a = 1;\n",
-      "src/configignored.ts": "export const b = 1;\n",
+      "src/configured-entry.ts": "export const b = 1;\n",
       ".gitignore": "src/gitignored.ts\n",
+      "knip.json": JSON.stringify({
+        entry: ["src/index.ts", "src/configured-entry.ts"],
+        project: ["src/**/*.ts"],
+      }),
     });
     const diagnostics = await checkDeadCode({
       rootDirectory: directory,
-      userConfig: { ignore: { files: ["src/configignored.ts"] } },
+      userConfig: { ignore: { files: ["src/configured-entry.ts"] } },
     });
     const flagged = diagnostics
       .filter((diagnostic) => diagnostic.rule === "unused-file")
       .map((diagnostic) => diagnostic.filePath);
     expect(flagged.some((entry) => entry.endsWith("gitignored.ts"))).toBe(false);
-    expect(flagged.some((entry) => entry.endsWith("configignored.ts"))).toBe(false);
+    expect(flagged.some((entry) => entry.endsWith("configured-entry.ts"))).toBe(false);
+  });
+
+  it("leaves Harness ignore.files filtering to the shared diagnostic pipeline", async () => {
+    const directory = setupProject("harness-ignore", {
+      "src/index.ts": "export const used = 1;\n",
+      "src/ignored-by-harness.ts": "export const ignored = 1;\n",
+      "knip.json": JSON.stringify({
+        entry: ["src/index.ts"],
+        project: ["src/**/*.ts"],
+      }),
+    });
+    const diagnostics = await checkDeadCode({ rootDirectory: directory });
+    expect(diagnostics.map((diagnostic) => diagnostic.filePath)).toContain(
+      "src/ignored-by-harness.ts",
+    );
+    const filtered = mergeAndFilterDiagnostics(
+      diagnostics,
+      directory,
+      { ignore: { files: ["src/ignored-by-harness.ts"] } },
+      () => null,
+    );
+    expect(filtered.map((diagnostic) => diagnostic.filePath)).not.toContain(
+      "src/ignored-by-harness.ts",
+    );
+  });
+
+  it("respects repository-owned knip.json ignoreFiles", async () => {
+    const directory = setupProject("knip-config", {
+      "src/index.ts": "export const used = 1;\n",
+      "src/ignored.ts": "export const ignored = 1;\n",
+      "knip.json": JSON.stringify({
+        entry: ["src/index.ts"],
+        project: ["src/**/*.ts"],
+        ignoreFiles: ["src/ignored.ts"],
+      }),
+    });
+    expect(await flaggedUnusedFiles(directory)).not.toContain("src/ignored.ts");
   });
 
   it("maps unused exports, dependencies, and cycles from worker results", async () => {
@@ -143,36 +181,19 @@ describe("checkDeadCode", () => {
       rootDirectory: directory,
       createWorker: () => ({
         result: Promise.resolve({
-          unusedFiles: [],
-          unusedExports: [
+          issues: [
             {
-              path: path.join(directory, "src", "index.ts"),
-              name: "unused",
-              line: 3,
-              column: 14,
-              isTypeOnly: false,
-            },
-            {
-              path: path.join(directory, "src", "index.ts"),
-              name: "UnusedType",
-              line: 4,
-              column: 12,
-              isTypeOnly: true,
-            },
-          ],
-          unusedDependencies: [
-            {
-              name: "left-pad",
-              isDevDependency: false,
-            },
-            {
-              name: "vitest",
-              isDevDependency: true,
-            },
-          ],
-          circularDependencies: [
-            {
-              files: [path.join(directory, "src", "a.ts"), path.join(directory, "src", "b.ts")],
+              file: path.join(directory, "packages", "web", "package.json"),
+              exports: [{ name: "unused", line: 3, col: 14 }],
+              types: [{ name: "UnusedType", line: 4, col: 12 }],
+              dependencies: [{ name: "left-pad" }],
+              devDependencies: [{ name: "vitest" }],
+              cycles: [
+                [
+                  { name: path.join(directory, "src", "a.ts") },
+                  { name: path.join(directory, "src", "b.ts") },
+                ],
+              ],
             },
           ],
         }),
@@ -192,7 +213,68 @@ describe("checkDeadCode", () => {
     expect(
       diagnostics.find((diagnostic) => diagnostic.rule === "circular-dependency")?.message,
     ).toContain("src/a.ts → src/b.ts");
+    expect(
+      diagnostics.find((diagnostic) => diagnostic.rule === "unused-dependency")?.filePath,
+    ).toBe("packages/web/package.json");
     expectHeuristicCaveat(diagnostics);
+  });
+
+  it("uses an injected Knip CLI resolver before constructing the worker", async () => {
+    const directory = setupProject("injected-knip-resolver", {
+      "src/index.ts": "export const used = 1;\n",
+    });
+    let resolved = false;
+    await checkDeadCode({
+      rootDirectory: directory,
+      resolveKnipCliPath: () => {
+        resolved = true;
+        return "C:\\isolated-store\\knip\\bin\\knip.js";
+      },
+      createWorker: (input) => {
+        expect(input.knipCliPath).toBe("C:\\isolated-store\\knip\\bin\\knip.js");
+        return { result: Promise.resolve({ issues: [] }) };
+      },
+    });
+    expect(resolved).toBe(true);
+  });
+
+  it("forwards Knip configuration hints without corrupting its JSON reporter output", async () => {
+    const orphanFiles = Object.fromEntries(
+      Array.from({ length: 21 }, (_, index) => [
+        `src/orphan-${index}.ts`,
+        `export const orphan${index} = ${index};\n`,
+      ]),
+    );
+    const directory = setupProject("knip-hints", {
+      "src/index.ts": "export const used = 1;\n",
+      "knip.json": JSON.stringify({
+        entry: ["src/index.ts"],
+        project: ["src/**/*.ts"],
+      }),
+      ...orphanFiles,
+    });
+    let stderr = "";
+    const write = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      stderr += String(chunk);
+      return true;
+    });
+    try {
+      const diagnostics = await checkDeadCode({ rootDirectory: directory });
+      expect(diagnostics.length).toBeGreaterThan(20);
+    } finally {
+      write.mockRestore();
+    }
+    expect(stderr).toContain("Configuration hints");
+  });
+
+  it("includes Knip configuration failures in the rejected analysis reason", async () => {
+    const directory = setupProject("invalid-knip-config", {
+      "src/index.ts": "export const used = 1;\n",
+      "knip.json": "{ this is invalid json",
+    });
+    await expect(checkDeadCode({ rootDirectory: directory })).rejects.toThrow(
+      "Knip exited with code 2",
+    );
   });
 
   it("rejects malformed worker results instead of silently dropping diagnostics", async () => {
@@ -205,14 +287,11 @@ describe("checkDeadCode", () => {
         rootDirectory: directory,
         createWorker: () => ({
           result: Promise.resolve({
-            unusedFiles: [{ path: 1 }],
-            unusedExports: [],
-            unusedDependencies: [],
-            circularDependencies: [],
+            issues: [{ file: "src/index.ts", files: [{ name: 1 }] }],
           }),
         }),
       }),
-    ).rejects.toThrow("unusedFiles[0].path");
+    ).rejects.toThrow("issues[0].files[0].name");
   });
 
   it("times out a stuck worker", async () => {
@@ -236,11 +315,8 @@ describe("checkDeadCode", () => {
     expect(didTerminate).toBe(true);
   });
 
-  // deslop's import-graph resolution (oxc-resolver targets matched against
-  // fast-glob's collected paths) only lines up on POSIX; on Windows it
-  // mis-flags imported files regardless of the canonical-root fix — a
-  // deslop limitation, not the canonicalization (orphan detection passes
-  // on Windows). The symlinked-root scenario is itself POSIX/macOS.
+  // Knip resolves project configuration from the scan root, so the alias
+  // fixtures exercise both the configured entry point and path aliases.
   describe.skipIf(process.platform === "win32")("import-graph resolution (POSIX)", () => {
     it("does not flag files imported only through @/* tsconfig path aliases", async () => {
       // Canonicalize so this case isolates alias resolution from the

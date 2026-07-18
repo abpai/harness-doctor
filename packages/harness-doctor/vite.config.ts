@@ -81,23 +81,13 @@ export default defineConfig({
           "confbox",
           "jiti",
           "magicast",
-          // HACK: deslop-js wraps oxc-parser / oxc-resolver, both of
-          // which load platform-specific NAPI bindings via require().
-          // Rollup happily inlines the JS loader chain but rewrites
-          // the native lookups to fingerprinted `./assets/*.node`
-          // paths that never make it into the published tarball (and
-          // also strips the standard `@oxc-{parser,resolver}/binding-
-          // <platform>` fallback). Keep deslop-js (and its native
-          // siblings) external so the loaders run untouched and Node
-          // resolves the bindings from the deslop-js node_modules
-          // tree on install — see issue #404.
-          "deslop-js",
+          // Knip is a CLI subprocess resolved at runtime by core. Keep it
+          // external so the published package retains its bin entry.
+          "knip",
           // Effect ships as ~1MB+ of tree-shakable TypeScript; bundling
           // it would balloon the published tarball. Match harness-doctor-evals
           // and let installers pull it as a regular dependency.
           "effect",
-          "oxc-parser",
-          "oxc-resolver",
           "prompts",
           "typescript",
         ],
@@ -135,10 +125,8 @@ export default defineConfig({
           "confbox",
           "jiti",
           "magicast",
-          "deslop-js",
+          "knip",
           "effect",
-          "oxc-parser",
-          "oxc-resolver",
           "prompts",
           "typescript",
         ],
@@ -153,8 +141,7 @@ export default defineConfig({
     testTimeout: TEST_TIMEOUT_MS,
     // NOTE: do NOT pin Windows onto a single serial fork
     // (`singleFork` / `maxWorkers: 1` / `fileParallelism: false`).
-    // This suite drives per-test deslop `worker_threads` thousands of
-    // times; funneling all ~105 test
+    // This suite drives a child-process analysis in dead-code tests; funneling all ~105 test
     // files through one long-lived worker lets that process accumulate
     // memory/handles across the whole run and crash near the end, which
     // vitest reports as "Worker exited unexpectedly" (Worker forks

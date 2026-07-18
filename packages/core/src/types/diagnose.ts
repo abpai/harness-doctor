@@ -32,7 +32,7 @@ export interface DiagnoseResult {
   score: ScoreResult | null;
   /**
    * Checks that did not run to completion (e.g. `"dead-code"` when the
-   * `deslop-js` native binding crashed). Empty when everything ran.
+   * Knip could not complete). Empty when everything ran.
    * Mirrors `InspectResult.skippedChecks`.
    */
   skippedChecks: string[];

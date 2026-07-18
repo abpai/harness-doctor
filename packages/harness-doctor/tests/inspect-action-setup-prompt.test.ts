@@ -70,7 +70,7 @@ vi.mock("../src/cli/utils/select-projects.js", () => ({
 }));
 
 vi.mock("../src/cli/utils/should-skip-prompts.js", () => ({
-  shouldSkipPrompts: vi.fn(() => false),
+  shouldSkipPrompts: vi.fn((flags: { yes?: boolean }) => flags.yes === true),
 }));
 
 vi.mock("../src/cli/utils/render-multi-project-summary.js", async () => {
@@ -173,5 +173,45 @@ describe("inspectAction setup prompt", () => {
         includePaths: ["src/Dashboard.tsx"],
       }),
     );
+  });
+
+  it("runs dead-code only at the selected monorepo root", async () => {
+    const rootDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-root-dead-code-"));
+    tempDirectories.push(rootDirectory);
+    const webDirectory = path.join(rootDirectory, "apps", "web");
+    writePackageJson(rootDirectory, { name: "monorepo", workspaces: ["apps/*"] });
+    writePackageJson(webDirectory, { name: "web" });
+
+    mockState.rootDirectory = rootDirectory;
+    mockState.projectDirectories = [rootDirectory, webDirectory];
+
+    await inspectAction(rootDirectory, { deadCode: true, lint: false, yes: true });
+
+    expect(inspect).toHaveBeenNthCalledWith(
+      1,
+      rootDirectory,
+      expect.objectContaining({ deadCode: true }),
+    );
+    expect(inspect).toHaveBeenNthCalledWith(
+      2,
+      webDirectory,
+      expect.objectContaining({ deadCode: false }),
+    );
+  });
+
+  it("preserves dead-code for a single explicitly selected project", async () => {
+    const rootDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "harness-doctor-child-dead-code-"));
+    tempDirectories.push(rootDirectory);
+    const webDirectory = path.join(rootDirectory, "apps", "web");
+    writePackageJson(rootDirectory, { name: "monorepo", workspaces: ["apps/*"] });
+    writePackageJson(webDirectory, { name: "web" });
+
+    mockState.rootDirectory = rootDirectory;
+    mockState.projectDirectories = [webDirectory];
+
+    await inspectAction(rootDirectory, { deadCode: true, lint: false, project: "web", yes: true });
+
+    expect(inspect).toHaveBeenCalledTimes(1);
+    expect(inspect).toHaveBeenCalledWith(webDirectory, expect.objectContaining({ deadCode: true }));
   });
 });

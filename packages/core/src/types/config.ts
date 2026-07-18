@@ -108,7 +108,7 @@ export interface HarnessDoctorConfig {
   $schema?: string;
   ignore?: HarnessDoctorIgnoreConfig;
   /**
-   * Whether to run dead-code analysis (via `deslop-js`) alongside the
+   * Whether to run dead-code analysis (via Knip) alongside the
    * docs-structure checks. Reports unused files, unused exports, unused dependencies, and
    * circular imports under the "Maintainability" category. Default: `true`.
    * Always skipped in `--diff` / `--staged` modes because reachability
