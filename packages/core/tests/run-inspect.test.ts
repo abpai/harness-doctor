@@ -36,7 +36,7 @@ const sampleProject: ProjectInfo = {
 
 const deadCodeDiagnostic: Diagnostic = {
   filePath: "src/Unused.tsx",
-  plugin: "deslop",
+  plugin: "knip",
   rule: "unused-file",
   severity: "warning",
   message: "Unused file",
@@ -402,7 +402,7 @@ describe("runInspect — Reporter sees post-filter diagnostics", () => {
 });
 
 describe("runInspect — ignored tags drop whole rule families", () => {
-  it("drops deslop diagnostics when ignore.tags includes dead-code", async () => {
+  it("drops Knip diagnostics when ignore.tags includes dead-code", async () => {
     const layers = Layer.mergeAll(
       Project.layerOf(sampleProject),
       Config.layerOf({

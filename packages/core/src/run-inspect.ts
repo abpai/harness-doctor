@@ -274,7 +274,7 @@ export const runInspect = <HooksR = never>(
     );
 
     // Dead-code analysis only ever emits `"warning"`-severity diagnostics
-    // (the `deslop` plugin, all `Maintainability`). Warnings show by
+    // (the `knip` plugin, all `Maintainability`). Warnings show by
     // default, so this normally runs; only when the user opts out via
     // `--no-warnings` / `warnings: false` is that output filtered out
     // before it reaches any surface or the score, making the expensive

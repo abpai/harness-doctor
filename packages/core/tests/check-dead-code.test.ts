@@ -105,7 +105,7 @@ describe("checkDeadCode", () => {
         diagnostic.rule === "unused-file" && diagnostic.filePath.endsWith("orphan.ts"),
     );
     expect(orphan).toBeDefined();
-    expect(orphan?.plugin).toBe("deslop");
+    expect(orphan?.plugin).toBe("knip");
     expect(orphan?.category).toBe("Maintainability");
     expect(orphan?.filePath.includes("\\")).toBe(false);
     expect(orphan?.help).toContain("Dead-code analysis is heuristic");

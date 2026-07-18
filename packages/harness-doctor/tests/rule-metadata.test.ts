@@ -18,7 +18,7 @@ import {
 describe("rule catalog conventions", () => {
   it("registers the docs-structure, supply-chain, and dead-code families", () => {
     const plugins = new Set(HARNESS_DOCTOR_RULE_CATALOG.map((entry) => entry.plugin));
-    expect(plugins).toEqual(new Set(["harness-doctor", "deslop"]));
+    expect(plugins).toEqual(new Set(["harness-doctor", "knip"]));
     expect(
       HARNESS_DOCTOR_RULE_CATALOG.filter((entry) => entry.rule.startsWith("docs-structure/"))
         .length,

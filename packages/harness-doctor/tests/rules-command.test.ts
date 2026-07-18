@@ -306,7 +306,8 @@ describe("rules list / explain JSON output", () => {
       const output = await captureLog(() => rulesDefaultAction({ cwd: fixture.projectRoot }));
       expect(output.length).toBeGreaterThan(0);
       expect(output).toContain("harness-doctor/docs-structure/entry-point-exists");
-      expect(output).toContain("deslop/unused-file");
+      expect(output).toContain("knip/unused-file");
+      expect(output).not.toContain("deslop/unused-file");
     } finally {
       if (stdoutDescriptor) {
         Object.defineProperty(process.stdout, "isTTY", stdoutDescriptor);

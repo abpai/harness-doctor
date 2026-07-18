@@ -9,7 +9,7 @@ const isSurfacingOverride = (override: RuleSeverityOverride | undefined): boolea
 
 // Dead-code findings are all `"warning"`-severity in the `Maintainability`
 // category, so they're dropped when warnings are hidden — UNLESS a severity
-// override restamps them. A per-rule (`deslop/*`) or per-category
+// override restamps them. A per-rule (`knip/*`) or per-category
 // (`Maintainability`) override to `"warn"` survives the global hide, and one
 // to `"error"` shows unconditionally. When such an override exists the
 // (expensive) analysis must still run even with warnings off, otherwise the

@@ -6,10 +6,7 @@ import type { Diagnostic, HarnessDoctorConfig } from "./types/index.js";
 import { DEAD_CODE_WORKER_TIMEOUT_MS, MILLISECONDS_PER_SECOND } from "./constants.js";
 import { toRelativePath } from "./utils/to-relative-path.js";
 
-// Keep the established diagnostic namespace stable while Knip replaces the
-// implementation. Existing suppression and severity configuration uses these
-// keys, so changing them would be a breaking public API change.
-export const DEAD_CODE_PLUGIN = "deslop";
+export const DEAD_CODE_PLUGIN = "knip";
 export const DEAD_CODE_CATEGORY = "Maintainability";
 
 interface CheckDeadCodeOptions {
