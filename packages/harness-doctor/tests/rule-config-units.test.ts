@@ -36,7 +36,8 @@ describe("buildRuleCatalog", () => {
   });
 
   it("covers the dead-code family", () => {
-    expect(findRuleInCatalog(catalog, "deslop/unused-file")).toBeDefined();
+    expect(findRuleInCatalog(catalog, "knip/unused-file")).toBeDefined();
+    expect(findRuleInCatalog(catalog, "deslop/unused-file")).toBeUndefined();
   });
 });
 
@@ -116,7 +117,7 @@ describe("resolveEffectiveRuleSeverity", () => {
 
 describe("resolveEffectiveRuleSeverity — tag gate", () => {
   it("an ignored tag turns the whole family off", () => {
-    const entry = findRequiredRule("deslop/unused-file");
+    const entry = findRequiredRule("knip/unused-file");
     const result = resolveEffectiveRuleSeverity({ ignore: { tags: ["dead-code"] } }, entry);
     expect(result).toEqual({ value: "off", source: "tag" });
   });

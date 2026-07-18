@@ -21,7 +21,7 @@ export type RuleDefaultSeverity = "error" | "warn";
 export interface CoreRuleMetadata {
   /** Fully-qualified rule key (`"<plugin>/<rule>"`) used in config files. */
   readonly key: string;
-  /** Diagnostic `plugin` field (e.g. `"harness-doctor"`, `"deslop"`). */
+  /** Diagnostic `plugin` field (e.g. `"harness-doctor"`, `"knip"`). */
   readonly plugin: string;
   /** Diagnostic `rule` field (e.g. `"docs-structure/spec-contract-exists"`). */
   readonly rule: string;
@@ -56,8 +56,8 @@ const docsStructureRule = (
 });
 
 const deadCodeRule = (rule: string, recommendation: string): CoreRuleMetadata => ({
-  key: `deslop/${rule}`,
-  plugin: "deslop",
+  key: `knip/${rule}`,
+  plugin: "knip",
   rule,
   category: "Maintainability",
   defaultSeverity: "warn",

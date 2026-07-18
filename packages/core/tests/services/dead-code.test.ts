@@ -7,7 +7,7 @@ import { DeadCode } from "../../src/services/dead-code.js";
 
 const sampleDiagnostic: Diagnostic = {
   filePath: "src/UnusedFile.tsx",
-  plugin: "deslop",
+  plugin: "knip",
   rule: "unused-file",
   severity: "warning",
   message: "Unused file",

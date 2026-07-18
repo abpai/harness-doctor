@@ -59,7 +59,7 @@ describe("inspect", () => {
       suppressRendering: true,
     });
 
-    expect(result.diagnostics.map((diagnostic) => diagnostic.plugin)).not.toContain("deslop");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.plugin)).not.toContain("knip");
   });
 
   it("honors configOverride.baselineCheck=true", async () => {

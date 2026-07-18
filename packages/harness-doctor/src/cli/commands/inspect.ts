@@ -330,6 +330,9 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
     const allDiagnostics: Diagnostic[] = [];
     const completedScans: Array<{ directory: string; result: InspectResult }> = [];
     const isMultiProject = projectDirectories.length > 1;
+    const isRootIncludedInSelection = projectDirectories.some(
+      (projectDirectory) => path.resolve(projectDirectory) === resolvedDirectory,
+    );
 
     for (const projectDirectory of projectDirectories) {
       let includePaths: string[] | undefined;
@@ -353,6 +356,14 @@ export const inspectAction = async (directory: string, flags: InspectFlags): Pro
       }
       const scanResult = await inspect(projectDirectory, {
         ...scanOptions,
+        // Knip discovers the complete workspace graph from the monorepo root.
+        // Re-running it inside every child loses cross-workspace usage edges and
+        // duplicates findings. Keep structural and lint scans per project, but
+        // run dead-code only once when the user selected the root as well.
+        deadCode:
+          isRootIncludedInSelection && path.resolve(projectDirectory) !== resolvedDirectory
+            ? false
+            : scanOptions.deadCode,
         includePaths,
         configOverride: userConfig,
         suppressRendering: isMultiProject,

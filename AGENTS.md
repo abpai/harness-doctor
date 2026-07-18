@@ -14,7 +14,7 @@ record) for detail. Keep it short and let `docs/` carry the depth.
   and emit `Diagnostic[]`. The template is `checks/pnpm-hardening.ts`. The
   flagship group is the docs-structure checks (does the harness have an
   entry-point file, is it a map not a manual, does `docs/` exist, etc.).
-- **Dead-code analysis** (`deslop-js`) — unused files, unused exports, unused
+- **Dead-code analysis** (`Knip`) — unused files, unused exports, unused
   dependencies, and circular imports, reported under "Maintainability".
 
 See `docs/` for how to add a check:

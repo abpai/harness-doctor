@@ -16,9 +16,9 @@ describe("hasPublishedFixRecipe", () => {
     ).toBe(false);
   });
 
-  it("is false for dead-code diagnostics (deslop has no recipes)", () => {
-    expect(hasPublishedFixRecipe({ plugin: "deslop", rule: "unused-file" })).toBe(false);
-    expect(hasPublishedFixRecipe({ plugin: "deslop", rule: "circular-dependency" })).toBe(false);
+  it("is false for dead-code diagnostics (Knip has no recipes)", () => {
+    expect(hasPublishedFixRecipe({ plugin: "knip", rule: "unused-file" })).toBe(false);
+    expect(hasPublishedFixRecipe({ plugin: "knip", rule: "circular-dependency" })).toBe(false);
   });
 
   it("is false for unknown plugins", () => {

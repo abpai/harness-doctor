@@ -2,7 +2,6 @@
 auto = "disable"
 linker = "isolated"
 minimumReleaseAge = 604800
-minimumReleaseAgeExcludes = ["deslop-js"]
 
 [run]
 bun = true

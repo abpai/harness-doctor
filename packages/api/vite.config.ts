@@ -5,14 +5,7 @@ export default defineConfig({
     {
       entry: { index: "./src/index.ts" },
       deps: {
-        neverBundle: [
-          "@effect/platform-bun",
-          "deslop-js",
-          "effect",
-          "oxc-parser",
-          "oxc-resolver",
-          "typescript",
-        ],
+        neverBundle: ["@effect/platform-bun", "effect", "knip", "typescript"],
       },
       dts: true,
       target: "esnext",
